@@ -18,118 +18,30 @@ use tokio::{
     },
 };
 
-use futures_util::{select, stream::StreamExt, SinkExt};
+use crate::live::msg::Msg;
+
+use futures_util::{stream::StreamExt, SinkExt};
 use tokio::net::TcpListener;
-use tokio_tungstenite::tungstenite::{Message, Utf8Bytes, WebSocket};
+use tokio::select;
+use tokio_tungstenite::tungstenite::{
+    handshake::{self, server::Callback},
+    http::Response,
+    Message, Utf8Bytes, WebSocket,
+};
 
-// Default port of the live protocol
+/// Version of the protocol, defined its specification
+pub const PROTOCOL_VERSION: &str = "0.1.0";
+/// Default port of the live protocol
 pub const DEFAULT_LIVE_PORT: u16 = 9120;
+/// Header sent during WebSocket handshake to announce the protocol version
+const HEADER_LIVE_PROTOCOL_VERSION: &str = "LiveProtocolVersion";
+/// Header sent during WebSocket handshake to announce the client id
+const HEADER_LIVE_CLIENT_ID: &str = "LiveClientId";
 
-/// A live session
-pub struct Session {
-    /// An arbitrary name defined by the leader to help followers choose the correct sessions
-    /// among the multiple live sessions at the same time on the same group_id
-    /// We imagine it could be named like "Course name - Teacher fullname"
-    pub name: String,
-    /// The group id is a way to group related sessions together.
-    /// This can be an arbitrary string chosen by leader clients when creating a session.
-    /// Listing available sessions can only be done via this group_id to filter the list
-    /// By default, PLX clients will send the Git HTTPS link
-    pub group_id: String,
-}
-
-/// The live server serving live sessions
+/// The live server serving live sessions, this server is an async implementation
+/// with the Tokio runtime
 pub struct LiveServer {
-    // /// The single thread used to accept TCP connection
-    // accept_thread: JoinHandle<()>,
-    // /// A list of thread waiting on clients messages, one thread per connected client
-    // client_threads: Arc<Mutex<Vec<JoinHandle<()>>>>,
     runtime: Runtime,
-}
-
-/// Internal connected client struct
-/// It is responsible to wait on the websocket.read() and external_write_rx.read()
-/// If there is an external write, just send it, if there is a message from the client
-/// we verify the message has the right to be sent
-struct Client {
-    client_id: String,
-    role: ClientRole,
-    /// The WebSocket where the client is connected, on which we can send() or read()
-    websocket: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
-    /// Allow to send a message to this client from the session manager
-    external_write_rx: UnboundedReceiver<Msg>,
-    /// A way to send Msg to the session manager if the message is authorized by the role
-    /// That's an Option because the client will exist before creating/joining a session
-    session_tx: Option<UnboundedSender<Msg>>,
-    /// A way to interact with the server only to ask to create or join session
-    server_tx: UnboundedSender<Msg>, //TODO: really ? not a mutex here as used very few ?
-}
-
-impl Client {
-    async fn run(&mut self) {
-        select! {
-            stream_el = self.websocket.next() => {
-                match stream_el {
-                    Some(Ok(msg)) => {
-                        match Msg::from_ws_msg(&msg) {
-                            Ok(Msg::Init { client_id }) => {},
-                            Ok(Msg::DeleteSession { stop_secret }) => {
-                                if self.role == ClientRole::Follower {
-                                    warn!("Got a DeleteSession with a follower role: {}", msg);
-                                    return; // that's a forged request,
-                                }
-                            },
-                            Ok(Msg::CreateSession { name, group_id }) => {
-                                // TODO
-                                self.role = ClientRole::Leader
-                            },
-                            // Just forward the message to the session if it's a valid message
-                            Ok(any_valid_msg) => {self.session_tx.as_ref().unwrap().send(any_valid_msg);}
-                            Err(e) => info!("{}", e)
-                        }
-                    }
-                    None => { self.websocket.close(None); }
-                    _ => ()
-                }
-            }
-        };
-    }
-}
-
-// enum ServerSessionAction {
-//     CreateSession {
-//         session: Session,
-//         /// A way for the server to answer
-//         get_back_session_tx: oneshot::Sender<UnboundedSender<Msg>>,
-//     },
-// }
-
-#[derive(Eq, PartialEq)]
-enum ClientRole {
-    /// Default role, for anyone following a session
-    Follower,
-    /// When the client creates a session, it becames a leader client
-    Leader,
-}
-
-#[derive(Serialize, Deserialize)]
-enum Msg {
-    Init { client_id: String },
-    CreateSession { name: String, group_id: String },
-    DeleteSession { stop_secret: String },
-    GetSessions { group_id: String },
-    SendCode { file: String, content: String },
-    SendResult { check_id: u32, passed: bool },
-}
-
-impl Msg {
-    pub fn from_ws_msg(ws_msg: &Message) -> Result<Msg, String> {
-        match ws_msg {
-            Message::Text(utf8) => serde_json::from_str::<Msg>(&utf8)
-                .map_err(|e| format!("Couldn't parse message: {e}")),
-            _ => Err("Message was not in Text format".to_string()),
-        }
-    }
 }
 
 impl LiveServer {
@@ -160,36 +72,57 @@ impl LiveServer {
 
     /// Once a TcpSocket has been accepted into a TcpStream, we can start the websocket connection
     async fn process_client(stream: TcpStream) {
-        // TODO: check version number, maybe via accept_hdr ?
+        let mut client_id: Option<String> = None;
+        let check_handshake_callback = |request: &handshake::server::Request,
+                                        response: handshake::server::Response|
+         -> Result<
+            handshake::server::Response,
+            handshake::server::ErrorResponse,
+        > {
+            let protocol_version = request
+                .headers()
+                .get(HEADER_LIVE_PROTOCOL_VERSION)
+                .ok_or_else(|| {
+                    Response::builder()
+                        .status(400)
+                        .body(Some(
+                            "Missing LiveProtocolVersion field in the HTTP headers.".to_string(),
+                        ))
+                        .unwrap_or_default()
+                })?;
+
+            let version = protocol_version.to_str().map_err(|e| {
+                Response::builder()
+                    .status(400)
+                    .body(Some(format!("{}", e)))
+                    .unwrap_or_default()
+            })?;
+
+            if version != PROTOCOL_VERSION {
+                return Err(Response::builder()
+                        .status(400)
+                        .body(Some(format!("The server is only working with a live protocol version of {}, please make sure the client match this need.", PROTOCOL_VERSION)))
+                        .unwrap_or_default());
+            }
+
+            // let error = client_id = request.headers().get(HEADER_LIVE_CLIENT_ID)?;
+            Ok(response)
+        };
 
         // Accept the websocket stream with websocket handshake
-        match tokio_tungstenite::accept_async(stream).await {
+        match tokio_tungstenite::accept_hdr_async(stream, check_handshake_callback).await {
             Ok(mut websocket) => {
-                // Wait on the Init message
-                let first_msg = websocket.next().await;
-                if let Some(Ok(Message::Text(text))) = first_msg {
-                    match serde_json::from_str::<Msg>(text.as_str()) {
-                        Ok(Msg::Init { client_id }) => {
-                            let client = Client {
-                                client_id,
-                                role: ClientRole::Follower,
-                                websocket,
-                                external_write_rx: todo!(),
-                                session_tx: todo!(),
-                                server_tx: todo!(),
-                            };
-                            client.run();
-                        }
-                        // Ignore failed init message, we don't want to spend time sending responses to
-                        // invalid clients at this point, this is probably spam
-                        // TODO: good idea ?
-                        _ => {
-                            info!("Client failed to Init");
-                            websocket.close(None).await;
-                        }
-                    }
-                }
-                let a = websocket.next().await;
+                let client = Client {
+                    client_id,
+                    role: ClientRole::Follower,
+                    websocket,
+                    external_write_rx: todo!(),
+                    session_tx: todo!(),
+                    server_tx: todo!(),
+                };
+
+                // Let the client continue in its own separated task
+                tokio::spawn(client.run());
             }
             Err(e) => warn!("Got a handshake error: {}", e.to_string()),
         }

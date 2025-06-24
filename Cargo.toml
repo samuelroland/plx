@@ -25,7 +25,7 @@ log = "0.4.22"
 simplelog = "0.12.2"
 syntect = "5.0"
 ansi-to-tui = "6.0.0"
-tokio = { version = "1", features = ["rt", "net"] }
+tokio = { version = "1", features = ["rt", "net", "macros"] }
 tokio-tungstenite = "0.27.0"
 tokio-stream = "0.1.17"
 futures-util = "0.3.31"
