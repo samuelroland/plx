@@ -3,6 +3,7 @@ use simplelog::*;
 use std::fs::File;
 pub mod app;
 pub mod core;
+pub mod live;
 pub mod models;
 pub mod ui;
 
