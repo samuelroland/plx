@@ -1,4 +1,5 @@
 use std::{
+    error::Error,
     fmt::Display,
     time::{Instant, SystemTime},
 };
@@ -6,62 +7,51 @@ use std::{
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::tungstenite::{Message, Utf8Bytes};
 
-/// The protocol defines the possible messages, sent from the clients or the server
-/// Some messages can be used for a request of something, some others are responding to another request
-/// We avoid naming it `Message` because there is already `tungstenite::Message`
+use crate::models::check_state::CheckState;
+
+// TODO: Temporary copy in waiting of refactor to access that
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum Msg {
-    StartSession {
-        name: String,
-        group_id: String,
-    },
-    SessionStarted,
-    StopSession,    // the client_id will be used to verify the permission
-    SessionStopped, // event to broadcast to all clients in the session
-    GetSessions {
-        group_id: String,
-    },
-    JoinSession {
-        name: String,
-        group_id: String,
-    },
-    SessionJoined, // as a confirmation that JoinSession worked
+enum CheckStatus {
+    Passed,
+    Failed(String, String),
+    RunFail(String),
+}
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct ExoCheckResult {
+    state: CheckStatus,
+}
+
+/// The protocol defines a set of valid actions that only clients can send
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum Action {
+    // Actions on sessions
+    StartSession { name: String, group_id: String },
+    StopSession, // the client_id will be used to verify the permission
+    JoinSession { name: String, group_id: String },
     LeaveSession,
-    // Stats for leaders about how much followers have joined
+    GetSessions { group_id: String },
+
+    // Code exo syncing
+    SendFile { file: String, content: String },
+    SendResult { check_result: ExoCheckResult },
+}
+
+/// The server can send some events to one, some or all clients of the session
+/// These events are generated after an action, in this case they are not necessarily sent to the
+/// author of the action, but could sent to other clients.
+/// These events can also be generated directly by the server (after some timeout or OS signal received)
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum Event {
+    SessionStarted,
+    SessionStopped,
+    SessionJoined,
     Stats {
         followers_count: u16,
         leaders_count: u16,
     },
-
-    // Code exo syncing
-    SendFile {
-        file: String,
-        content: String,
-    },
     ForwardFile(ClientNum, ForwardedFile),
-    SendResult {
-        check_id: u32,
-        passed: bool,
-    },
     ForwardResult(ClientNum, ForwardedResult),
-
     Error(LiveProtocolError),
-}
-
-/// Implement serialisation and deserialisation strategy for this Msg
-impl Msg {
-    pub fn from_ws_msg(ws_msg: &Message) -> Result<Msg, String> {
-        match ws_msg {
-            Message::Text(utf8) => serde_json::from_str::<Msg>(utf8)
-                .map_err(|e| format!("Couldn't parse message: {e}")),
-            _ => Err("Message was not in Text format".to_string()),
-        }
-    }
-    pub fn into_ws_msg(&self) -> Result<Message, String> {
-        let str = serde_json::to_string(&self).map_err(|e| e.to_string())?;
-        let bytes = Utf8Bytes::from(str);
-        Ok(Message::Text(bytes))
-    }
 }
 
 /// An error sent from the server to clients after any message
@@ -96,13 +86,67 @@ pub struct ForwardedFile {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ForwardedResult {
     /// The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h"
-    pub check_id: u32,
-    pub passed: bool,
+    pub check_result: ExoCheckResult,
     /// The time where this result was received on the server
     pub time: std::time::SystemTime,
 }
 
 /// A incremental number attributed by the server to each client after session join, to let clients identify other clients.
 /// This MUST NOT be derived from the secret client_id, this ClientNum is not secret but should be different at each session.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, Hash, Clone, Debug)]
 pub struct ClientNum(pub u16);
+
+// Implement serialisation and deserialisation strategy for Event and Action.
+// Currently this is using JSON via serde_json
+// TODO: how to avoid this annoying duplication ?? a macro ?
+impl TryInto<Utf8Bytes> for Action {
+    type Error = std::io::Error;
+    fn try_into(self) -> Result<Utf8Bytes, std::io::Error> {
+        let str = serde_json::to_string(&self).map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Couldn't parse message: {e}"),
+            )
+        })?;
+        Ok(Utf8Bytes::from(str))
+    }
+}
+
+impl TryFrom<Utf8Bytes> for Action {
+    type Error = std::io::Error;
+
+    fn try_from(value: Utf8Bytes) -> Result<Action, std::io::Error> {
+        serde_json::from_str::<Action>(&value).map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Couldn't parse message: {e}"),
+            )
+        })
+    }
+}
+
+impl TryInto<Utf8Bytes> for Event {
+    type Error = std::io::Error;
+    fn try_into(self) -> Result<Utf8Bytes, std::io::Error> {
+        let str = serde_json::to_string(&self).map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Couldn't parse message: {e}"),
+            )
+        })?;
+        Ok(Utf8Bytes::from(str))
+    }
+}
+
+impl TryFrom<Utf8Bytes> for Event {
+    type Error = std::io::Error;
+
+    fn try_from(value: Utf8Bytes) -> Result<Event, std::io::Error> {
+        serde_json::from_str::<Event>(&value).map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Couldn't parse message: {e}"),
+            )
+        })
+    }
+}
