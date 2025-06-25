@@ -24,10 +24,13 @@ use futures_util::{stream::StreamExt, SinkExt};
 use tokio::net::TcpListener;
 use tokio::select;
 use tokio_tungstenite::tungstenite::{
+    client,
     handshake::{self, server::Callback},
     http::Response,
     Message, Utf8Bytes, WebSocket,
 };
+
+use super::{client::ClientRole, client_manager::ClientManager};
 
 /// Version of the protocol, defined its specification
 pub const PROTOCOL_VERSION: &str = "0.1.0";
@@ -72,7 +75,15 @@ impl LiveServer {
 
     /// Once a TcpSocket has been accepted into a TcpStream, we can start the websocket connection
     async fn process_client(stream: TcpStream) {
-        let mut client_id: Option<String> = None;
+        let mut client_id = String::default(); // this is filled during check_handshake_callback
+
+        let error_reponse = |body: String| {
+            Response::builder()
+                .status(400)
+                .body(Some(body))
+                .unwrap_or_default()
+        };
+
         let check_handshake_callback = |request: &handshake::server::Request,
                                         response: handshake::server::Response|
          -> Result<
@@ -83,26 +94,38 @@ impl LiveServer {
                 .headers()
                 .get(HEADER_LIVE_PROTOCOL_VERSION)
                 .ok_or_else(|| {
-                    Response::builder()
-                        .status(400)
-                        .body(Some(
-                            "Missing LiveProtocolVersion field in the HTTP headers.".to_string(),
-                        ))
-                        .unwrap_or_default()
+                    error_reponse(format!(
+                        "Missing field {} in the HTTP headers.",
+                        HEADER_LIVE_PROTOCOL_VERSION,
+                    ))
                 })?;
 
-            let version = protocol_version.to_str().map_err(|e| {
-                Response::builder()
-                    .status(400)
-                    .body(Some(format!("{}", e)))
-                    .unwrap_or_default()
-            })?;
+            let version = protocol_version
+                .to_str()
+                .map_err(|e| error_reponse(e.to_string()))?;
 
             if version != PROTOCOL_VERSION {
-                return Err(Response::builder()
-                        .status(400)
-                        .body(Some(format!("The server is only working with a live protocol version of {}, please make sure the client match this need.", PROTOCOL_VERSION)))
-                        .unwrap_or_default());
+                return Err(error_reponse(format!("The server is only working with a live protocol version of {}, please update the client to match this version.", PROTOCOL_VERSION)));
+            }
+
+            client_id = request
+                .headers()
+                .get(HEADER_LIVE_CLIENT_ID)
+                .ok_or_else(|| {
+                    error_reponse(format!(
+                        "Missing field {} in the HTTP headers.",
+                        HEADER_LIVE_CLIENT_ID,
+                    ))
+                })?
+                .to_str()
+                .map_err(|e| error_reponse(e.to_string()))?
+                .to_string();
+
+            if client_id.trim().is_empty() {
+                return Err(error_reponse(format!(
+                    "Field {} is empty.",
+                    HEADER_LIVE_CLIENT_ID
+                )));
             }
 
             // let error = client_id = request.headers().get(HEADER_LIVE_CLIENT_ID)?;
@@ -112,7 +135,12 @@ impl LiveServer {
         // Accept the websocket stream with websocket handshake
         match tokio_tungstenite::accept_hdr_async(stream, check_handshake_callback).await {
             Ok(mut websocket) => {
-                let client = Client {
+                if client_id.is_empty() {
+                    error!("The client_id cannot be empty at this point, it should have been checked before");
+                    let _ = websocket.close(None).await;
+                    return;
+                }
+                let client_manager = ClientManager {
                     client_id,
                     role: ClientRole::Follower,
                     websocket,
@@ -122,7 +150,7 @@ impl LiveServer {
                 };
 
                 // Let the client continue in its own separated task
-                tokio::spawn(client.run());
+                tokio::spawn(client_manager.run());
             }
             Err(e) => warn!("Got a handshake error: {}", e.to_string()),
         }

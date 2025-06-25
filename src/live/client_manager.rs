@@ -16,21 +16,21 @@ use super::{client::ClientRole, msg::Msg};
 /// to be sent and send it to the SessionManager
 pub struct ClientManager {
     /// A unique ID sent by the client during websocket handshake
-    client_id: String,
-    role: ClientRole,
+    pub client_id: String,
+    pub role: ClientRole,
     /// The WebSocket where the client is connected, on which we can send() or read()
-    websocket: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
+    pub websocket: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
     /// Allow to send a message to this client from the session manager
-    external_write_rx: UnboundedReceiver<Msg>,
+    pub external_write_rx: UnboundedReceiver<Msg>,
     /// A way to send Msg to the session manager if the message is authorized by the role
     /// That's an Option because the client will exist before creating/joining a session
-    session_tx: Option<UnboundedSender<Msg>>,
+    pub session_tx: Option<UnboundedSender<Msg>>,
     /// A way to interact with the server only to ask to create or join session
-    server_tx: UnboundedSender<Msg>, //TODO: really ? not a mutex here as used very few ?
+    pub server_tx: UnboundedSender<Msg>, //TODO: really ? not a mutex here as used very few ?
 }
 
 impl ClientManager {
-    async fn run(&mut self) {
+    pub async fn run(&mut self) {
         select! {
             stream_el = self.websocket.next() => {
                 match stream_el {

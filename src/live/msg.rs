@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::tungstenite::{Message, Utf8Bytes};
 
@@ -7,10 +9,17 @@ use tokio_tungstenite::tungstenite::{Message, Utf8Bytes};
 #[derive(Serialize, Deserialize)]
 pub enum Msg {
     CreateSession { name: String, group_id: String },
-    DeleteSession { stop_secret: String },
+    DeleteSession {},  // the client_id will be used to verify the permission
+    SessionStopped {}, // event to broadcast to all clients in the session
     GetSessions { group_id: String },
+    JoinSession { name: String, group_id: String },
+    SessionJoined {}, // as a confirmation that JoinSession worked
+    // Stats for leaders about how much followers have joined
+    Stats { followers: u32 },
     SendCode { file: String, content: String },
     SendResult { check_id: u32, passed: bool },
+
+    Error(ProtocolError),
 }
 
 impl Msg {
@@ -25,5 +34,21 @@ impl Msg {
         let str = serde_json::to_string(&self).map_err(|e| e.to_string())?;
         let bytes = Utf8Bytes::from(str);
         Ok(Message::Text(bytes))
+    }
+}
+
+/// An error sent from the server to clients after any message
+/// that resolved in an error that is worth sending back to the client
+#[derive(Serialize, Deserialize)]
+enum ProtocolError {
+    SessionNotFound,
+}
+
+impl Display for ProtocolError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text = match &self {
+            ProtocolError::SessionNotFound => "The session wasn't found",
+        };
+        f.write_str(text)
     }
 }
