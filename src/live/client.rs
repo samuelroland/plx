@@ -10,6 +10,7 @@ use tokio_tungstenite::tungstenite::{
 
 use super::{
     msg::{ClientNum, ForwardedFile, ForwardedResult, Msg},
+    server::{HEADER_LIVE_CLIENT_ID, HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION},
     session::Session,
 };
 
@@ -42,7 +43,9 @@ impl LiveClient {
         client_id: String,
     ) -> Result<LiveClient, std::io::Error> {
         let uri: Uri = format!("ws://{}:{}", domain, port).parse().unwrap(); // todo fix unwrap
-        let builder = ClientRequestBuilder::new(uri);
+        let builder = ClientRequestBuilder::new(uri)
+            .with_header(HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION)
+            .with_header(HEADER_LIVE_CLIENT_ID, client_id);
         let (socket, _) = connect(builder).unwrap();
 
         let client = LiveClient {
@@ -53,15 +56,31 @@ impl LiveClient {
         Ok(client)
     }
 
-    /// Just sending a Msg on the socket
-    fn send_msg(&mut self, msg: &Msg) {
-        self.socket.send(msg.into_ws_msg().unwrap());
+    pub fn disconnect(mut self) {
+        let _ = self.socket.close(None);
     }
 
-    /// Send a message and wait for a specific response in return
-    fn send_msg_and_wait(&mut self, msg: &Msg) {
-        self.socket.send(msg.into_ws_msg().unwrap());
-        // TODO oups ?? how to do that ?
+    /// Just sending a Msg on the socket
+    fn send_msg(&mut self, msg: &Msg) {
+        let _ = self.socket.send(msg.into_ws_msg().unwrap());
+    }
+
+    /// Create a new session
+    pub fn start_session(&mut self, name: &str, group_id: String) -> Result<Session, String> {
+        self.send_msg(&Msg::StartSession {
+            name: name.to_string(),
+            group_id: group_id.clone(),
+        });
+        let msg = Msg::from_ws_msg(&self.socket.read().unwrap()).unwrap();
+        if let Msg::SessionStarted = msg {
+            println!("session started !");
+            Ok(Session {
+                name: name.to_string(),
+                group_id,
+            })
+        } else {
+            Err(format!("{:?}", msg))
+        }
     }
 
     /// Get all available session for a given group id
