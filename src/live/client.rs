@@ -5,6 +5,8 @@ use tokio_tungstenite::tungstenite::{
     connect, http::Uri, stream::MaybeTlsStream, ClientRequestBuilder, WebSocket,
 };
 
+use super::{msg::Msg, session::Session};
+
 #[derive(Eq, PartialEq)]
 pub enum ClientRole {
     /// Default role, for anyone following a session
@@ -32,8 +34,20 @@ impl LiveClient {
         Ok(client)
     }
 
-    /// Get all available session for given group id
-    pub fn get_sessions(group_id: String) -> Result<Vec<String>, std::io::Error> {
+    /// Just sending a Msg on the socket
+    fn send_msg(&mut self, msg: &Msg) {
+        self.socket.send(msg.into_ws_msg().unwrap());
+    }
+
+    /// Send a message and wait for a specific response in return
+    fn send_msg_and_wait(&mut self, msg: &Msg) {
+        self.socket.send(msg.into_ws_msg().unwrap());
+        // TODO oups ?? how to do that ?
+    }
+
+    /// Get all available session for a given group id
+    pub fn get_sessions(&mut self, group_id: String) -> Result<Vec<Session>, std::io::Error> {
+        self.send_msg(&Msg::GetSessions { group_id });
         Ok(vec![])
     }
 }

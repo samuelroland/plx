@@ -140,17 +140,17 @@ impl LiveServer {
                     let _ = websocket.close(None).await;
                     return;
                 }
-                let client_manager = ClientManager {
+                let mut client_manager = ClientManager {
                     client_id,
                     role: ClientRole::Follower,
                     websocket,
-                    external_write_rx: todo!(),
-                    session_tx: todo!(),
-                    server_tx: todo!(),
+                    session: None,
                 };
 
                 // Let the client continue in its own separated task
-                tokio::spawn(client_manager.run());
+                tokio::spawn(async move {
+                    client_manager.run().await;
+                });
             }
             Err(e) => warn!("Got a handshake error: {}", e.to_string()),
         }
