@@ -3,8 +3,8 @@ use crate::live::msg::LiveProtocolError;
 // Client management on the server side of the live protocol
 use super::{
     client::ClientRole,
-    msg::Msg,
-    session::{Session, SessionManager},
+    msg::{Action, Event},
+    session::{Session, SessionAction, SessionManager},
 };
 use futures_util::{stream::FusedStream, SinkExt};
 use log::{info, warn};
@@ -34,11 +34,11 @@ pub struct ClientManager {
 /// Keeping a link to the session via message passing in both directions
 pub struct SessionLink {
     /// Allow to send a message from the session manager to this client
-    pub client_rx: UnboundedReceiver<Msg>,
+    pub client_rx: UnboundedReceiver<Event>,
     /// A way to send messages to the session manager if the message is authorized by the role
     /// That's an Option because the client will exist before creating/joining a session
     /// If it is None, it means the client hasn't joined a session yet
-    pub session_tx: UnboundedSender<Msg>,
+    pub session_tx: UnboundedSender<SessionAction>,
 }
 
 impl ClientManager {
@@ -81,19 +81,9 @@ impl ClientManager {
                 match Msg::from_ws_msg(&msg) {
                     Ok(Msg::StartSession { name, group_id }) => {
                         // TODO
-                        self.role = ClientRole::Leader;
                         // TODO: check name and group validity
                         // TODO: check name + group uniqueness
-                        let session_info = Session { name, group_id };
-                        let (session_tx, session_rx) =
-                            tokio::sync::mpsc::unbounded_channel::<Msg>();
                         let (client_tx, client_rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
-                        let mut session_manager = SessionManager::new(
-                            session_info,
-                            self.client_id.clone(),
-                            session_rx,
-                            client_tx,
-                        );
                         self.session = Some({
                             SessionLink {
                                 client_rx,
@@ -101,15 +91,8 @@ impl ClientManager {
                             }
                         });
                         info!("Session created");
-                        self.role = ClientRole::Leader;
-                        let _ = self
-                            .websocket
-                            .send(Msg::SessionStarted.into_ws_msg().unwrap())
-                            .await;
 
-                        tokio::spawn(async move {
-                            session_manager.run().await;
-                        });
+                        self.role = ClientRole::Leader;
                     }
                     Ok(Msg::StopSession) => {
                         if self.role == ClientRole::Follower {
