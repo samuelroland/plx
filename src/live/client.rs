@@ -1,22 +1,38 @@
 /// Client implementation of the live protocol
-use std::net::{TcpListener, TcpStream};
+use std::{
+    collections::HashMap,
+    net::{TcpListener, TcpStream},
+};
 
 use tokio_tungstenite::tungstenite::{
     connect, http::Uri, stream::MaybeTlsStream, ClientRequestBuilder, WebSocket,
 };
 
-use super::{msg::Msg, session::Session};
+use super::{
+    msg::{ClientNum, ForwardedFile, ForwardedResult, Msg},
+    session::Session,
+};
 
 #[derive(Eq, PartialEq)]
 pub enum ClientRole {
     /// Default role, for anyone following a session
     Follower,
-    /// When the client creates a session, it becames a leader client
+    /// When the client creates a session, it becames a leader client.
+    /// When the session is stopped, it become a `Follower` again.
     Leader,
+}
+
+struct FollowerState {
+    client_num: ClientNum,
+    code: Option<ForwardedFile>,
+    check_result: Option<ForwardedResult>,
 }
 
 pub struct LiveClient {
     socket: WebSocket<MaybeTlsStream<TcpStream>>,
+    /// The states of followers clients in the current session, only relevant for leader clients.
+    /// It will be empty for follower clients.
+    followers_states: HashMap<ClientNum, FollowerState>,
 }
 
 impl LiveClient {
@@ -29,7 +45,10 @@ impl LiveClient {
         let builder = ClientRequestBuilder::new(uri);
         let (socket, _) = connect(builder).unwrap();
 
-        let client = LiveClient { socket };
+        let client = LiveClient {
+            socket,
+            followers_states: HashMap::new(),
+        };
 
         Ok(client)
     }
