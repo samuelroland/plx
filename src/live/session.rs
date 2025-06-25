@@ -1,3 +1,12 @@
+use std::{ops::Deref, time::SystemTime};
+
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+
+use super::{
+    client::ClientRole,
+    msg::{ClientNum, ForwardedResult, Msg},
+};
+
 /// A live session, this is the representation sent to clients
 /// when listing all sessions or after session creation
 pub struct Session {
@@ -12,16 +21,104 @@ pub struct Session {
     pub group_id: String,
 }
 
-/// This manager is running in it's own tokio task and is responsible for
+/// This manager is running on the server in it's own tokio task and is responsible for
 /// 1. forwarding messages to leaders or to all clients of the session
-/// 2. manage joining
-struct SessionManager {
+/// 2. handle the logic around session deletion
+pub struct SessionManager {
     session: Session,
     /// The leader id of the leader that created this session, this is the only client that is
     /// authorized to close a session, the potential other leaders cannot do that.
     leader_client_id: String,
+
+    /// A vector of transmitters to broadcast a message to clients in this session
+    /// We also store the client role to filter leaders from the rest
+    broadcast_txs: Vec<(ClientRole, UnboundedSender<Msg>)>,
+
+    /// A receiver to receive messages from the tasks running ClientManager
+    rx: UnboundedReceiver<Msg>,
 }
 
-impl Session {
-    async fn run() {}
+impl SessionManager {
+    pub fn new(session: Session, leader_client_id: String, rx: UnboundedReceiver<Msg>) -> Self {
+        Self {
+            session,
+            leader_client_id,
+            broadcast_txs: Vec::new(),
+            rx,
+        }
+    }
+
+    pub async fn run(&mut self) {
+        while let Some(msg) = self.rx.recv().await {
+            match msg {
+                Msg::StartSession { name, group_id } => todo!(),
+                Msg::StopSession {} => todo!(),
+                Msg::SessionStopped {} => todo!(),
+                Msg::GetSessions { group_id } => todo!(),
+                Msg::JoinSession { name, group_id } => todo!(),
+                Msg::SessionJoined {} => todo!(),
+                Msg::LeaveSession {} => todo!(),
+                Msg::SendFile { file, content } => todo!(),
+                Msg::SendResult { check_id, passed } => self.broadcast(
+                    &Msg::ForwardResult(
+                        ClientNum(2), // TODO: fix
+                        ForwardedResult {
+                            check_id,
+                            passed,
+                            time: SystemTime::now(),
+                        },
+                    ),
+                    true,
+                ),
+
+                // Note: do not use "_ =>" to make sure we decide what to do on new messages types
+
+                // Everything that's invalid in this context, is just ignored
+                // It generally is for messages that only the server can initiate, clients will not send them
+                Msg::ForwardFile(_, _)
+                | Msg::ForwardResult(_, _)
+                | Msg::Stats { followers_count: _ } => {}
+                Msg::Error(_) => {}
+            }
+        }
+    }
+
+    /// Broadcast a message, to leaders only or everyone
+    fn broadcast(&self, msg: &Msg, to_leaders_only: bool) {
+        let txs: Vec<&UnboundedSender<Msg>> = if to_leaders_only {
+            self.broadcast_txs
+                .iter()
+                .filter_map(|(role, tx)| {
+                    if *role == ClientRole::Leader {
+                        Some(tx)
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        } else {
+            self.broadcast_txs.iter().map(|(role, tx)| tx).collect()
+        };
+
+        txs.iter().for_each(|tx| {
+            let _ = tx.send(msg.clone());
+        });
+    }
+
+    /// Send basic statistics about the session to leaders
+    /// This must be ran each time there is a change to the session
+    fn send_stats(&self) {
+        let (followers_iter, leaders_iter): (Vec<_>, Vec<_>) = self
+            .broadcast_txs
+            .iter()
+            .partition(|(role, tx)| *role == ClientRole::Follower);
+
+        self.broadcast(
+            &Msg::Stats {
+                followers_count: followers_iter.len() as u16,
+                leaders_count: leaders_iter.len() as u16,
+            },
+            true,
+        );
+    }
 }
