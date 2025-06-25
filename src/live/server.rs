@@ -18,8 +18,6 @@ use tokio::{
     },
 };
 
-use crate::live::msg::Msg;
-
 use futures_util::{stream::StreamExt, SinkExt};
 use tokio::net::TcpListener;
 use tokio::select;
@@ -30,7 +28,12 @@ use tokio_tungstenite::tungstenite::{
     Message, Utf8Bytes, WebSocket,
 };
 
-use super::{client::ClientRole, client_manager::ClientManager};
+use super::{
+    client::ClientRole,
+    client_manager::ClientManager,
+    session::SessionManager,
+    sessions_manager::{self, SessionsManager},
+};
 
 /// Version of the protocol, defined its specification
 pub const PROTOCOL_VERSION: &str = "0.1.0";
@@ -45,6 +48,7 @@ pub const HEADER_LIVE_CLIENT_ID: &str = "LiveClientId";
 /// with the Tokio runtime
 pub struct LiveServer {
     runtime: Runtime,
+    sessions_manager: Arc<SessionsManager>,
 }
 
 impl LiveServer {
@@ -53,7 +57,11 @@ impl LiveServer {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_io()
             .build()?;
-        Ok(LiveServer { runtime })
+        let sessions_manager = Arc::new(SessionsManager::new());
+        Ok(LiveServer {
+            runtime,
+            sessions_manager,
+        })
     }
 
     /// Start a server listening on given port, use the DEFAULT_LIVE_PORT or a custom one
@@ -61,7 +69,6 @@ impl LiveServer {
     /// This function is blocking and will never stop, except when calling stop()
     pub fn start(&self, port: u16) {
         self.runtime.block_on(async {
-            let (tx, rx) = mpsc::unbounded_channel::<Msg>();
             // Start binding here, so it can fail if the port is already used.
             let listener = TcpListener::bind(format!("0.0.0.0:{}", DEFAULT_LIVE_PORT))
                 .await
