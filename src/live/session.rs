@@ -1,14 +1,16 @@
-use std::{ops::Deref, time::SystemTime};
+use std::{ops::Deref, time::SystemTime, vec};
 
+use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use super::{
     client::ClientRole,
-    msg::{ClientNum, ForwardedResult, Msg},
+    msg::{ClientNum, ForwardedFile, ForwardedResult, Msg},
 };
 
 /// A live session, this is the representation sent to clients
 /// when listing all sessions or after session creation
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Session {
     /// An arbitrary name defined by the leader to help followers choose the correct sessions
     /// among the multiple live sessions at the same time on the same group_id
@@ -39,26 +41,51 @@ pub struct SessionManager {
 }
 
 impl SessionManager {
-    pub fn new(session: Session, leader_client_id: String, rx: UnboundedReceiver<Msg>) -> Self {
+    pub fn new(
+        session: Session,
+        leader_client_id: String,
+        rx: UnboundedReceiver<Msg>,
+        leader_tx: UnboundedSender<Msg>,
+    ) -> Self {
         Self {
             session,
             leader_client_id,
-            broadcast_txs: Vec::new(),
+            broadcast_txs: vec![(ClientRole::Leader, leader_tx)],
             rx,
         }
     }
 
     pub async fn run(&mut self) {
+        println!("Starting SessionManager::run");
         while let Some(msg) = self.rx.recv().await {
+            println!("Got a message {msg:?}");
             match msg {
-                Msg::StartSession { name, group_id } => todo!(),
-                Msg::StopSession {} => todo!(),
-                Msg::SessionStopped {} => todo!(),
-                Msg::GetSessions { group_id } => todo!(),
+                // Session management
+
+                Msg::StopSession => {
+                    self.broadcast(&Msg::SessionStopped, false); // Sending this specific message
+                                                                 // TODO: remove the session from global list
+                    break;
+                    // all the attributes should be dropped, the websocket connections will be closed in each ClientManager's task
+                }
+                Msg::GetSessions { group_id } => {
+
+                }
                 Msg::JoinSession { name, group_id } => todo!(),
-                Msg::SessionJoined {} => todo!(),
-                Msg::LeaveSession {} => todo!(),
-                Msg::SendFile { file, content } => todo!(),
+                Msg::LeaveSession => todo!(),
+
+                // Code exos
+                Msg::SendFile { file, content } => self.broadcast(
+                    &Msg::ForwardFile(
+                        ClientNum(2), // TODO: fix
+                        ForwardedFile {
+                            file,
+                            content,
+                            time: SystemTime::now(),
+                        },
+                    ),
+                    true,
+                ),
                 Msg::SendResult { check_id, passed } => self.broadcast(
                     &Msg::ForwardResult(
                         ClientNum(2), // TODO: fix
@@ -71,14 +98,18 @@ impl SessionManager {
                     true,
                 ),
 
-                // Note: do not use "_ =>" to make sure we decide what to do on new messages types
+                // Note: do not use "_ =>" to make sure we decide what to do on new message types
 
-                // Everything that's invalid in this context, is just ignored
-                // It generally is for messages that only the server can initiate, clients will not send them
-                Msg::ForwardFile(_, _)
-                | Msg::ForwardResult(_, _)
-                | Msg::Stats { followers_count: _ } => {}
-                Msg::Error(_) => {}
+                // Everything that's invalid in this context is just ignored
+                // It's the case for any message that only the server can send
+                Msg::StartSession {..} // already managed in ClientManager
+                | Msg::SessionStarted
+                | Msg::SessionStopped
+                | Msg::SessionJoined
+                | Msg::ForwardFile(..)
+                | Msg::ForwardResult(..)
+                | Msg::Stats { .. } => {}
+                Msg::Error(..) => {}
             }
         }
     }

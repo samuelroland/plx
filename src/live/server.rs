@@ -37,9 +37,9 @@ pub const PROTOCOL_VERSION: &str = "0.1.0";
 /// Default port of the live protocol
 pub const DEFAULT_LIVE_PORT: u16 = 9120;
 /// Header sent during WebSocket handshake to announce the protocol version
-const HEADER_LIVE_PROTOCOL_VERSION: &str = "LiveProtocolVersion";
+pub const HEADER_LIVE_PROTOCOL_VERSION: &str = "LiveProtocolVersion";
 /// Header sent during WebSocket handshake to announce the client id
-const HEADER_LIVE_CLIENT_ID: &str = "LiveClientId";
+pub const HEADER_LIVE_CLIENT_ID: &str = "LiveClientId";
 
 /// The live server serving live sessions, this server is an async implementation
 /// with the Tokio runtime
@@ -50,8 +50,9 @@ pub struct LiveServer {
 impl LiveServer {
     /// Create a live server and prepare a Tokio runtime for
     pub fn new() -> Result<Self, std::io::Error> {
-        let runtime = tokio::runtime::Builder::new_current_thread().build()?;
-
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_io()
+            .build()?;
         Ok(LiveServer { runtime })
     }
 
@@ -66,6 +67,7 @@ impl LiveServer {
                 .await
                 .unwrap();
 
+            println!("started server !");
             // On all new TCP connections, just spawn a new task to process the new client
             while let Ok((stream, _)) = listener.accept().await {
                 tokio::spawn(Self::process_client(stream));
