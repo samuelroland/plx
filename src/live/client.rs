@@ -14,7 +14,7 @@ use super::{
     session::Session,
 };
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Debug)]
 pub enum ClientRole {
     /// Default role, for anyone following a session
     Follower,
