@@ -13,13 +13,13 @@ use super::session::Session;
 
 // TODO: Temporary copy in waiting of refactor to access that
 #[derive(Serialize, Deserialize, Clone, Debug)]
-enum CheckStatus {
+pub enum CheckStatus {
     Passed,
     Failed(String, String),
     RunFail(String),
 }
 #[derive(Serialize, Deserialize, Clone, Debug)]
-struct ExoCheckResult {
+pub struct ExoCheckResult {
     state: CheckStatus,
 }
 
@@ -63,6 +63,7 @@ pub enum Event {
 pub enum LiveProtocolError {
     FailedToStartSession(String),
     FailedToJoinSession(String),
+    FailedSendingWithoutSession,
     FailedToLeaveSession,
     SessionNotFound,
     CannotJoinOtherSession,
@@ -75,6 +76,10 @@ impl Display for LiveProtocolError {
             LiveProtocolError::FailedToJoinSession(e) => format!("Failed to join the session: {e}"),
             LiveProtocolError::FailedToLeaveSession => {
                 "No session joined, cannot leave the session.".to_string()
+            }
+            LiveProtocolError::FailedSendingWithoutSession => {
+                "Failed to send file content or check result, because no session joined."
+                    .to_string()
             }
             LiveProtocolError::SessionNotFound => "The session wasn't found.".to_string(),
             LiveProtocolError::CannotJoinOtherSession => {
