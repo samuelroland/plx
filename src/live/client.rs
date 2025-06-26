@@ -5,11 +5,11 @@ use std::{
 };
 
 use tokio_tungstenite::tungstenite::{
-    connect, http::Uri, stream::MaybeTlsStream, ClientRequestBuilder, WebSocket,
+    connect, http::Uri, stream::MaybeTlsStream, ClientRequestBuilder, Message, WebSocket,
 };
 
 use super::{
-    msg::{ClientNum, ForwardedFile, ForwardedResult, Msg},
+    msg::{Action, ClientNum, Event, ForwardedFile, ForwardedResult},
     server::{HEADER_LIVE_CLIENT_ID, HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION},
     session::Session,
 };
@@ -61,31 +61,31 @@ impl LiveClient {
     }
 
     /// Just sending a Msg on the socket
-    fn send_msg(&mut self, msg: &Msg) {
-        let _ = self.socket.send(msg.into_ws_msg().unwrap());
+    fn send_msg(&mut self, msg: Action) {
+        let _ = self.socket.send(Message::Text(msg.try_into().unwrap()));
     }
 
     /// Create a new session
     pub fn start_session(&mut self, name: &str, group_id: String) -> Result<Session, String> {
-        self.send_msg(&Msg::StartSession {
+        self.send_msg(Action::StartSession {
             name: name.to_string(),
             group_id: group_id.clone(),
         });
-        let msg = Msg::from_ws_msg(&self.socket.read().unwrap()).unwrap();
-        if let Msg::SessionStarted = msg {
+        let event = Event::try_from(self.socket.read().unwrap().into_text().unwrap()).unwrap();
+        if let Event::SessionStarted = event {
             println!("session started !");
             Ok(Session {
                 name: name.to_string(),
                 group_id,
             })
         } else {
-            Err(format!("{:?}", msg))
+            Err(format!("{:?}", event))
         }
     }
 
     /// Get all available session for a given group id
     pub fn get_sessions(&mut self, group_id: String) -> Result<Vec<Session>, std::io::Error> {
-        self.send_msg(&Msg::GetSessions { group_id });
+        self.send_msg(Action::GetSessions { group_id });
         Ok(vec![])
     }
 }

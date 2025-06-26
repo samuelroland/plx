@@ -26,9 +26,10 @@ pub struct Session {
 /// An action on the session, can only be created by ClientManager
 #[derive(Debug)]
 pub struct SessionAction {
-    pub client_tx: UnboundedSender<Event>,
-    pub client_num: ClientNum,
+    // pub client_tx: UnboundedSender<Event>,
+    // pub client_num: ClientNum,
     pub ctx: SessionActionCtx,
+    // TODO: refactor with a single enum
 }
 
 /// The action with some context
@@ -36,8 +37,8 @@ pub struct SessionAction {
 pub enum SessionActionCtx {
     SendToLeaders(Event),
     SendToEveryone(Event),
-    SaveClient(ClientRole),
-    RemoveClient,
+    SaveClient(ClientRole, ClientNum, UnboundedSender<Event>),
+    RemoveClient(ClientNum),
     Stop,
     SendStats, // only to leaders
 }
@@ -70,12 +71,12 @@ impl SessionManager {
             match msg.ctx {
                 SessionActionCtx::SendToLeaders(event) => self.broadcast(&event, true),
                 SessionActionCtx::SendToEveryone(event) => self.broadcast(&event, false),
-                SessionActionCtx::SaveClient(client_role) => {
+                SessionActionCtx::SaveClient(client_role, client_num, client_tx) => {
                     self.broadcast_txs
-                        .insert(msg.client_num, (ClientRole::Follower, msg.client_tx));
+                        .insert(client_num, (ClientRole::Follower, client_tx));
                 }
-                SessionActionCtx::RemoveClient => {
-                    self.broadcast_txs.remove(&msg.client_num);
+                SessionActionCtx::RemoveClient(client_num) => {
+                    self.broadcast_txs.remove(&client_num);
                 }
                 SessionActionCtx::Stop => break,
                 SessionActionCtx::SendStats => self.send_stats(),

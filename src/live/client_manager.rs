@@ -1,10 +1,13 @@
+use std::sync::Arc;
+
 use crate::live::msg::LiveProtocolError;
 
 // Client management on the server side of the live protocol
 use super::{
     client::ClientRole,
-    msg::{Action, Event},
-    session::{Session, SessionAction, SessionManager},
+    msg::{Action, ClientNum, Event},
+    session::{Session, SessionAction, SessionActionCtx, SessionManager},
+    sessions_manager::{self, SessionsManager},
 };
 use futures_util::{stream::FusedStream, SinkExt};
 use log::{info, warn};
@@ -29,12 +32,18 @@ pub struct ClientManager {
     /// A way to interact with the server only to ask to create or join session
     // pub server_tx: UnboundedSender<Msg>, //TODO: really ? not a mutex here as used very few ?
     pub session: Option<SessionLink>,
+
+    pub sessions_manager: Arc<SessionsManager>,
 }
 
 /// Keeping a link to the session via message passing in both directions
 pub struct SessionLink {
     /// Allow to send a message from the session manager to this client
     pub client_rx: UnboundedReceiver<Event>,
+    /// Keep a copy of the tx so we can pass it to SessionAction
+    pub client_tx: UnboundedSender<Event>,
+    /// Client number attribued by SessionsManager::start_session()
+    pub client_num: ClientNum,
     /// A way to send messages to the session manager if the message is authorized by the role
     /// That's an Option because the client will exist before creating/joining a session
     /// If it is None, it means the client hasn't joined a session yet
@@ -62,11 +71,9 @@ impl ClientManager {
                             self.handle_msg(stream_el).await;
                         }
                         external_msg = session.client_rx.recv() => {
-                            if let Some(msg) = external_msg {
-                                let _ = self.websocket.send(msg.into_ws_msg().unwrap()).await;
-                                if let Msg::SessionStopped = msg {
-                                    self.session = None;
-                                }
+                            match external_msg {
+                                Some(event) => {self.websocket.send(Message::Text(event.try_into().unwrap()));}
+                                None => {self.session = None;}
                             }
                         }
                     };
@@ -78,56 +85,130 @@ impl ClientManager {
     async fn handle_msg(&mut self, stream_element: Option<Result<Message, Error>>) {
         match stream_element {
             Some(Ok(msg)) => {
-                match Msg::from_ws_msg(&msg) {
-                    Ok(Msg::StartSession { name, group_id }) => {
+                match Action::try_from(msg.into_text().unwrap()) {
+                    Ok(Action::StartSession { name, group_id }) => {
                         // TODO
                         // TODO: check name and group validity
                         // TODO: check name + group uniqueness
-                        let (client_tx, client_rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
-                        self.session = Some({
-                            SessionLink {
-                                client_rx,
-                                session_tx,
-                            }
-                        });
-                        info!("Session created");
+                        let (client_tx, client_rx) =
+                            tokio::sync::mpsc::unbounded_channel::<Event>();
+                        match self.sessions_manager.start_session(
+                            name,
+                            group_id,
+                            self.client_id,
+                            client_tx,
+                        ) {
+                            Ok((client_num, session_tx)) => {
+                                self.session = Some({
+                                    SessionLink {
+                                        client_rx,
+                                        client_tx,
+                                        client_num,
+                                        session_tx,
+                                    }
+                                });
+                                info!("Session created");
 
-                        self.role = ClientRole::Leader;
+                                self.role = ClientRole::Leader;
+                                client_tx.send(Event::SessionStarted);
+                            }
+                            Err(e) => {
+                                self.websocket.send(Message::Text(
+                                    Event::Error(LiveProtocolError::FailedToStartSession(e))
+                                        .try_into()
+                                        .unwrap(),
+                                ));
+                            }
+                        }
                     }
-                    Ok(Msg::StopSession) => {
+                    Ok(Action::StopSession) => {
                         if self.role == ClientRole::Follower {
                             warn!("Got a DeleteSession with a follower role: {}", msg);
                             // that's a forged request, we can ignore it
                         }
                         if let Some(session) = &self.session {
-                            let _ = session.session_tx.send(Msg::StopSession);
+                            let _ = session.session_tx.send(SessionAction {
+                                ctx: SessionActionCtx::Stop,
+                            });
                             self.role = ClientRole::Follower;
                         }
                         // Do not touch self.session for now, wait for the session_manager choosing
                         // to stop itself via SessionStopped message
                     }
-                    Ok(Msg::JoinSession { name, group_id }) => match &self.session {
+                    Ok(Action::JoinSession { name, group_id }) => match &self.session {
                         Some(session) => {
                             let _ = self
                                 .websocket
-                                .send(
-                                    Msg::Error(LiveProtocolError::CannotJoinOtherSession)
-                                        .into_ws_msg()
+                                .send(Message::Text(
+                                    Event::Error(LiveProtocolError::CannotJoinOtherSession)
+                                        .try_into()
                                         .unwrap(),
-                                )
+                                ))
                                 .await;
                         }
                         None => {
-                            todo!()
+                            let (client_tx, client_rx) =
+                                tokio::sync::mpsc::unbounded_channel::<Event>();
+                            match self
+                                .sessions_manager
+                                .join_session(name, group_id, client_tx)
+                            {
+                                Ok((client_num, session_tx)) => {
+                                    self.session = Some(SessionLink {
+                                        client_rx,
+                                        client_tx,
+                                        client_num,
+                                        session_tx,
+                                    })
+                                }
+                                Err(e) => {
+                                    self.websocket.send(Message::Text(
+                                        Event::Error(LiveProtocolError::FailedToJoinSession(e))
+                                            .try_into()
+                                            .unwrap(),
+                                    ));
+                                }
+                            }
                         }
                     },
-                    // Just forward the message to the session if it's a valid message
-                    Ok(any_valid_msg) => {
-                        if let Some(session) = &self.session {
-                            let _ = session.session_tx.send(any_valid_msg);
+
+                    Ok(Action::LeaveSession) => match self.session {
+                        Some(session) => self
+                            .sessions_manager
+                            .leave_session(session.client_num, session.session_tx),
+                        None => {
+                            self.websocket.send(Message::Text(
+                                Event::Error(LiveProtocolError::FailedToLeaveSession)
+                                    .try_into()
+                                    .unwrap(),
+                            ));
                         }
+                    },
+
+                    Ok(Action::GetSessions { group_id }) => {
+                        self.websocket.send(Message::Text(
+                            Event::SessionsList(self.sessions_manager.get_sessions(&group_id))
+                                .try_into()
+                                .unwrap(),
+                        ));
                     }
-                    Err(e) => info!("{}", e),
+
+                    Ok(Action::SendFile { file, content }) => {
+                        self.websocket.send(Message::Text(
+                            Event::SessionsList(self.sessions_manager.get_sessions(&group_id))
+                                .try_into()
+                                .unwrap(),
+                        ));
+                    }
+                    // Just forward the message to the session if it's a valid message
+                    // Ok(any_valid_msg) => {
+                    //     if let Some(session) = &self.session {
+                    //         let _ = session.session_tx.send(any_valid_msg);
+                    //     }
+                    // }
+                    Err(e) => {
+                        info!("{}", e)
+                    }
                 }
             }
             None => {

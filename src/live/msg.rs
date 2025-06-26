@@ -9,6 +9,8 @@ use tokio_tungstenite::tungstenite::{Message, Utf8Bytes};
 
 use crate::models::check_state::CheckState;
 
+use super::session::Session;
+
 // TODO: Temporary copy in waiting of refactor to access that
 #[derive(Serialize, Deserialize, Clone, Debug)]
 enum CheckStatus {
@@ -45,6 +47,7 @@ pub enum Event {
     SessionStarted,
     SessionStopped,
     SessionJoined,
+    SessionsList(Vec<Session>),
     Stats {
         followers_count: u16,
         leaders_count: u16,
@@ -58,6 +61,9 @@ pub enum Event {
 /// that resolved in an error that is worth sending back to the client
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum LiveProtocolError {
+    FailedToStartSession(String),
+    FailedToJoinSession(String),
+    FailedToLeaveSession,
     SessionNotFound,
     CannotJoinOtherSession,
 }
@@ -65,12 +71,18 @@ pub enum LiveProtocolError {
 impl Display for LiveProtocolError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let text = match &self {
-            LiveProtocolError::SessionNotFound => "The session wasn't found.",
+            LiveProtocolError::FailedToStartSession(e) => format!("Failed to start a session: {e}"),
+            LiveProtocolError::FailedToJoinSession(e) => format!("Failed to join the session: {e}"),
+            LiveProtocolError::FailedToLeaveSession => {
+                "No session joined, cannot leave the session.".to_string()
+            }
+            LiveProtocolError::SessionNotFound => "The session wasn't found.".to_string(),
             LiveProtocolError::CannotJoinOtherSession => {
                 "You cannot join another session without having left your current session."
+                    .to_string()
             }
         };
-        f.write_str(text)
+        f.write_str(text.as_str())
     }
 }
 
@@ -93,7 +105,7 @@ pub struct ForwardedResult {
 
 /// A incremental number attributed by the server to each client after session join, to let clients identify other clients.
 /// This MUST NOT be derived from the secret client_id, this ClientNum is not secret but should be different at each session.
-#[derive(Serialize, Deserialize, Eq, Hash, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Clone, Debug)]
 pub struct ClientNum(pub u16);
 
 // Implement serialisation and deserialisation strategy for Event and Action.

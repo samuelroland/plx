@@ -77,13 +77,16 @@ impl LiveServer {
             println!("started server !");
             // On all new TCP connections, just spawn a new task to process the new client
             while let Ok((stream, _)) = listener.accept().await {
-                tokio::spawn(Self::process_client(stream));
+                tokio::spawn(Self::process_client(
+                    stream,
+                    Arc::clone(&self.sessions_manager),
+                ));
             }
         });
     }
 
     /// Once a TcpSocket has been accepted into a TcpStream, we can start the websocket connection
-    async fn process_client(stream: TcpStream) {
+    async fn process_client(stream: TcpStream, sessions_manager: Arc<SessionsManager>) {
         let mut client_id = String::default(); // this is filled during check_handshake_callback
 
         let error_reponse = |body: String| {
@@ -154,6 +157,7 @@ impl LiveServer {
                     role: ClientRole::Follower,
                     websocket,
                     session: None,
+                    sessions_manager,
                 };
 
                 // Let the client continue in its own separated task
