@@ -11,7 +11,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use super::{
     client::ClientRole,
     msg::{ClientNum, Event},
-    session::{Session, SessionAction, SessionActionCtx, SessionManager},
+    session::{Session, SessionAction, SessionManager},
 };
 
 struct SessionState {
@@ -65,14 +65,9 @@ impl SessionsManager {
         tokio::spawn(async move {
             session_manager.run().await;
         });
-        let add_leader_action = SessionAction {
-            ctx: SessionActionCtx::SaveClient(
-                ClientRole::Leader,
-                leaders_client_num.clone(),
-                client_tx,
-            ),
-        };
-        session_tx.send(add_leader_action);
+        let add_leader_action =
+            SessionAction::SaveClient(ClientRole::Leader, leaders_client_num.clone(), client_tx);
+        let _ = session_tx.send(add_leader_action);
 
         let session_state = SessionState {
             session: Session {
@@ -89,7 +84,7 @@ impl SessionsManager {
                 .write()
                 .unwrap()
                 .entry(group_id)
-                .or_insert(HashMap::new())
+                .or_default()
                 .insert(name, session_state);
         }
         Ok((leaders_client_num, session_tx))
@@ -111,23 +106,17 @@ impl SessionsManager {
         session.last_attributed_client_num = new_client_num.clone();
         let session_tx = session.tx.clone();
         drop(write_guard);
-        let save_client_action = SessionAction {
-            ctx: SessionActionCtx::SaveClient(
-                ClientRole::Leader,
-                new_client_num.clone(),
-                client_tx,
-            ),
-        };
-        session_tx.send(save_client_action);
+        let save_client_action =
+            SessionAction::SaveClient(ClientRole::Leader, new_client_num.clone(), client_tx);
+        let _ = session_tx.send(save_client_action);
 
         Ok((new_client_num, session_tx))
     }
 
+    // TODO: should we move this trivial piece in ClientManager ?
     pub fn leave_session(&self, client_num: ClientNum, session_tx: UnboundedSender<SessionAction>) {
-        let action = SessionAction {
-            ctx: SessionActionCtx::RemoveClient(client_num),
-        };
-        session_tx.send(action);
+        let action = SessionAction::RemoveClient(client_num);
+        let _ = session_tx.send(action);
     }
 
     pub fn get_sessions(&self, group_id: &String) -> Vec<Session> {

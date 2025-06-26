@@ -25,16 +25,7 @@ pub struct Session {
 
 /// An action on the session, can only be created by ClientManager
 #[derive(Debug)]
-pub struct SessionAction {
-    // pub client_tx: UnboundedSender<Event>,
-    // pub client_num: ClientNum,
-    pub ctx: SessionActionCtx,
-    // TODO: refactor with a single enum
-}
-
-/// The action with some context
-#[derive(Debug)]
-pub enum SessionActionCtx {
+pub enum SessionAction {
     SendToLeaders(Event),
     SendToEveryone(Event),
     SaveClient(ClientRole, ClientNum, UnboundedSender<Event>),
@@ -68,18 +59,18 @@ impl SessionManager {
     pub async fn run(&mut self) {
         println!("Starting SessionManager::run");
         while let Some(msg) = self.rx.recv().await {
-            match msg.ctx {
-                SessionActionCtx::SendToLeaders(event) => self.broadcast(&event, true),
-                SessionActionCtx::SendToEveryone(event) => self.broadcast(&event, false),
-                SessionActionCtx::SaveClient(client_role, client_num, client_tx) => {
+            match msg {
+                SessionAction::SendToLeaders(event) => self.broadcast(&event, true),
+                SessionAction::SendToEveryone(event) => self.broadcast(&event, false),
+                SessionAction::SaveClient(client_role, client_num, client_tx) => {
                     self.broadcast_txs
                         .insert(client_num, (ClientRole::Follower, client_tx));
                 }
-                SessionActionCtx::RemoveClient(client_num) => {
+                SessionAction::RemoveClient(client_num) => {
                     self.broadcast_txs.remove(&client_num);
                 }
-                SessionActionCtx::Stop => break,
-                SessionActionCtx::SendStats => self.send_stats(),
+                SessionAction::Stop => break,
+                SessionAction::SendStats => self.send_stats(),
             }
         }
     }
