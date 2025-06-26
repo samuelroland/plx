@@ -58,7 +58,6 @@ impl SessionBroadcaster {
     /// Run infinitely, until a Stop action is given, read SessionAction from
     /// a UnboundedReceiver<SessionAction> and react to each of them
     pub async fn run(&mut self) {
-        println!("Starting SessionManager::run");
         while let Some(msg) = self.session_action_rx.recv().await {
             match msg {
                 BroadcastAction::SendToLeaders(event) => self.broadcast(&event, true),
@@ -72,14 +71,12 @@ impl SessionBroadcaster {
                             self.leaders_broadcast_txs.insert(client_num, client_tx)
                         }
                     };
-                    self.send_stats();
                 }
                 BroadcastAction::RemoveClient(client_num) => {
                     // Try removing in followers, then leaders if the first fails
                     self.followers_broadcast_txs
                         .remove(&client_num)
                         .or_else(|| self.leaders_broadcast_txs.remove(&client_num));
-                    self.send_stats();
                 }
                 BroadcastAction::Stop => break,
                 BroadcastAction::SendStats => self.send_stats(),

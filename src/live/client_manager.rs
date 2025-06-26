@@ -29,10 +29,7 @@ pub struct ClientManager {
     pub role: ClientRole,
     /// The WebSocket where the client is connected, on which we can send() or read()
     pub websocket: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
-    /// A way to interact with the server only to ask to create or join session
-    // pub server_tx: UnboundedSender<Msg>, //TODO: really ? not a mutex here as used very few ?
     pub session: Option<SessionLink>,
-
     pub sessions_manager: Arc<SessionsManager>,
 }
 
@@ -42,7 +39,7 @@ pub struct SessionLink {
     pub client_rx: UnboundedReceiver<Event>,
     /// Keep a copy of the tx so we can pass it to SessionAction
     pub client_tx: UnboundedSender<Event>,
-    /// Client number attribued by SessionsManager::start_session()
+    /// Client number attributed by SessionsManager::start_session()
     pub client_num: ClientNum,
     /// A way to send messages to the session manager if the message is authorized by the role
     /// That's an Option because the client will exist before creating/joining a session
@@ -72,6 +69,7 @@ impl ClientManager {
                         }
                         external_msg = session.client_rx.recv() => {
                             match external_msg {
+                                Some(Event::SessionStopped) => {self.session = None; self.role = ClientRole::Follower; self.send_event(Event::SessionStopped).await;}
                                 Some(event) => {self.send_event(event).await;}
                                 None => {self.session = None;}
                             }
@@ -92,12 +90,16 @@ impl ClientManager {
                         // TODO: check name + group uniqueness
                         let (client_tx, client_rx) =
                             tokio::sync::mpsc::unbounded_channel::<Event>();
-                        match self.sessions_manager.start_session(
-                            name,
-                            group_id,
-                            self.client_id.clone(),
-                            client_tx.clone(),
-                        ) {
+                        match self
+                            .sessions_manager
+                            .start_session(
+                                name,
+                                group_id,
+                                self.client_id.clone(),
+                                client_tx.clone(),
+                            )
+                            .await
+                        {
                             Ok((client_num, session_tx)) => {
                                 self.session = Some({
                                     SessionLink {
@@ -120,10 +122,15 @@ impl ClientManager {
                     }
                     Ok(Action::StopSession) => {
                         if self.role == ClientRole::Follower {
-                            // that's a forged request, we can ignore it
+                            self.send_error(LiveProtocolError::ForbiddenSessionStop)
+                                .await;
                         } else if let Some(session) = &self.session {
-                            let _ = session.session_tx.send(BroadcastAction::Stop);
-                            self.role = ClientRole::Follower;
+                            let result = self.sessions_manager.stop_session(&self.client_id).await;
+                            if let Err(e) = result {
+                                self.send_error(e).await;
+                            } else {
+                                self.role = ClientRole::Follower;
+                            }
                         }
                         // Do not touch self.session for now, wait for the session_manager choosing
                         // to stop itself via SessionStopped message
@@ -136,11 +143,11 @@ impl ClientManager {
                         None => {
                             let (client_tx, client_rx) =
                                 tokio::sync::mpsc::unbounded_channel::<Event>();
-                            match self.sessions_manager.join_session(
-                                name,
-                                group_id,
-                                client_tx.clone(),
-                            ) {
+                            match self
+                                .sessions_manager
+                                .join_session(name, group_id, client_tx.clone())
+                                .await
+                            {
                                 Ok((client_num, session_tx)) => {
                                     self.session = Some(SessionLink {
                                         client_rx,
@@ -173,7 +180,7 @@ impl ClientManager {
 
                     Ok(Action::GetSessions { group_id }) => {
                         self.send_event(Event::SessionsList(
-                            self.sessions_manager.get_sessions(&group_id),
+                            self.sessions_manager.get_sessions(&group_id).await,
                         ))
                         .await;
                     }
@@ -235,11 +242,3 @@ impl ClientManager {
         self.send_event(Event::Error(error)).await;
     }
 }
-
-// enum ServerSessionAction {
-//     CreateSession {
-//         session: Session,
-//         /// A way for the server to answer
-//         get_back_session_tx: oneshot::Sender<UnboundedSender<Msg>>,
-//     },
-// }

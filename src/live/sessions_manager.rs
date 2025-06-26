@@ -1,13 +1,11 @@
-use std::{
-    collections::HashMap,
-    ops::Deref,
-    sync::{Arc, RwLock},
-    time::SystemTime,
-    vec,
-};
+use std::{collections::HashMap, ops::Deref, sync::Arc, time::SystemTime, vec};
+
+use log::error;
+use tokio::sync::RwLock;
 
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
+use super::msg::LiveProtocolError;
 use super::{
     client::ClientRole,
     msg::{ClientNum, Event},
@@ -20,24 +18,28 @@ struct SessionState {
     /// authorized to close a session, the potential other leaders cannot do that.
     leader_client_id: String,
     last_attributed_client_num: ClientNum,
-    /// A copy of the sender to give to new clients joining
+    /// A copy of the sender to give to new clients when joining
     tx: UnboundedSender<BroadcastAction>,
 }
 // The first key is the group_id, the second is the session name, the u32 is the last client_num used
 type Session2DMap = HashMap<String, HashMap<String, SessionState>>;
 
 pub struct SessionsManager {
-    sessions: RwLock<Session2DMap>,
+    /// Keep a 2 dimensionnal hashmap of all sessions, indexed by session's group id, then session's name, to finally access a SessionState
+    sessions_by_group_and_name: RwLock<Session2DMap>,
+    /// Also store the mapping between leader client_id and a copy of Session to easily find the SessionState in self.sessions
+    sessions_info_by_leaders_id: RwLock<HashMap<String, Session>>,
 }
 
 impl SessionsManager {
     pub fn new() -> Self {
         Self {
-            sessions: RwLock::new(Session2DMap::new()),
+            sessions_by_group_and_name: RwLock::new(Session2DMap::new()),
+            sessions_info_by_leaders_id: RwLock::new(HashMap::new()),
         }
     }
 
-    pub fn start_session(
+    pub async fn start_session(
         &self,
         name: String,
         group_id: String,
@@ -49,9 +51,9 @@ impl SessionsManager {
         let leaders_client_num = ClientNum(1);
         {
             if self
-                .sessions
+                .sessions_by_group_and_name
                 .read()
-                .unwrap()
+                .await
                 .get(&group_id)
                 .and_then(|subhashmap| subhashmap.get(&name))
                 .is_some()
@@ -65,38 +67,49 @@ impl SessionsManager {
         tokio::spawn(async move {
             session_manager.run().await;
         });
-        let add_leader_action =
-            BroadcastAction::SaveClient(ClientRole::Leader, leaders_client_num.clone(), client_tx);
-        let _ = session_tx.send(add_leader_action);
 
+        let _ = session_tx.send(BroadcastAction::SaveClient(
+            ClientRole::Leader,
+            leaders_client_num.clone(),
+            client_tx,
+        ));
+        let _ = session_tx.send(BroadcastAction::SendStats);
+
+        let session_info = Session {
+            name: name.clone(),
+            group_id: group_id.clone(),
+        };
         let session_state = SessionState {
-            session: Session {
-                name: name.clone(),
-                group_id: group_id.clone(),
-            },
-            leader_client_id,
+            session: session_info.clone(),
+            leader_client_id: leader_client_id.clone(),
             last_attributed_client_num: leaders_client_num.clone(),
             tx: session_tx.clone(),
         };
 
         {
-            self.sessions
+            self.sessions_by_group_and_name
                 .write()
-                .unwrap()
+                .await
                 .entry(group_id)
                 .or_default()
                 .insert(name, session_state);
         }
+        {
+            self.sessions_info_by_leaders_id
+                .write()
+                .await
+                .insert(leader_client_id, session_info);
+        }
         Ok((leaders_client_num, session_tx))
     }
 
-    pub fn join_session(
+    pub async fn join_session(
         &self,
         name: String,
         group_id: String,
         client_tx: UnboundedSender<Event>,
     ) -> Result<(ClientNum, UnboundedSender<BroadcastAction>), String> {
-        let mut write_guard = self.sessions.write().unwrap();
+        let mut write_guard = self.sessions_by_group_and_name.write().await;
         let session = write_guard
             .get_mut(&group_id)
             .ok_or("No session found with this group id")?
@@ -113,18 +126,17 @@ impl SessionsManager {
         Ok((new_client_num, session_tx))
     }
 
-    // TODO: should we move this trivial piece in ClientManager ?
     pub fn leave_session(
         &self,
         client_num: ClientNum,
         session_tx: UnboundedSender<BroadcastAction>,
     ) {
-        let action = BroadcastAction::RemoveClient(client_num);
-        let _ = session_tx.send(action);
+        let _ = session_tx.send(BroadcastAction::RemoveClient(client_num));
+        let _ = session_tx.send(BroadcastAction::SendStats);
     }
 
-    pub fn get_sessions(&self, group_id: &String) -> Vec<Session> {
-        let read_guard = self.sessions.read().unwrap();
+    pub async fn get_sessions(&self, group_id: &String) -> Vec<Session> {
+        let read_guard = self.sessions_by_group_and_name.read().await;
 
         match read_guard.get(group_id) {
             Some(group) => group
@@ -135,7 +147,48 @@ impl SessionsManager {
         }
     }
 
-    pub fn stop_session() {
-        todo!()
+    pub async fn stop_session(&self, client_id: &String) -> Result<(), LiveProtocolError> {
+        let reader2 = self.sessions_info_by_leaders_id.read().await;
+
+        let session = reader2
+            .get(client_id)
+            .ok_or(LiveProtocolError::ForbiddenSessionStop)?
+            .clone();
+        drop(reader2);
+
+        let reader = self.sessions_by_group_and_name.read().await;
+        // Make sure the session actually exist and that the client is the leader creator of the session
+        if let Some(session_state) = reader
+            .get(&session.group_id)
+            .and_then(|h| h.get(&session.name))
+        {
+            if session_state.leader_client_id == *client_id {
+                let _ = session_state
+                    .tx
+                    .send(BroadcastAction::SendToEveryone(Event::SessionStopped));
+                let _ = session_state.tx.send(BroadcastAction::Stop);
+                drop(reader);
+                {
+                    self.sessions_by_group_and_name
+                        .write()
+                        .await
+                        .get_mut(&session.group_id)
+                        .and_then(|h| h.remove(&session.name));
+                }
+                {
+                    self.sessions_info_by_leaders_id
+                        .write()
+                        .await
+                        .remove(client_id);
+                }
+
+                Ok(())
+            } else {
+                Err(LiveProtocolError::ForbiddenSessionStop)
+            }
+        } else {
+            error!("ClientManager.session contains a session that doesn't exist");
+            Ok(()) // just ignore the problem and considere the session to be already closed
+        }
     }
 }

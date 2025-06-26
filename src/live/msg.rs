@@ -67,6 +67,7 @@ pub enum LiveProtocolError {
     FailedToLeaveSession,
     SessionNotFound,
     CannotJoinOtherSession,
+    ForbiddenSessionStop,
 }
 
 impl Display for LiveProtocolError {
@@ -85,6 +86,9 @@ impl Display for LiveProtocolError {
             LiveProtocolError::CannotJoinOtherSession => {
                 "You cannot join another session without having left your current session."
                     .to_string()
+            }
+            LiveProtocolError::ForbiddenSessionStop => {
+                "You are not the creator of this session, you cannot stop it".to_string()
             }
         };
         f.write_str(text.as_str())
