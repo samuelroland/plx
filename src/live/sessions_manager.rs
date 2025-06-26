@@ -11,7 +11,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use super::{
     client::ClientRole,
     msg::{ClientNum, Event},
-    session::{Session, SessionAction, SessionManager},
+    session::{BroadcastAction, Session, SessionBroadcaster},
 };
 
 struct SessionState {
@@ -21,7 +21,7 @@ struct SessionState {
     leader_client_id: String,
     last_attributed_client_num: ClientNum,
     /// A copy of the sender to give to new clients joining
-    tx: UnboundedSender<SessionAction>,
+    tx: UnboundedSender<BroadcastAction>,
 }
 // The first key is the group_id, the second is the session name, the u32 is the last client_num used
 type Session2DMap = HashMap<String, HashMap<String, SessionState>>;
@@ -43,9 +43,9 @@ impl SessionsManager {
         group_id: String,
         leader_client_id: String,
         client_tx: UnboundedSender<Event>,
-    ) -> Result<(ClientNum, UnboundedSender<SessionAction>), String> {
-        let (session_tx, session_rx) = tokio::sync::mpsc::unbounded_channel::<SessionAction>();
-        let mut session_manager = SessionManager::new(session_rx);
+    ) -> Result<(ClientNum, UnboundedSender<BroadcastAction>), String> {
+        let (session_tx, session_rx) = tokio::sync::mpsc::unbounded_channel::<BroadcastAction>();
+        let mut session_manager = SessionBroadcaster::new(session_rx);
         let leaders_client_num = ClientNum(1);
         {
             if self
@@ -66,7 +66,7 @@ impl SessionsManager {
             session_manager.run().await;
         });
         let add_leader_action =
-            SessionAction::SaveClient(ClientRole::Leader, leaders_client_num.clone(), client_tx);
+            BroadcastAction::SaveClient(ClientRole::Leader, leaders_client_num.clone(), client_tx);
         let _ = session_tx.send(add_leader_action);
 
         let session_state = SessionState {
@@ -95,7 +95,7 @@ impl SessionsManager {
         name: String,
         group_id: String,
         client_tx: UnboundedSender<Event>,
-    ) -> Result<(ClientNum, UnboundedSender<SessionAction>), String> {
+    ) -> Result<(ClientNum, UnboundedSender<BroadcastAction>), String> {
         let mut write_guard = self.sessions.write().unwrap();
         let session = write_guard
             .get_mut(&group_id)
@@ -107,15 +107,19 @@ impl SessionsManager {
         let session_tx = session.tx.clone();
         drop(write_guard);
         let save_client_action =
-            SessionAction::SaveClient(ClientRole::Leader, new_client_num.clone(), client_tx);
+            BroadcastAction::SaveClient(ClientRole::Leader, new_client_num.clone(), client_tx);
         let _ = session_tx.send(save_client_action);
 
         Ok((new_client_num, session_tx))
     }
 
     // TODO: should we move this trivial piece in ClientManager ?
-    pub fn leave_session(&self, client_num: ClientNum, session_tx: UnboundedSender<SessionAction>) {
-        let action = SessionAction::RemoveClient(client_num);
+    pub fn leave_session(
+        &self,
+        client_num: ClientNum,
+        session_tx: UnboundedSender<BroadcastAction>,
+    ) {
+        let action = BroadcastAction::RemoveClient(client_num);
         let _ = session_tx.send(action);
     }
 

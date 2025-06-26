@@ -6,7 +6,7 @@ use crate::live::msg::LiveProtocolError;
 use super::{
     client::ClientRole,
     msg::{Action, ClientNum, Event, ForwardedFile, ForwardedResult},
-    session::{Session, SessionAction, SessionManager},
+    session::{BroadcastAction, Session, SessionBroadcaster},
     sessions_manager::{self, SessionsManager},
 };
 use futures_util::{stream::FusedStream, SinkExt};
@@ -47,7 +47,7 @@ pub struct SessionLink {
     /// A way to send messages to the session manager if the message is authorized by the role
     /// That's an Option because the client will exist before creating/joining a session
     /// If it is None, it means the client hasn't joined a session yet
-    pub session_tx: UnboundedSender<SessionAction>,
+    pub session_tx: UnboundedSender<BroadcastAction>,
 }
 
 impl ClientManager {
@@ -122,7 +122,7 @@ impl ClientManager {
                         if self.role == ClientRole::Follower {
                             // that's a forged request, we can ignore it
                         } else if let Some(session) = &self.session {
-                            let _ = session.session_tx.send(SessionAction::Stop);
+                            let _ = session.session_tx.send(BroadcastAction::Stop);
                             self.role = ClientRole::Follower;
                         }
                         // Do not touch self.session for now, wait for the session_manager choosing
@@ -180,7 +180,7 @@ impl ClientManager {
 
                     Ok(Action::SendFile { file, content }) => match &self.session {
                         Some(session) => {
-                            let _ = session.session_tx.send(SessionAction::SendToLeaders(
+                            let _ = session.session_tx.send(BroadcastAction::SendToLeaders(
                                 Event::ForwardFile(
                                     session.client_num.clone(),
                                     ForwardedFile {
@@ -198,7 +198,7 @@ impl ClientManager {
                     },
                     Ok(Action::SendResult { check_result }) => match &self.session {
                         Some(session) => {
-                            let _ = session.session_tx.send(SessionAction::SendToLeaders(
+                            let _ = session.session_tx.send(BroadcastAction::SendToLeaders(
                                 Event::ForwardResult(
                                     session.client_num.clone(),
                                     ForwardedResult {

@@ -31,7 +31,7 @@ use tokio_tungstenite::tungstenite::{
 use super::{
     client::ClientRole,
     client_manager::ClientManager,
-    session::SessionManager,
+    session::SessionBroadcaster,
     sessions_manager::{self, SessionsManager},
 };
 

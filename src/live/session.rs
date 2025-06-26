@@ -23,9 +23,9 @@ pub struct Session {
     pub group_id: String,
 }
 
-/// An action on the session, can only be created by ClientManager
+/// An action around a broadcasting need
 #[derive(Debug)]
-pub enum SessionAction {
+pub enum BroadcastAction {
     SendToLeaders(Event),
     SendToEveryone(Event),
     SaveClient(ClientRole, ClientNum, UnboundedSender<Event>),
@@ -34,23 +34,24 @@ pub enum SessionAction {
     SendStats, // only to leaders
 }
 
-/// This manager is running on the server in it's own tokio task and is responsible for
-/// 1. forwarding messages to leaders or to all clients of the session
-/// 2. handle the logic around session deletion
-pub struct SessionManager {
+/// This manager is running on the server in it's own tokio task. It maintains a list of Tx
+/// for each ClientManager of the session and take care of broadcast to all clients or to leaders
+pub struct SessionBroadcaster {
     /// A vector of transmitters to broadcast a message to clients in this session
     /// We also store the client role to filter leaders from the rest
-    broadcast_txs: HashMap<ClientNum, (ClientRole, UnboundedSender<Event>)>,
+    followers_broadcast_txs: HashMap<ClientNum, UnboundedSender<Event>>,
+    leaders_broadcast_txs: HashMap<ClientNum, UnboundedSender<Event>>,
 
     /// A receiver to receive actions from the multiple ClientManager
-    rx: UnboundedReceiver<SessionAction>,
+    session_action_rx: UnboundedReceiver<BroadcastAction>,
 }
 
-impl SessionManager {
-    pub fn new(rx: UnboundedReceiver<SessionAction>) -> Self {
+impl SessionBroadcaster {
+    pub fn new(rx: UnboundedReceiver<BroadcastAction>) -> Self {
         Self {
-            broadcast_txs: HashMap::new(),
-            rx,
+            followers_broadcast_txs: HashMap::new(),
+            leaders_broadcast_txs: HashMap::new(),
+            session_action_rx: rx,
         }
     }
 
@@ -58,60 +59,53 @@ impl SessionManager {
     /// a UnboundedReceiver<SessionAction> and react to each of them
     pub async fn run(&mut self) {
         println!("Starting SessionManager::run");
-        while let Some(msg) = self.rx.recv().await {
+        while let Some(msg) = self.session_action_rx.recv().await {
             match msg {
-                SessionAction::SendToLeaders(event) => self.broadcast(&event, true),
-                SessionAction::SendToEveryone(event) => self.broadcast(&event, false),
-                SessionAction::SaveClient(client_role, client_num, client_tx) => {
-                    self.broadcast_txs
-                        .insert(client_num, (ClientRole::Follower, client_tx));
+                BroadcastAction::SendToLeaders(event) => self.broadcast(&event, true),
+                BroadcastAction::SendToEveryone(event) => self.broadcast(&event, false),
+                BroadcastAction::SaveClient(client_role, client_num, client_tx) => {
+                    match client_role {
+                        ClientRole::Follower => {
+                            self.followers_broadcast_txs.insert(client_num, client_tx)
+                        }
+                        ClientRole::Leader => {
+                            self.leaders_broadcast_txs.insert(client_num, client_tx)
+                        }
+                    };
+                    self.send_stats();
                 }
-                SessionAction::RemoveClient(client_num) => {
-                    self.broadcast_txs.remove(&client_num);
+                BroadcastAction::RemoveClient(client_num) => {
+                    // Try removing in followers, then leaders if the first fails
+                    self.followers_broadcast_txs
+                        .remove(&client_num)
+                        .or_else(|| self.leaders_broadcast_txs.remove(&client_num));
+                    self.send_stats();
                 }
-                SessionAction::Stop => break,
-                SessionAction::SendStats => self.send_stats(),
+                BroadcastAction::Stop => break,
+                BroadcastAction::SendStats => self.send_stats(),
             }
         }
     }
 
     /// Broadcast a message, to leaders only or everyone
     fn broadcast(&self, event: &Event, to_leaders_only: bool) {
-        let txs: Vec<&UnboundedSender<Event>> = if to_leaders_only {
-            self.broadcast_txs
-                .iter()
-                .filter_map(|(_, (role, tx))| {
-                    if *role == ClientRole::Leader {
-                        Some(tx)
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        } else {
-            self.broadcast_txs
-                .iter()
-                .map(|(_, (role, tx))| tx)
-                .collect()
-        };
-
-        txs.iter().for_each(|tx| {
+        self.leaders_broadcast_txs.values().for_each(|tx| {
             let _ = tx.send(event.clone());
         });
+        if !to_leaders_only {
+            self.followers_broadcast_txs.values().for_each(|tx| {
+                let _ = tx.send(event.clone());
+            });
+        };
     }
 
     /// Send basic statistics about the session to leaders
     /// This must be ran each time there is a change to the session
     fn send_stats(&self) {
-        let (followers_iter, leaders_iter): (Vec<_>, Vec<_>) = self
-            .broadcast_txs
-            .iter()
-            .partition(|(_, (role, tx))| *role == ClientRole::Follower);
-
         self.broadcast(
             &Event::Stats {
-                followers_count: followers_iter.len() as u16,
-                leaders_count: leaders_iter.len() as u16,
+                followers_count: self.followers_broadcast_txs.len() as u16,
+                leaders_count: self.leaders_broadcast_txs.len() as u16,
             },
             true,
         );
