@@ -1,3 +1,5 @@
+use chrono::serde::ts_seconds;
+use chrono::{DateTime, Utc};
 use std::{
     error::Error,
     fmt::Display,
@@ -101,7 +103,8 @@ pub struct ForwardedFile {
     pub file: String,
     pub content: String,
     /// The time where this code was received on the server
-    pub time: std::time::SystemTime,
+    #[serde(with = "ts_seconds")]
+    pub time: DateTime<Utc>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -109,7 +112,8 @@ pub struct ForwardedResult {
     /// The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h"
     pub check_result: ExoCheckResult,
     /// The time where this result was received on the server
-    pub time: std::time::SystemTime,
+    #[serde(with = "ts_seconds")]
+    pub time: DateTime<Utc>,
 }
 
 /// A incremental number attributed by the server to each client after session join, to let clients identify other clients.

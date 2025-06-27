@@ -9,6 +9,7 @@ use super::{
     session::{BroadcastAction, Session, SessionBroadcaster},
     sessions_manager::{self, SessionsManager},
 };
+use chrono::{DateTime, Utc};
 use futures_util::{stream::FusedStream, SinkExt};
 use log::{info, warn};
 use tokio::{
@@ -132,7 +133,7 @@ impl ClientManager {
                                 self.role = ClientRole::Follower;
                             }
                         }
-                        // Do not touch self.session for now, wait for the session_manager choosing
+                        // Do not touch self.session for now, wait for the session_broadcaster choosing
                         // to stop itself via SessionStopped message
                     }
                     Ok(Action::JoinSession { name, group_id }) => match &self.session {
@@ -193,7 +194,7 @@ impl ClientManager {
                                     ForwardedFile {
                                         file,
                                         content,
-                                        time: SystemTime::now(),
+                                        time: DateTime::<Utc>::from(SystemTime::now()),
                                     },
                                 ),
                             ));
@@ -210,7 +211,7 @@ impl ClientManager {
                                     session.client_num.clone(),
                                     ForwardedResult {
                                         check_result,
-                                        time: SystemTime::now(),
+                                        time: DateTime::<Utc>::from(SystemTime::now()),
                                     },
                                 ),
                             ));
