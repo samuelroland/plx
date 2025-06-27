@@ -1,5 +1,7 @@
 use chrono::serde::ts_seconds;
 use chrono::{DateTime, Utc};
+use strum::{AsRefStr, Display, EnumString, VariantNames};
+
 use std::{
     error::Error,
     fmt::Display,
@@ -8,8 +10,6 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::tungstenite::{Message, Utf8Bytes};
-
-use crate::models::check_state::CheckState;
 
 use super::session::Session;
 
@@ -22,11 +22,11 @@ pub enum CheckStatus {
 }
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ExoCheckResult {
-    state: CheckStatus,
+    pub state: CheckStatus,
 }
 
 /// The protocol defines a set of valid actions that only clients can send
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, AsRefStr)]
 pub enum Action {
     // Actions on sessions
     StartSession { name: String, group_id: String },
@@ -44,7 +44,7 @@ pub enum Action {
 /// These events are generated after an action, in this case they are not necessarily sent to the
 /// author of the action, but could sent to other clients.
 /// These events can also be generated directly by the server (after some timeout or OS signal received)
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, AsRefStr)]
 pub enum Event {
     SessionStarted,
     SessionStopped,
@@ -61,7 +61,7 @@ pub enum Event {
 
 /// An error sent from the server to clients after any message
 /// that resolved in an error that is worth sending back to the client
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, AsRefStr)]
 pub enum LiveProtocolError {
     FailedToStartSession(String),
     FailedToJoinSession(String),
