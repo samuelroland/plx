@@ -1,6 +1,10 @@
 use crate::app::app::App;
+use live::{
+    client::LiveClient,
+    server::{LiveServer, DEFAULT_LIVE_PORT},
+};
 use simplelog::*;
-use std::fs::File;
+use std::{env::args, fs::File};
 pub mod app;
 pub mod core;
 pub mod live;
@@ -14,10 +18,18 @@ fn main() {
         File::create("debug.log").expect("Failed to create log file"),
     )
     .expect("Failed to initialize WriteLogger");
-    match App::new() {
-        Ok(app) => app.run_forever(),
-        Err(err) => {
-            eprintln!("Error starting plx {err}");
+    // Start the server or the UI
+    let args: Vec<String> = args().collect();
+    if args.len() > 1 && args[1] == "server" {
+        let server = LiveServer::new().expect("Couldn't setup LiveServer...");
+        println!("Started PLX server on port {DEFAULT_LIVE_PORT}");
+        server.start(DEFAULT_LIVE_PORT); // this is blocking indefinitly
+    } else {
+        match App::new() {
+            Ok(app) => app.run_forever(),
+            Err(err) => {
+                eprintln!("Error starting plx {err}");
+            }
         }
     }
 }
