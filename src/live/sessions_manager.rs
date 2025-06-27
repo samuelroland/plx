@@ -47,7 +47,7 @@ impl SessionsManager {
         client_tx: UnboundedSender<Event>,
     ) -> Result<(ClientNum, UnboundedSender<BroadcastAction>), String> {
         let (session_tx, session_rx) = tokio::sync::mpsc::unbounded_channel::<BroadcastAction>();
-        let mut session_manager = SessionBroadcaster::new(session_rx);
+        let mut session_broadcaster = SessionBroadcaster::new(session_rx);
         let leaders_client_num = ClientNum(1);
         {
             if self
@@ -65,7 +65,7 @@ impl SessionsManager {
             }
         }
         tokio::spawn(async move {
-            session_manager.run().await;
+            session_broadcaster.run().await;
         });
 
         let _ = session_tx.send(BroadcastAction::SaveClient(
@@ -73,7 +73,6 @@ impl SessionsManager {
             leaders_client_num.clone(),
             client_tx,
         ));
-        let _ = session_tx.send(BroadcastAction::SendStats);
 
         let session_info = Session {
             name: name.clone(),
@@ -119,9 +118,13 @@ impl SessionsManager {
         session.last_attributed_client_num = new_client_num.clone();
         let session_tx = session.tx.clone();
         drop(write_guard);
-        let save_client_action =
-            BroadcastAction::SaveClient(ClientRole::Leader, new_client_num.clone(), client_tx);
-        let _ = session_tx.send(save_client_action);
+        let _ = session_tx.send(BroadcastAction::SaveClient(
+            ClientRole::Follower,
+            new_client_num.clone(),
+            client_tx.clone(),
+        ));
+        let _ = client_tx.send(Event::SessionJoined);
+        let _ = session_tx.send(BroadcastAction::SendStats);
 
         Ok((new_client_num, session_tx))
     }
