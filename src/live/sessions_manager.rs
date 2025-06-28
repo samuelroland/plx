@@ -1,3 +1,4 @@
+use std::time::Duration;
 use std::{collections::HashMap, ops::Deref, sync::Arc, time::SystemTime, vec};
 
 use log::error;
@@ -192,6 +193,24 @@ impl SessionsManager {
         } else {
             error!("ClientManager.session contains a session that doesn't exist");
             Ok(()) // just ignore the problem and considere the session to be already closed
+        }
+    }
+
+    /// Shutdown of the server, waiting on all ClientManager to stop
+    pub async fn shutdown(&self) {
+        for h in self.sessions_by_group_and_name.read().await.values() {
+            for session_state in h.values() {
+                println!("{:?} in shutdown", session_state.session);
+                let tx = &session_state.tx;
+                // Note: do not call SessionStopped, it is already sent by ClientManager when ServerStopped is received !
+                // We cannot stop the session because we would lose the channel between the
+                // SessionBroadcaster and ClientManager otherwise
+                let _ = tx.send(BroadcastAction::SendToEveryone(Event::ServerStopped));
+                let _ = tx.send(BroadcastAction::Stop);
+                tx.closed().await; // rx will be closed when SessionBroadcaster will stop
+                                   // TODO: how to make sure all ClientManager also stopped ? maybe
+                                   // try to wait on that in managing BroadcastAction::Stop in SessionBroadcaster ??
+            }
         }
     }
 }

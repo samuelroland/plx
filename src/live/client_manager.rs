@@ -50,7 +50,9 @@ pub struct SessionLink {
 
 impl ClientManager {
     pub async fn run(&mut self) {
+        println!("ClientManager for new client");
         loop {
+            // Stop here if client disconnect themself
             if self.websocket.is_terminated() {
                 break;
             }
@@ -70,7 +72,19 @@ impl ClientManager {
                         }
                         external_msg = session.client_rx.recv() => {
                             match external_msg {
-                                Some(Event::SessionStopped) => {self.session = None; self.role = ClientRole::Follower; self.send_event(Event::SessionStopped).await;}
+                                Some(Event::SessionStopped) => {
+                                    self.session = None;
+                                    self.role = ClientRole::Follower;
+                                    self.send_event(Event::SessionStopped).await;
+                                }
+                                Some(Event::ServerStopped) => {
+                                    self.session = None;
+                                    self.send_event(Event::SessionStopped).await;
+                                    self.send_event(Event::ServerStopped).await;
+                                    let _ = self.websocket.close(None).await; // TODO: should we also read() again until we get Error::ConnectionClosed ?
+                                    // https://docs.rs/tungstenite/latest/tungstenite/protocol/struct.WebSocket.html#method.close
+                                    break; // stops itself too
+                                }
                                 Some(event) => {self.send_event(event).await;}
                                 None => {self.session = None;}
                             }
@@ -79,6 +93,8 @@ impl ClientManager {
                 }
             }
         }
+
+        println!("ClientManager for client_id '{}' is done", self.client_id);
     }
 
     async fn handle_msg(&mut self, stream_element: Option<Result<Message, Error>>) {

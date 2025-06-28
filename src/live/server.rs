@@ -1,7 +1,7 @@
 use std::{
     ptr::NonNull,
     sync::{Arc, Mutex},
-    thread::{self, JoinHandle},
+    thread::{self, sleep, JoinHandle},
     time::Duration,
     vec,
 };
@@ -66,23 +66,49 @@ impl LiveServer {
 
     /// Start a server listening on given port, use the DEFAULT_LIVE_PORT or a custom one
     /// listening on all network interfaces ("0.0.0.0") to be publicly accessible
-    /// This function is blocking and will never stop, except when calling stop()
-    pub fn start(&self, port: u16) {
+    /// This function is blocking and will never stop, until there is a SIGINT signal and the
+    /// shutdown is managed properly to close all connections and shutdown the runtime before return
+    pub fn start(self, port: u16) {
+        // TODO: make sure we cannot start twice !
         self.runtime.block_on(async {
-            // Start binding here, so it can fail if the port is already used.
-            let listener = TcpListener::bind(format!("0.0.0.0:{}", DEFAULT_LIVE_PORT))
-                .await
-                .unwrap();
+            // Graceful shutdown management, with a first async channel to receive another sync
+            // chanel to send the event to indicate "that's down all good"
+            let (shutdown_tx, mut shutdown_rx) = mpsc::unbounded_channel::<()>();
+            // Listen on SIGINT signal and wait for the confirmation of shutdown
+            ctrlc::set_handler(move || {
+                println!("\nDetected shutdown signal, starting shutdown process...");
+                let _ = shutdown_tx.send(());
+            })
+            .expect("Error setting Ctrl-C handler");
 
-            println!("started server !");
+            // Start binding here, so it can fail if the port is already used.
+            let listener = TcpListener::bind(format!("0.0.0.0:{}", port))
+                .await
+                .expect("Couldn't not bind on port {port}");
+
             // On all new TCP connections, just spawn a new task to process the new client
-            while let Ok((stream, _)) = listener.accept().await {
-                tokio::spawn(Self::process_client(
-                    stream,
-                    Arc::clone(&self.sessions_manager),
-                ));
+            loop {
+                select! {
+                    new_client = listener.accept() => {
+                        if let Ok((stream, _)) = new_client {
+                            tokio::spawn(Self::process_client(
+                                stream,
+                                Arc::clone(&self.sessions_manager),
+                            ));
+                        }
+                    }
+                    _ = shutdown_rx.recv() => {
+                        println!("SessionsManager call of shutdown process");
+                        self.sessions_manager.shutdown().await;
+                        println!("SessionsManager is done");
+                        break; // so the final shutdown of the runtime can be done
+                    }
+                };
             }
         });
+
+        println!("Shutting down the Tokio runtime");
+        self.runtime.shutdown_timeout(Duration::from_secs(2));
     }
 
     /// Once a TcpSocket has been accepted into a TcpStream, we can start the websocket connection
@@ -167,12 +193,5 @@ impl LiveServer {
             }
             Err(e) => warn!("Got a handshake error: {}", e.to_string()),
         }
-    }
-
-    /// Stopping the server by stopping the runtime
-    /// TODO: how to also correctly close websocket connections ?
-    /// does tungstenite already take care of that when socket drop ?
-    pub fn stop(self) {
-        self.runtime.shutdown_timeout(Duration::from_secs(2));
     }
 }

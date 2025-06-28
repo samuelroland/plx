@@ -82,6 +82,8 @@ impl SessionBroadcaster {
                 BroadcastAction::SendStats => self.send_stats(),
             }
         }
+
+        println!("One SessionBroadcaster is done");
     }
 
     /// Broadcast a message, to leaders only or everyone

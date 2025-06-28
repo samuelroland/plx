@@ -54,6 +54,7 @@ pub enum Event {
         followers_count: u16,
         leaders_count: u16,
     },
+    ServerStopped,
     ForwardFile(ClientNum, ForwardedFile),
     ForwardResult(ClientNum, ForwardedResult),
     Error(LiveProtocolError),
