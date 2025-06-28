@@ -36,6 +36,7 @@ pub enum Action {
     GetSessions { group_id: String },
 
     // Code exo syncing
+    ExoSwitch { path: String },
     SendFile { file: String, content: String },
     SendResult { check_result: ExoCheckResult },
 }
@@ -55,6 +56,9 @@ pub enum Event {
         leaders_count: u16,
     },
     ServerStopped,
+    ExoSwitched {
+        path: String,
+    },
     ForwardFile(ClientNum, ForwardedFile),
     ForwardResult(ClientNum, ForwardedResult),
     Error(LiveProtocolError),
@@ -71,6 +75,7 @@ pub enum LiveProtocolError {
     SessionNotFound,
     CannotJoinOtherSession,
     ForbiddenSessionStop,
+    ActionOnlyForLeader(String),
 }
 
 impl Display for LiveProtocolError {
@@ -92,6 +97,9 @@ impl Display for LiveProtocolError {
             }
             LiveProtocolError::ForbiddenSessionStop => {
                 "You are not the creator of this session, you cannot stop it".to_string()
+            }
+            LiveProtocolError::ActionOnlyForLeader(action_name) => {
+                format!("The action {action_name} is permitted to leaders of the session.")
             }
         };
         f.write_str(text.as_str())

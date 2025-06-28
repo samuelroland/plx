@@ -27,7 +27,6 @@ use tokio_tungstenite::tungstenite::{Error, Message};
 pub struct ClientManager {
     /// A unique ID sent by the client during websocket handshake
     pub client_id: String,
-    pub role: ClientRole,
     /// The WebSocket where the client is connected, on which we can send() or read()
     pub websocket: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
     pub session: Option<SessionLink>,
@@ -40,6 +39,7 @@ pub struct SessionLink {
     pub client_rx: UnboundedReceiver<Event>,
     /// Keep a copy of the tx so we can pass it to SessionAction
     pub client_tx: UnboundedSender<Event>,
+    pub role: ClientRole,
     /// Client number attributed by SessionsManager::start_session()
     pub client_num: ClientNum,
     /// A way to send messages to the session manager if the message is authorized by the role
@@ -74,7 +74,6 @@ impl ClientManager {
                             match external_msg {
                                 Some(Event::SessionStopped) => {
                                     self.session = None;
-                                    self.role = ClientRole::Follower;
                                     self.send_event(Event::SessionStopped).await;
                                 }
                                 Some(Event::ServerStopped) => {
@@ -123,12 +122,12 @@ impl ClientManager {
                                         client_rx,
                                         client_tx: client_tx.clone(),
                                         client_num,
+                                        role: ClientRole::Leader,
                                         session_tx,
                                     }
                                 });
                                 info!("Session created");
 
-                                self.role = ClientRole::Leader;
                                 let _ = client_tx.send(Event::SessionStarted);
                             }
                             Err(e) => {
@@ -138,19 +137,22 @@ impl ClientManager {
                         }
                     }
                     Ok(Action::StopSession) => {
-                        if self.role == ClientRole::Follower {
-                            self.send_error(LiveProtocolError::ForbiddenSessionStop)
-                                .await;
-                        } else if let Some(session) = &self.session {
-                            let result = self.sessions_manager.stop_session(&self.client_id).await;
-                            if let Err(e) = result {
-                                self.send_error(e).await;
-                            } else {
-                                self.role = ClientRole::Follower;
+                        if let Some(session) = &self.session {
+                            if session.role == ClientRole::Follower {
+                                self.send_error(LiveProtocolError::ForbiddenSessionStop)
+                                    .await;
+                            } else if let Some(session) = &self.session {
+                                let result =
+                                    self.sessions_manager.stop_session(&self.client_id).await;
+                                if let Err(e) = result {
+                                    self.send_error(e).await;
+                                }
+                                // Do not touch self.session for now, wait on the SessionStopped message
+                                // sent by the session_broadcaster choosing after it stopped itself
                             }
+                        } else {
+                            self.send_error(LiveProtocolError::SessionNotFound).await;
                         }
-                        // Do not touch self.session for now, wait for the session_broadcaster choosing
-                        // to stop itself via SessionStopped message
                     }
                     Ok(Action::JoinSession { name, group_id }) => match &self.session {
                         Some(session) => {
@@ -170,6 +172,7 @@ impl ClientManager {
                                         client_rx,
                                         client_tx,
                                         client_num,
+                                        role: ClientRole::Follower,
                                         session_tx,
                                     })
                                 }
@@ -237,6 +240,22 @@ impl ClientManager {
                                 .await;
                         }
                     },
+                    Ok(Action::ExoSwitch { path }) => {
+                        if let Some(session) = &self.session {
+                            if session.role == ClientRole::Follower {
+                                self.send_error(LiveProtocolError::ActionOnlyForLeader(
+                                    "switch of exo".to_string(),
+                                ))
+                                .await;
+                            } else {
+                                let _ = session.session_tx.send(BroadcastAction::SendToEveryone(
+                                    Event::ExoSwitched { path },
+                                ));
+                            }
+                        } else {
+                            self.send_error(LiveProtocolError::SessionNotFound).await;
+                        }
+                    }
                     Err(e) => {
                         info!("{}", e)
                     }

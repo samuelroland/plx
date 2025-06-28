@@ -180,7 +180,6 @@ impl LiveServer {
                 }
                 let mut client_manager = ClientManager {
                     client_id,
-                    role: ClientRole::Follower,
                     websocket,
                     session: None,
                     sessions_manager,
