@@ -66,53 +66,62 @@ impl ClientSplitter {
             .build()
             .unwrap();
         runtime.block_on(async move {
+            println!("Starting ClientSplitter tokio runtime");
             let uri: Uri = format!("ws://{}:{}", domain, port).parse().unwrap(); // todo fix unwrap + todo support TLS !
             let builder = ClientRequestBuilder::new(uri)
                 .with_header(HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION)
                 .with_header(HEADER_LIVE_CLIENT_ID, client_id);
             let (mut socket, _) = tokio_tungstenite::connect_async(builder).await.unwrap();
-            let mut mp = self.mp.take().unwrap();
+            let mut mp = self.mp.take().unwrap(); // a way to move out the mp
+
             tokio::spawn(async move {
                 loop {
                     select! {
                         // Read messages from socket and forward them in the correct channel
                         ws_msg = socket.next() => {
-                            if let Some(Ok(ws_msg)) = ws_msg {
-                                let event: Event = Event::try_from(ws_msg.into_text().unwrap()).unwrap();
-                                match event {
-                                    Event::SessionStarted
-                                    | Event::SessionStopped
-                                    | Event::SessionJoined
-                                    | Event::SessionsList(..)
-                                    | Event::Error(..) => {
-                                        let _ = mp.session_recv.send(event.clone());
+                           if let Some(Ok(ws_msg)) = ws_msg {
+                                match ws_msg.into_text().ok().and_then(|txt| Event::try_from(txt).ok()) {
+                                        Some(event) => {
+                                            match event {
+                                                Event::SessionStarted
+                                                | Event::SessionStopped
+                                                | Event::SessionJoined
+                                                | Event::SessionsList(..)
+                                                | Event::Error(..) => {
+                                                    let _ = mp.session_recv.send(event.clone());
+                                                }
+                                                Event::ExoSwitched { .. }  | Event::ForwardFile(..)  | Event::ForwardResult(..)  | Event::Stats(..) => {
+                                                    let _ = mp.training_recv.send(event.clone());
+                                                }
+                                                Event::ServerStopped => {
+                                                    mp.send.close();
+                                                    mp.session_recv.closed().await;
+                                                    mp.training_recv.closed().await;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        None => {
+                                            eprintln!("Failed to parse event from ws_msg");
+                                            continue;
+                                        }
                                     }
-                                    Event::ExoSwitched { .. }  | Event::ForwardFile(..)  | Event::ForwardResult(..)  | Event::Stats(..) => {
-                                        let _ = mp.training_recv.send(event.clone());
-                                    }
-                                    Event::ServerStopped => {
-                                        mp.send.close();
-                                        mp.session_recv.closed().await;
-                                        mp.training_recv.closed().await;
-                                        break;
-                                    }
-                                }
-                                let _ = mp.session_recv.send(event);
-                            } else {
-                                break;
                             }
                         }
                         // Read actions to sent into socket
                         action = mp.send.recv() => {
                             if let Some(action) = action {
-                                let _ = socket.send(Message::Text(action.try_into().unwrap())).await;
+                                let msg = action.try_into();
+                                if let Ok(msg) = msg {
+                                    let _ = socket.send(Message::Text(msg)).await;
+                                }
                             } else {
                                 break;
                             }
                         }
                     }
                 }
-            });
+            }).await.unwrap();
         });
         runtime.shutdown_timeout(Duration::from_secs(2));
     }

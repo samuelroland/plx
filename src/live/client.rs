@@ -1,5 +1,5 @@
 /// Client implementation of the live protocol
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, thread, time::Duration};
 
 use tokio_tungstenite::tungstenite;
 
@@ -33,7 +33,6 @@ struct SessionDetails {
 }
 
 pub struct LiveClient {
-    splitter: ClientSplitter,
     mp: SplitterInterface,
     /// The states of followers clients in the current session, only relevant for leader clients.
     /// It will be empty for follower clients.
@@ -74,9 +73,12 @@ impl LiveClient {
         client_id: String,
     ) -> Result<LiveClient, std::io::Error> {
         let (mut splitter, mp) = ClientSplitter::new();
-        splitter.start(domain, port, client_id);
+        let domain = domain.to_string();
+        thread::spawn(move || {
+            splitter.start(&domain, port, client_id);
+        });
+        thread::sleep(Duration::from_secs(1));
         let client = LiveClient {
-            splitter,
             mp,
             followers_states: HashMap::new(),
             session: None,
@@ -167,11 +169,12 @@ impl LiveClient {
     }
 
     /// Get all available session for a given group id
-    pub fn get_sessions(&mut self, group_id: String) -> Result<Vec<Session>, std::io::Error> {
+    pub fn get_sessions(&mut self, group_id: String) -> Result<Vec<Session>, ()> {
         self.send_msg(Action::GetSessions { group_id });
-        if let Some(Event::SessionsList(list)) = self.mp.session_recv.blocking_recv() {
+        let e = self.mp.session_recv.blocking_recv();
+        if let Some(Event::SessionsList(list)) = e {
             return Ok(list);
         }
-        Ok(vec![])
+        Err(())
     }
 }
