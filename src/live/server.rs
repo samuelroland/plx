@@ -1,39 +1,17 @@
-use std::{
-    ptr::NonNull,
-    sync::{Arc, Mutex},
-    thread::{self, sleep, JoinHandle},
-    time::Duration,
-    vec,
-};
+use std::{sync::Arc, time::Duration};
 
-use log::{error, info, warn};
-use serde::{Deserialize, Serialize};
+use log::{error, warn};
 use tokio::{
-    io::AsyncWriteExt,
-    net::{TcpSocket, TcpStream},
+    net::TcpStream,
     runtime::Runtime,
-    sync::{
-        mpsc::{self, UnboundedReceiver, UnboundedSender},
-        oneshot,
-    },
+    sync::mpsc::{self},
 };
 
-use futures_util::{stream::StreamExt, SinkExt};
 use tokio::net::TcpListener;
 use tokio::select;
-use tokio_tungstenite::tungstenite::{
-    client,
-    handshake::{self, server::Callback},
-    http::Response,
-    Message, Utf8Bytes, WebSocket,
-};
+use tokio_tungstenite::tungstenite::{handshake, http::Response};
 
-use super::{
-    client::ClientRole,
-    client_manager::ClientManager,
-    session::SessionBroadcaster,
-    sessions_manager::{self, SessionsManager},
-};
+use super::{client_manager::ClientManager, sessions_manager::SessionsManager};
 
 /// Version of the protocol, defined its specification
 pub const PROTOCOL_VERSION: &str = "0.1.0";
@@ -68,18 +46,21 @@ impl LiveServer {
     /// listening on all network interfaces ("0.0.0.0") to be publicly accessible
     /// This function is blocking and will never stop, until there is a SIGINT signal and the
     /// shutdown is managed properly to close all connections and shutdown the runtime before return
-    pub fn start(self, port: u16) {
+    pub fn start(self, port: u16, handle_clean_shutdown: bool) {
         // TODO: make sure we cannot start twice !
         self.runtime.block_on(async {
             // Graceful shutdown management, with a first async channel to receive another sync
             // chanel to send the event to indicate "that's down all good"
             let (shutdown_tx, mut shutdown_rx) = mpsc::unbounded_channel::<()>();
-            // Listen on SIGINT signal and wait for the confirmation of shutdown
-            ctrlc::set_handler(move || {
-                println!("\nDetected shutdown signal, starting shutdown process...");
-                let _ = shutdown_tx.send(());
-            })
-            .expect("Error setting Ctrl-C handler");
+            if handle_clean_shutdown {
+                // Listen on SIGINT signal and wait for the confirmation of shutdown
+                // Disable during testing
+                ctrlc::set_handler(move || {
+                    println!("\nDetected shutdown signal, starting shutdown process...");
+                    let _ = shutdown_tx.send(());
+                })
+                .expect("Error setting Ctrl-C handler");
+            }
 
             // Start binding here, so it can fail if the port is already used.
             let listener = TcpListener::bind(format!("0.0.0.0:{}", port))

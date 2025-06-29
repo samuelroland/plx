@@ -6,12 +6,12 @@ use crate::live::msg::LiveProtocolError;
 use super::{
     client::ClientRole,
     msg::{Action, ClientNum, Event, ForwardedFile, ForwardedResult},
-    session::{BroadcastAction, Session, SessionBroadcaster},
-    sessions_manager::{self, SessionsManager},
+    session::BroadcastAction,
+    sessions_manager::SessionsManager,
 };
 use chrono::{DateTime, Utc};
 use futures_util::{stream::FusedStream, SinkExt};
-use log::{info, warn};
+use log::info;
 use tokio::{
     select,
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
@@ -141,7 +141,7 @@ impl ClientManager {
                             if session.role == ClientRole::Follower {
                                 self.send_error(LiveProtocolError::ForbiddenSessionStop)
                                     .await;
-                            } else if let Some(session) = &self.session {
+                            } else if self.session.is_some() {
                                 let result =
                                     self.sessions_manager.stop_session(&self.client_id).await;
                                 if let Err(e) = result {
@@ -155,7 +155,7 @@ impl ClientManager {
                         }
                     }
                     Ok(Action::JoinSession { name, group_id }) => match &self.session {
-                        Some(session) => {
+                        Some(_) => {
                             self.send_error(LiveProtocolError::CannotJoinOtherSession)
                                 .await;
                         }
