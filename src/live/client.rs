@@ -25,7 +25,7 @@ pub enum ClientRole {
 
 struct FollowerState {
     client_num: ClientNum,
-    code: Option<ForwardedFile>,
+    code: Option<HashMap<String, ForwardedFile>>,
     check_result: Option<ForwardedResult>,
 }
 

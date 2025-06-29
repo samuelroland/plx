@@ -116,6 +116,7 @@ fn get_sessions_correctly_use_group_id() {
 #[ntest::timeout(4000)]
 fn session_continues_to_exist_when_leader_disconnects() {
     let random_port = spawn_test_server();
+    // Note: do not refactor with spawn_server_and_n_clients, we need to move out a client from vec in disconnect()
     let mut c0 = LiveClient::connect("127.0.0.1", random_port, "SecretId3".to_string()).unwrap();
     let mut c1 = LiveClient::connect("127.0.0.1", random_port, "SecretId4".to_string()).unwrap();
     c0.start_session(NAME, GROUP_ID).unwrap();
