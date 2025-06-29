@@ -1,10 +1,5 @@
 /// Client implementation of the live protocol
-use std::{
-    collections::HashMap,
-    fmt::Display,
-    net::TcpStream,
-    sync::mpsc::{self, Receiver},
-};
+use std::{collections::HashMap, fmt::Display, net::TcpStream};
 
 use tokio_tungstenite::tungstenite::{
     self, connect, http::Uri, stream::MaybeTlsStream, ClientRequestBuilder, Message, WebSocket,
@@ -12,13 +7,14 @@ use tokio_tungstenite::tungstenite::{
 
 use super::{
     msg::{
-        Action, ClientNum, Event, ExoCheckResult, ForwardedFile, ForwardedResult, LiveProtocolError,
+        Action, ClientNum, Event, ExoCheckResult, ForwardedFile, ForwardedResult,
+        LiveProtocolError, SessionStats,
     },
     server::{HEADER_LIVE_CLIENT_ID, HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION},
     session::Session,
 };
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub enum ClientRole {
     /// Default role, for anyone following a session
     Follower,
@@ -33,11 +29,19 @@ struct FollowerState {
     check_result: Option<ForwardedResult>,
 }
 
+struct SessionDetails {
+    session: Session,
+    stats: SessionStats,
+}
+
 pub struct LiveClient {
     socket: WebSocket<MaybeTlsStream<TcpStream>>,
     /// The states of followers clients in the current session, only relevant for leader clients.
     /// It will be empty for follower clients.
     followers_states: HashMap<ClientNum, FollowerState>,
+
+    /// When connected to a session, retain a few details locally
+    session: Option<SessionDetails>,
 }
 
 #[derive(Debug)]
@@ -79,6 +83,7 @@ impl LiveClient {
         let client = LiveClient {
             socket,
             followers_states: HashMap::new(),
+            session: None,
         };
 
         Ok(client)
@@ -94,6 +99,7 @@ impl LiveClient {
         let _ = self.socket.send(Message::Text(msg.try_into().unwrap()));
     }
 
+    /// Receive an event, save Event::Stats but skip it and wait for next event
     fn receive_event(&mut self) -> Result<Event, String> {
         let received = Event::try_from(
             self.socket
@@ -104,31 +110,50 @@ impl LiveClient {
         )
         .map_err(|e| e.to_string());
         println!("Received {:?}", received);
-        received
+        match &received {
+            Ok(Event::Stats(stats)) => {
+                if let Some(session_details) = &mut self.session {
+                    session_details.stats = stats.clone();
+                }
+                self.receive_event() // wait for another event
+            }
+            _ => received,
+        }
     }
 
     /// Create a new session
-    pub fn start_session(&mut self, name: &str, group_id: String) -> Result<Session, String> {
+    pub fn start_session(&mut self, name: &str, group_id: &str) -> Result<Session, String> {
         self.send_msg(Action::StartSession {
             name: name.to_string(),
-            group_id: group_id.clone(),
+            group_id: group_id.to_string(),
         });
         let event = self.receive_event();
         if let Ok(Event::SessionStarted) = event {
             Ok(Session {
                 name: name.to_string(),
-                group_id,
+                group_id: group_id.to_string(),
             })
         } else {
             Err(format!("{:?}", event))
         }
     }
 
+    /// Create a new session
+    pub fn stop_session(&mut self) -> Result<(), String> {
+        self.send_msg(Action::StopSession);
+        let event = self.receive_event();
+        if let Ok(Event::SessionStopped) = event {
+            Ok(())
+        } else {
+            Err(format!("{:?}", event))
+        }
+    }
+
     /// Join a session
-    pub fn join_session(&mut self, name: &str, group_id: String) -> Result<Session, String> {
+    pub fn join_session(&mut self, name: &str, group_id: &str) -> Result<Session, String> {
         self.send_msg(Action::JoinSession {
             name: name.to_string(),
-            group_id: group_id.clone(),
+            group_id: group_id.to_string(),
         });
         let event = self.receive_event();
         if let Ok(Event::SessionJoined) = event {
@@ -136,7 +161,7 @@ impl LiveClient {
         }
         Ok(Session {
             name: name.to_string(),
-            group_id,
+            group_id: group_id.to_string(),
         })
     }
 

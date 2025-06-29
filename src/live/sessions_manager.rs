@@ -1,10 +1,9 @@
-use std::time::Duration;
-use std::{collections::HashMap, ops::Deref, sync::Arc, time::SystemTime, vec};
+use std::collections::HashMap;
 
 use log::error;
 use tokio::sync::RwLock;
 
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 
 use super::msg::LiveProtocolError;
 use super::{
@@ -107,8 +106,9 @@ impl SessionsManager {
         &self,
         name: String,
         group_id: String,
+        client_id: String,
         client_tx: UnboundedSender<Event>,
-    ) -> Result<(ClientNum, UnboundedSender<BroadcastAction>), String> {
+    ) -> Result<(ClientNum, ClientRole, UnboundedSender<BroadcastAction>), String> {
         let mut write_guard = self.sessions_by_group_and_name.write().await;
         let session = write_guard
             .get_mut(&group_id)
@@ -118,16 +118,23 @@ impl SessionsManager {
         let new_client_num = ClientNum(session.last_attributed_client_num.0 + 1);
         session.last_attributed_client_num = new_client_num.clone();
         let session_tx = session.tx.clone();
+        // Calculate the role here to be able to reconnect a disconnected leader
+        // and attribute it as the leader of the session again
+        let role = if session.leader_client_id == client_id {
+            ClientRole::Leader
+        } else {
+            ClientRole::Follower
+        };
         drop(write_guard);
         let _ = session_tx.send(BroadcastAction::SaveClient(
-            ClientRole::Follower,
+            role.clone(),
             new_client_num.clone(),
             client_tx.clone(),
         ));
         let _ = client_tx.send(Event::SessionJoined);
         let _ = session_tx.send(BroadcastAction::SendStats);
 
-        Ok((new_client_num, session_tx))
+        Ok((new_client_num, role, session_tx))
     }
 
     pub fn leave_session(
@@ -143,10 +150,14 @@ impl SessionsManager {
         let read_guard = self.sessions_by_group_and_name.read().await;
 
         match read_guard.get(group_id) {
-            Some(group) => group
-                .iter()
-                .map(|(name, state)| state.session.clone())
-                .collect(),
+            Some(group) => {
+                let mut list: Vec<Session> = group
+                    .iter()
+                    .map(|(_, state)| state.session.clone())
+                    .collect();
+                list.sort();
+                list
+            }
             None => vec![],
         }
     }

@@ -164,15 +164,20 @@ impl ClientManager {
                                 tokio::sync::mpsc::unbounded_channel::<Event>();
                             match self
                                 .sessions_manager
-                                .join_session(name, group_id, client_tx.clone())
+                                .join_session(
+                                    name,
+                                    group_id,
+                                    self.client_id.clone(),
+                                    client_tx.clone(),
+                                )
                                 .await
                             {
-                                Ok((client_num, session_tx)) => {
+                                Ok((client_num, role, session_tx)) => {
                                     self.session = Some(SessionLink {
                                         client_rx,
                                         client_tx,
                                         client_num,
-                                        role: ClientRole::Follower,
+                                        role,
                                         session_tx,
                                     })
                                 }

@@ -1,11 +1,26 @@
-use std::{thread, time::Duration};
+use pretty_assertions::assert_eq;
+use std::{
+    thread::{self, sleep},
+    time::Duration,
+    vec,
+};
 
 use plx::live::{
     client::{LiveClient, ProtocolError},
     msg::LiveProtocolError,
-    server::{LiveServer, DEFAULT_LIVE_PORT},
+    server::LiveServer,
+    session::Session,
 };
-use rand::random;
+
+// Used most of the time as session name and group_id
+const NAME: &str = "PRG2";
+const GROUP_ID: &str = "PRG2group";
+fn get_default_session() -> Session {
+    Session {
+        name: NAME.to_string(),
+        group_id: GROUP_ID.to_string(),
+    }
+}
 
 fn spawn_test_server() -> u16 {
     let random_dynamic_port = rand::random_range(49152..65535);
@@ -13,37 +28,132 @@ fn spawn_test_server() -> u16 {
 
     thread::spawn(move || {
         let server = LiveServer::new().unwrap();
-        server.start(random_dynamic_port);
+        server.start(random_dynamic_port, false);
     });
-    thread::sleep(Duration::from_secs(1));
+    // just a short sleep so the server has time to start before clients start connecting
+    thread::sleep(Duration::from_millis(100));
     random_dynamic_port
+}
+
+/// Spawn a server and N connected clients (no session yet)
+fn spawn_server_and_n_clients(n: u16) -> Vec<LiveClient> {
+    assert!(n > 0);
+    let random_port = spawn_test_server();
+    let mut clients = Vec::new();
+    for i in 0..n {
+        let c = LiveClient::connect("127.0.0.1", random_port, format!("SecretId{}", i)).unwrap();
+        clients.push(c);
+    }
+    clients
+}
+
+/// Create a session in addition to n clients, including the first client as the leader, the
+/// following as followers of the session
+fn spawn_server_and_n_clients_with_session(n: u16) -> Vec<LiveClient> {
+    assert!(n > 0);
+    let mut clients = spawn_server_and_n_clients(n);
+    let mut it = clients.iter_mut();
+    let leader: &mut LiveClient = it.next().unwrap();
+    leader.start_session(NAME, GROUP_ID).unwrap();
+    for follower in it {
+        follower.join_session(NAME, GROUP_ID).unwrap();
+    }
+    clients
+}
+
+#[test]
+#[ntest::timeout(4000)]
+fn get_sessions_works() {
+    let c = &mut spawn_server_and_n_clients(1)[0];
+    assert_eq!(c.get_sessions("PRG2group".to_string()).unwrap(), vec![]);
+    let expected_session = get_default_session();
+    c.start_session(NAME, GROUP_ID).unwrap();
+    assert_eq!(
+        c.get_sessions(GROUP_ID.to_string()).unwrap(),
+        vec![expected_session]
+    );
+}
+
+#[test]
+#[ntest::timeout(4000)]
+fn get_sessions_correctly_use_group_id() {
+    let c = &mut spawn_server_and_n_clients(5);
+    c[0].start_session(NAME, GROUP_ID).unwrap();
+    c[2].start_session("PRG1 Joe", "PRG1group").unwrap();
+    c[3].start_session("PRG1 Joe", "PRG1FORK").unwrap();
+    c[1].start_session("PRG1 Alice", "PRG1group").unwrap();
+
+    assert_eq!(
+        c[3].get_sessions("inexistant group id".to_string())
+            .unwrap(),
+        vec![]
+    );
+    assert_eq!(
+        c[3].get_sessions("PRG2group".to_string()).unwrap(),
+        vec![get_default_session()]
+    );
+    assert_eq!(
+        c[3].get_sessions("PRG2group".to_string()).unwrap(),
+        c[4].get_sessions("PRG2group".to_string()).unwrap(),
+    );
+    assert_eq!(
+        c[3].get_sessions("PRG1group".to_string()).unwrap(),
+        vec![
+            // It also make sure the list is sorted !
+            Session {
+                name: "PRG1 Alice".to_string(),
+                group_id: "PRG1group".to_string()
+            },
+            Session {
+                name: "PRG1 Joe".to_string(),
+                group_id: "PRG1group".to_string()
+            },
+        ]
+    );
+}
+
+#[test]
+#[ntest::timeout(4000)]
+fn session_continues_to_exist_when_leader_disconnects() {
+    let random_port = spawn_test_server();
+    let mut c0 = LiveClient::connect("127.0.0.1", random_port, "SecretId3".to_string()).unwrap();
+    let mut c1 = LiveClient::connect("127.0.0.1", random_port, "SecretId4".to_string()).unwrap();
+    c0.start_session(NAME, GROUP_ID).unwrap();
+    assert_eq!(
+        c1.get_sessions("PRG2group".to_string()).unwrap(),
+        vec![get_default_session()]
+    );
+    c0.disconnect();
+    sleep(Duration::from_millis(500));
+    assert_eq!(
+        c1.get_sessions("PRG2group".to_string()).unwrap(),
+        vec![get_default_session()]
+    );
+    // The leader is back with same client_id !
+    let mut c0 = LiveClient::connect("127.0.0.1", random_port, "SecretId3".to_string()).unwrap();
+    c0.join_session(NAME, GROUP_ID).unwrap(); // this test that joining again make it a leader again
+    c0.stop_session().unwrap(); // if stopping the session works, it was a leader again
+    assert_eq!(c1.get_sessions("PRG2group".to_string()).unwrap(), vec![]);
 }
 
 #[test]
 #[ntest::timeout(4000)]
 fn exo_switch_from_leader_is_forwarded_when_session_exists() {
-    let random_port = spawn_test_server();
-    let mut client = LiveClient::connect("127.0.0.1", random_port, "client 1".to_string()).unwrap();
-    client
-        .start_session("PRG2", "PRG2group".to_string())
-        .unwrap();
-    client
-        .send_exo_switch("intro/salue-moi".to_string())
-        .unwrap(); // unwrap is making sure we got an ExoSwitched back
+    let c = &mut spawn_server_and_n_clients(1)[0];
+    c.start_session(NAME, GROUP_ID).unwrap();
+    c.send_exo_switch("intro/salue-moi".to_string()).unwrap(); // unwrap is making sure we got an ExoSwitched back
 }
 
 #[test]
 #[ntest::timeout(4000)]
 fn exo_switch_from_follower_fails() {
-    let random_port = spawn_test_server();
-    let mut c = LiveClient::connect("127.0.0.1", random_port, "client 1".to_string()).unwrap();
-    let mut c2 = LiveClient::connect("127.0.0.1", random_port, "client 2".to_string()).unwrap();
-    c.start_session("PRG2", "PRG2group".to_string()).unwrap();
-    c2.join_session("PRG2", "PRG2group".to_string()).unwrap();
+    let mut c = spawn_server_and_n_clients(2);
+    c[0].start_session(NAME, GROUP_ID).unwrap();
+    c[1].join_session(NAME, GROUP_ID).unwrap();
 
-    let result = c2.send_exo_switch("intro/salue-moi".to_string());
+    let result = c[1].send_exo_switch("intro/salue-moi".to_string());
 
-    if let Err(ProtocolError::Live(LiveProtocolError::ActionOnlyForLeader(a))) = result {
+    if let Err(ProtocolError::Live(LiveProtocolError::ActionOnlyForLeader(_))) = result {
     } else {
         panic!("Expected ActionOnlyForLeader error, got {:?}", result);
     }
@@ -52,8 +162,7 @@ fn exo_switch_from_follower_fails() {
 #[test]
 #[ntest::timeout(4000)]
 fn exo_switch_without_session_fails() {
-    let random_port = spawn_test_server();
-    let mut c = LiveClient::connect("127.0.0.1", random_port, "client 1".to_string()).unwrap();
+    let c = &mut spawn_server_and_n_clients(1)[0];
     let result = c.send_exo_switch("intro/salue-moi".to_string());
 
     if let Err(ProtocolError::Live(LiveProtocolError::SessionNotFound)) = result {

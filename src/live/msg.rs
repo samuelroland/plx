@@ -1,15 +1,11 @@
 use chrono::serde::ts_seconds;
 use chrono::{DateTime, Utc};
-use strum::{AsRefStr, Display, EnumString, VariantNames};
+use strum::AsRefStr;
 
-use std::{
-    error::Error,
-    fmt::Display,
-    time::{Instant, SystemTime},
-};
+use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
-use tokio_tungstenite::tungstenite::{Message, Utf8Bytes};
+use tokio_tungstenite::tungstenite::Utf8Bytes;
 
 use super::session::Session;
 
@@ -23,6 +19,12 @@ pub enum CheckStatus {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ExoCheckResult {
     pub state: CheckStatus,
+}
+
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
+pub struct SessionStats {
+    pub followers_count: u16,
+    pub leaders_count: u16,
 }
 
 /// The protocol defines a set of valid actions that only clients can send
@@ -51,14 +53,9 @@ pub enum Event {
     SessionStopped,
     SessionJoined,
     SessionsList(Vec<Session>),
-    Stats {
-        followers_count: u16,
-        leaders_count: u16,
-    },
+    Stats(SessionStats),
     ServerStopped,
-    ExoSwitched {
-        path: String,
-    },
+    ExoSwitched { path: String },
     ForwardFile(ClientNum, ForwardedFile),
     ForwardResult(ClientNum, ForwardedResult),
     Error(LiveProtocolError),

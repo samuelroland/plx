@@ -1,16 +1,16 @@
-use std::{collections::HashMap, time::SystemTime, vec};
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use super::{
     client::ClientRole,
-    msg::{ClientNum, Event, ForwardedFile, ForwardedResult},
+    msg::{ClientNum, Event, SessionStats},
 };
 
 /// A live session, this is the representation sent to clients
 /// when listing all sessions or after session creation
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, Ord, PartialOrd, PartialEq, Clone, Debug)]
 pub struct Session {
     /// An arbitrary name defined by the leader to help followers choose the correct sessions
     /// among the multiple live sessions at the same time on the same group_id
@@ -102,10 +102,10 @@ impl SessionBroadcaster {
     /// This must be ran each time there is a change to the session
     fn send_stats(&self) {
         self.broadcast(
-            &Event::Stats {
+            &Event::Stats(SessionStats {
                 followers_count: self.followers_broadcast_txs.len() as u16,
                 leaders_count: self.leaders_broadcast_txs.len() as u16,
-            },
+            }),
             true,
         );
     }
