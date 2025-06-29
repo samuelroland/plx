@@ -1,16 +1,14 @@
 /// Client implementation of the live protocol
-use std::{collections::HashMap, fmt::Display, net::TcpStream};
+use std::{collections::HashMap, fmt::Display};
 
-use tokio_tungstenite::tungstenite::{
-    self, connect, http::Uri, stream::MaybeTlsStream, ClientRequestBuilder, Message, WebSocket,
-};
+use tokio_tungstenite::tungstenite;
 
 use super::{
+    client_splitter::{ClientSplitter, SplitterInterface},
     msg::{
         Action, ClientNum, Event, ExoCheckResult, ForwardedFile, ForwardedResult,
         LiveProtocolError, SessionStats,
     },
-    server::{HEADER_LIVE_CLIENT_ID, HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION},
     session::Session,
 };
 
@@ -35,7 +33,8 @@ struct SessionDetails {
 }
 
 pub struct LiveClient {
-    socket: WebSocket<MaybeTlsStream<TcpStream>>,
+    splitter: ClientSplitter,
+    mp: SplitterInterface,
     /// The states of followers clients in the current session, only relevant for leader clients.
     /// It will be empty for follower clients.
     followers_states: HashMap<ClientNum, FollowerState>,
@@ -74,14 +73,11 @@ impl LiveClient {
         port: u16,
         client_id: String,
     ) -> Result<LiveClient, std::io::Error> {
-        let uri: Uri = format!("ws://{}:{}", domain, port).parse().unwrap(); // todo fix unwrap
-        let builder = ClientRequestBuilder::new(uri)
-            .with_header(HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION)
-            .with_header(HEADER_LIVE_CLIENT_ID, client_id);
-        let (socket, _) = connect(builder).unwrap();
-
+        let (mut splitter, mp) = ClientSplitter::new();
+        splitter.start(domain, port, client_id);
         let client = LiveClient {
-            socket,
+            splitter,
+            mp,
             followers_states: HashMap::new(),
             session: None,
         };
@@ -89,36 +85,16 @@ impl LiveClient {
         Ok(client)
     }
 
-    pub fn disconnect(mut self) {
-        let _ = self.socket.close(None);
+    pub fn disconnect(self) {
+        // just do nothing, let the struct and self.mp drop to close the self.mp.send
+        // on the other end the receiver.recv() will return none which should stop the Splitter
+        // and at the same time close the websocket on drop
     }
 
     /// Just sending a Msg on the socket
-    fn send_msg(&mut self, msg: Action) {
-        println!("Sending: {msg:?}");
-        let _ = self.socket.send(Message::Text(msg.try_into().unwrap()));
-    }
-
-    /// Receive an event, save Event::Stats but skip it and wait for next event
-    fn receive_event(&mut self) -> Result<Event, String> {
-        let received = Event::try_from(
-            self.socket
-                .read()
-                .map_err(|e| e.to_string())?
-                .into_text()
-                .map_err(|_| "Received invalid message".to_string())?,
-        )
-        .map_err(|e| e.to_string());
-        println!("Received {:?}", received);
-        match &received {
-            Ok(Event::Stats(stats)) => {
-                if let Some(session_details) = &mut self.session {
-                    session_details.stats = stats.clone();
-                }
-                self.receive_event() // wait for another event
-            }
-            _ => received,
-        }
+    fn send_msg(&mut self, action: Action) {
+        println!("Sending: {action:?}");
+        let _ = self.mp.send.send(action);
     }
 
     /// Create a new session
@@ -127,8 +103,8 @@ impl LiveClient {
             name: name.to_string(),
             group_id: group_id.to_string(),
         });
-        let event = self.receive_event();
-        if let Ok(Event::SessionStarted) = event {
+        let event = self.mp.session_recv.blocking_recv();
+        if let Some(Event::SessionStarted) = event {
             Ok(Session {
                 name: name.to_string(),
                 group_id: group_id.to_string(),
@@ -141,8 +117,8 @@ impl LiveClient {
     /// Create a new session
     pub fn stop_session(&mut self) -> Result<(), String> {
         self.send_msg(Action::StopSession);
-        let event = self.receive_event();
-        if let Ok(Event::SessionStopped) = event {
+        let event = self.mp.session_recv.blocking_recv();
+        if let Some(Event::SessionStopped) = event {
             Ok(())
         } else {
             Err(format!("{:?}", event))
@@ -155,8 +131,7 @@ impl LiveClient {
             name: name.to_string(),
             group_id: group_id.to_string(),
         });
-        let event = self.receive_event();
-        if let Ok(Event::SessionJoined) = event {
+        if let Some(Event::SessionJoined) = self.mp.session_recv.blocking_recv() {
             println!("Joined session '{name}'");
         }
         Ok(Session {
@@ -178,11 +153,11 @@ impl LiveClient {
     /// Send a check result
     pub fn send_exo_switch(&mut self, path: String) -> Result<(), ProtocolError> {
         self.send_msg(Action::ExoSwitch { path });
-        let event = self.receive_event();
-        if let Ok(Event::ExoSwitched { .. }) = event {
+        let event = self.mp.training_recv.blocking_recv();
+        if let Some(Event::ExoSwitched { .. }) = event {
             return Ok(());
         }
-        if let Ok(Event::Error(e)) = event {
+        if let Some(Event::Error(e)) = event {
             return Err(ProtocolError::Live(e));
         }
         Err(ProtocolError::UnexpectedMsg(format!(
@@ -194,10 +169,8 @@ impl LiveClient {
     /// Get all available session for a given group id
     pub fn get_sessions(&mut self, group_id: String) -> Result<Vec<Session>, std::io::Error> {
         self.send_msg(Action::GetSessions { group_id });
-        if let Ok(msg) = self.socket.read() {
-            if let Ok(Event::SessionsList(list)) = Event::try_from(msg.into_text().unwrap()) {
-                return Ok(list);
-            }
+        if let Some(Event::SessionsList(list)) = self.mp.session_recv.blocking_recv() {
+            return Ok(list);
         }
         Ok(vec![])
     }
