@@ -1,4 +1,5 @@
 <script setup lang="ts">
+let props = defineProps<{ startLiveSessionFn: () => void, joinLiveSessionFn: () => void }>()
 </script>
 
 <template>
@@ -8,5 +9,11 @@
             <a target="_blank" href="https://github.com/samuelroland/plx">Git repository</a>
         </div>
         <!-- <h1 class="text-xl md:text-4xl my-5 nice-gradient">Practice programming in a deliberate Learning eXperience </h1> -->
+
+        <h2>Quick actions</h2>
+        <div class="flex">
+            <button @click="() => props.startLiveSessionFn()">Start live session</button>
+            <button @click="() => props.joinLiveSessionFn()">Join live session</button>
+        </div>
     </div>
 </template>

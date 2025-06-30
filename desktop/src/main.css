@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+body {
+    @apply text-lg
+}
+
+h1 {
+    @apply text-4xl mt-5 mb-2
+}
+
+h2 {
+    @apply text-3xl mt-5 mb-2
+}
+button  {
+    @apply bg-orange-200 rounded-sm px-2 m-2 hover:bg-amber-300 cursor-pointer
+}
+
+input {
+    @apply border border-orange-400 rounded-sm m-2
+}
