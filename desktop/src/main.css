@@ -18,3 +18,7 @@ button  {
 input {
     @apply border border-orange-400 rounded-sm m-2
 }
+
+li {
+    @apply list-decimal
+}
