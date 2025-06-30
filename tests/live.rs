@@ -1,14 +1,16 @@
+use chrono::{DateTime, TimeDelta, Utc};
+use core::panic;
 use pretty_assertions::assert_eq;
 use std::{
-    sync::mpsc::channel,
+    sync::{mpsc::channel, Arc},
     thread::{self, sleep},
-    time::Duration,
+    time::{Duration, SystemTime},
     vec,
 };
 
 use plx::live::{
-    client::{LiveClient, ProtocolError},
-    msg::{Event, LiveProtocolError},
+    client::LiveClient,
+    msg::{ClientNum, Event, ForwardedFile, LiveProtocolError},
     server::LiveServer,
     session::Session,
 };
@@ -50,16 +52,16 @@ fn spawn_server_and_n_clients(n: u16) -> Vec<LiveClient> {
 
 /// Create a session in addition to n clients, including the first client as the leader, the
 /// following as followers of the session
-fn spawn_server_and_n_clients_with_session(n: u16) -> Vec<LiveClient> {
+fn spawn_server_and_n_clients_with_session(n: u16) -> Vec<Arc<LiveClient>> {
     assert!(n > 0);
     let mut clients = spawn_server_and_n_clients(n);
-    let mut it = clients.iter_mut();
-    let leader: &mut LiveClient = it.next().unwrap();
+    let leader = &mut clients[0];
     leader.start_session(NAME, GROUP_ID).unwrap();
-    for follower in it {
+    for follower in clients[1..].iter_mut() {
         follower.join_session(NAME, GROUP_ID).unwrap();
     }
-    clients
+
+    clients.into_iter().map(Arc::new).collect()
 }
 
 #[test]
@@ -79,6 +81,7 @@ fn get_sessions_works() {
 #[ntest::timeout(4000)]
 fn get_sessions_correctly_use_group_id() {
     let c = &mut spawn_server_and_n_clients(5);
+    println!("ok");
     c[0].start_session(NAME, GROUP_ID).unwrap();
     c[2].start_session("PRG1 Joe", "PRG1group").unwrap();
     c[3].start_session("PRG1 Joe", "PRG1FORK").unwrap();
@@ -134,7 +137,14 @@ fn session_continues_to_exist_when_leader_disconnects() {
     // The leader is back with same client_id !
     let mut c0 = LiveClient::connect("127.0.0.1", random_port, "SecretId3".to_string()).unwrap();
     c0.join_session(NAME, GROUP_ID).unwrap(); // this test that joining again make it a leader again
-    c0.stop_session().unwrap(); // if stopping the session works, it was a leader again
+    c0.stop_session(); // if stopping the session works, it was a leader again
+    c0.wait_on_next_event(); // some SessionStats
+    let event = c0.wait_on_next_event();
+    if let Some(Event::SessionStopped) = event {
+    } else {
+        panic!("{:?}", event)
+    }
+
     assert_eq!(c1.get_sessions("PRG2group".to_string()).unwrap(), vec![]);
 }
 
@@ -148,7 +158,7 @@ fn exo_switch_from_leader_is_forwarded_when_session_exists() {
 
     let (tx, rx) = channel::<Event>();
     thread::spawn(move || {
-        c.training_events_subscribe(tx);
+        c.wait_all_next_events(tx);
         // while let Ok(a) = rx.recv() {
         //     // emit tauri event
         //     println!("{a:?}");
@@ -170,37 +180,113 @@ fn exo_switch_from_follower_fails() {
     c[1].join_session(NAME, GROUP_ID).unwrap();
 
     c[1].send_exo_switch("intro/salue-moi".to_string());
-    let (tx, rx) = channel::<Event>();
-    thread::spawn(move || {
-        c[1].training_events_subscribe(tx);
-        // while let Ok(a) = rx.recv() {
-        //     // emit tauri event
-        //     println!("{a:?}");
-        // }
-    });
-    assert_eq!(
-        rx.recv().unwrap(),
-        Event::Error(LiveProtocolError::ActionOnlyForLeader(
-            "Switch exo".to_string()
-        )) // Event::ExoSwitched {
-           //     path: "intro/salue-moi".to_string()
-           // }
-    );
-    //
-    // if let Err() = result {
-    // } else {
-    //     panic!("Expected ActionOnlyForLeader error, got {:?}", result);
-    // }
+
+    let res = c[1].wait_on_next_event().unwrap();
+    if let Event::Error(LiveProtocolError::ActionOnlyForLeader(_)) = res {
+    } else {
+        panic!("Expected SessionNotFound error, got {:?}", res);
+    }
 }
 
 #[test]
 #[ntest::timeout(2000)]
 fn exo_switch_without_session_fails() {
     let c = &mut spawn_server_and_n_clients(1)[0];
-    let result = c.send_exo_switch("intro/salue-moi".to_string());
-    //
-    // if let Err(ProtocolError::Live(LiveProtocolError::SessionNotFound)) = result {
-    // } else {
-    //     panic!("Expected SessionNotFound error, got {:?}", result);
-    // }
+    c.send_exo_switch("intro/salue-moi".to_string());
+
+    let res = c.wait_on_next_event().unwrap();
+    if let Event::Error(LiveProtocolError::SessionNotFound) = res {
+    } else {
+        panic!("Expected SessionNotFound error, got {:?}", res);
+    }
+}
+
+/// Make sure 2 events are equal or panic
+/// Consider a time variation of 2 secondes to be equal timestamp
+fn assert_events_eq(e1: &Event, e2: &Event) {
+    match e1 {
+        Event::ForwardFile(client_num, forwarded_file) => {
+            if let Event::ForwardFile(client_num2, forwarded_file2) = e2 {
+                assert_eq!(client_num, client_num2);
+                assert_eq!(forwarded_file.file, forwarded_file2.file);
+                assert_eq!(forwarded_file.content, forwarded_file2.content);
+                assert!((forwarded_file.time - forwarded_file2.time).abs() < TimeDelta::seconds(2));
+                return;
+            }
+            panic!("{e1:?} and {e2:?} should have equal type !");
+        }
+        Event::ForwardResult(client_num, forwarded_result) => {
+            if let Event::ForwardResult(client_num2, forwarded_result2) = e2 {
+                assert_eq!(client_num, client_num2);
+                assert_eq!(
+                    forwarded_result.check_result,
+                    forwarded_result2.check_result
+                );
+
+                assert!(
+                    (forwarded_result.time - forwarded_result2.time).abs() < TimeDelta::seconds(2)
+                );
+                return;
+            }
+            panic!("{e1:?} and {e2:?} should have equal type !");
+        }
+        _ => assert_eq!(e1, e2),
+    }
+}
+
+#[test]
+#[ntest::timeout(2000)]
+fn forwarding_to_leaders_work() {
+    let random_port = spawn_test_server();
+    let mut c0 = LiveClient::connect("127.0.0.1", random_port, format!("SecretId{}", 1)).unwrap();
+    let mut c1 = LiveClient::connect("127.0.0.1", random_port, format!("SecretId{}", 2)).unwrap();
+    let mut c2 = LiveClient::connect("127.0.0.1", random_port, format!("SecretId{}", 3)).unwrap();
+    c0.start_session(NAME, GROUP_ID).unwrap();
+    c1.join_session(NAME, GROUP_ID).unwrap();
+    c2.join_session(NAME, GROUP_ID).unwrap();
+    c0.wait_on_next_event().unwrap(); // consume the 2 stats
+    c0.wait_on_next_event().unwrap(); // consume the 2 stats
+
+    c1.send_file("main.c".to_string(), "client 1, code v1".to_string());
+    sleep(Duration::from_millis(200));
+    c2.send_file("main.c".to_string(), "client 2, code v1".to_string());
+    sleep(Duration::from_millis(200));
+    c1.send_file("main.c".to_string(), "client 1, code v2".to_string());
+    let now = DateTime::<Utc>::from(SystemTime::now());
+
+    assert_events_eq(
+        &c0.wait_on_next_event().unwrap(),
+        &Event::ForwardFile(
+            ClientNum(2),
+            ForwardedFile {
+                file: "main.c".to_string(),
+                content: "client 1, code v1".to_string(),
+                time: now,
+            },
+        ),
+    );
+
+    assert_events_eq(
+        &c0.wait_on_next_event().unwrap(),
+        &Event::ForwardFile(
+            ClientNum(3),
+            ForwardedFile {
+                file: "main.c".to_string(),
+                content: "client 2, code v1".to_string(),
+                time: now,
+            },
+        ),
+    );
+
+    assert_events_eq(
+        &c0.wait_on_next_event().unwrap(),
+        &Event::ForwardFile(
+            ClientNum(2),
+            ForwardedFile {
+                file: "main.c".to_string(),
+                content: "client 1, code v2".to_string(),
+                time: now,
+            },
+        ),
+    );
 }

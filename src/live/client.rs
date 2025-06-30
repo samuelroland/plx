@@ -1,13 +1,29 @@
+use std::future::IntoFuture;
 /// Client implementation of the live protocol
 use std::{collections::HashMap, fmt::Display, sync::mpsc::Sender, thread, time::Duration};
+
+use std::net::TcpStream;
+
+use futures_util::SinkExt;
+use tokio::select;
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio_stream::StreamExt;
+use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{
+    tungstenite::{http::Uri, stream::MaybeTlsStream, ClientRequestBuilder},
+    WebSocketStream,
+};
+
+use super::{
+    msg::{Action, Event},
+    server::{HEADER_LIVE_CLIENT_ID, HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION},
+};
 
 use tokio_tungstenite::tungstenite;
 
 use super::{
-    client_splitter::{ClientSplitter, SplitterInterface},
     msg::{
-        Action, ClientNum, Event, ExoCheckResult, ForwardedFile, ForwardedResult,
-        LiveProtocolError, SessionStats,
+        ClientNum, ExoCheckResult, ForwardedFile, ForwardedResult, LiveProtocolError, SessionStats,
     },
     session::Session,
 };
@@ -32,14 +48,18 @@ struct SessionDetails {
     stats: SessionStats,
 }
 
+type Ws = WebSocketStream<MaybeTlsStream<TcpStream>>;
 pub struct LiveClient {
-    mp: SplitterInterface,
-    /// The states of followers clients in the current session, only relevant for leader clients.
-    /// It will be empty for follower clients.
-    followers_states: HashMap<ClientNum, FollowerState>,
+    /// A transmitter where we can send Action for the server
+    pub(super) send: UnboundedSender<Action>,
+    /// All events bac
+    pub(super) recv: UnboundedReceiver<Event>,
+    // The states of followers clients in the current session, only relevant for leader clients.
+    // It will be empty for follower clients.
+    // followers_states: HashMap<ClientNum, FollowerState>,
 
-    /// When connected to a session, retain a few details locally
-    session: Option<SessionDetails>,
+    // When connected to a session, retain a few details locally
+    // session: Option<SessionDetails>,
 }
 
 #[derive(Debug)]
@@ -72,16 +92,67 @@ impl LiveClient {
         port: u16,
         client_id: String,
     ) -> Result<LiveClient, std::io::Error> {
-        let (mut splitter, mp) = ClientSplitter::new();
         let domain = domain.to_string();
-        thread::spawn(move || {
-            splitter.start(&domain, port, client_id);
+
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_io()
+            .build()
+            .unwrap();
+
+        let (send_tx, mut send_rx) = unbounded_channel::<Action>();
+        let (recv_tx, recv_rx) = unbounded_channel::<Event>();
+        // Just prepare the future to run on the runtime
+        let runtime_handle = runtime.spawn(async move {
+            println!("Starting ClientSplitter tokio runtime");
+            let uri: Uri = format!("ws://{}:{}", domain, port).parse().unwrap(); // todo fix unwrap + todo support TLS !
+            let builder = ClientRequestBuilder::new(uri)
+                .with_header(HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION)
+                .with_header(HEADER_LIVE_CLIENT_ID, client_id);
+            let (mut socket, _) = tokio_tungstenite::connect_async(builder).await.unwrap();
+
+            loop {
+                select! {
+                    // Read messages from socket and forward them
+                    ws_msg = socket.next() => {
+                        if let Some(Ok(ws_msg)) = ws_msg {
+                            println!("ClientSplitter: got {ws_msg:?}");
+                            match ws_msg.into_text().ok().and_then(|txt| Event::try_from(txt).ok()) {
+                                    Some(event) => {
+                                        let _ = recv_tx.send(event.clone());
+                                    }
+                                    None => {
+                                        eprintln!("Failed to parse event from ws_msg");
+                                        continue;
+                                    }
+                                }
+                        }
+                    }
+                    // Read actions to sent into socket
+                    action = send_rx.recv() => {
+                        if let Some(action) = action {
+                            let msg = action.try_into();
+                            if let Ok(msg) = msg {
+                                let _ = socket.send(Message::Text(msg)).await;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
         });
-        thread::sleep(Duration::from_secs(1));
+        // Start with the first future, but block on another thread so we can return here
+        thread::spawn(move || {
+            runtime.block_on(runtime_handle.into_future()).unwrap();
+            runtime.shutdown_timeout(Duration::from_secs(2));
+        });
+
+        // TODO: okay ??
+        thread::sleep(Duration::from_millis(100));
+
         let client = LiveClient {
-            mp,
-            followers_states: HashMap::new(),
-            session: None,
+            send: send_tx,
+            recv: recv_rx,
         };
 
         Ok(client)
@@ -96,14 +167,17 @@ impl LiveClient {
     /// Just sending a Msg on the socket
     fn send_msg(&mut self, action: Action) {
         println!("Sending: {action:?}");
-        let _ = self.mp.send.send(action).unwrap();
+        self.send.send(action).unwrap();
     }
 
-    pub fn training_events_subscribe(&mut self, tx: Sender<Event>) {
-        while let Some(a) = self.mp.training_recv.blocking_recv() {
-            // emit tauri event
+    pub fn wait_on_next_event(&mut self) -> Option<Event> {
+        self.recv.blocking_recv()
+    }
+
+    pub fn wait_all_next_events(&mut self, tx: Sender<Event>) {
+        while let Some(a) = self.wait_on_next_event() {
             println!("{a:?}");
-            tx.send(a);
+            tx.send(a).unwrap();
         }
     }
 
@@ -113,7 +187,7 @@ impl LiveClient {
             name: name.to_string(),
             group_id: group_id.to_string(),
         });
-        let event = self.mp.session_recv.blocking_recv();
+        let event = self.wait_on_next_event();
         if let Some(Event::SessionStarted) = event {
             Ok(Session {
                 name: name.to_string(),
@@ -125,14 +199,8 @@ impl LiveClient {
     }
 
     /// Create a new session
-    pub fn stop_session(&mut self) -> Result<(), String> {
+    pub fn stop_session(&mut self) {
         self.send_msg(Action::StopSession);
-        let event = self.mp.session_recv.blocking_recv();
-        if let Some(Event::SessionStopped) = event {
-            Ok(())
-        } else {
-            Err(format!("{:?}", event))
-        }
     }
 
     /// Join a session
@@ -141,7 +209,7 @@ impl LiveClient {
             name: name.to_string(),
             group_id: group_id.to_string(),
         });
-        if let Some(Event::SessionJoined) = self.mp.session_recv.blocking_recv() {
+        if let Some(Event::SessionJoined) = self.wait_on_next_event() {
             println!("Joined session '{name}'");
         }
         Ok(Session {
@@ -163,26 +231,12 @@ impl LiveClient {
     /// Send a check result
     pub fn send_exo_switch(&mut self, path: String) {
         self.send_msg(Action::ExoSwitch { path });
-
-        // println!("blocking_recv");
-        // let event = self.mp.training_recv.blocking_recv();
-        // println!("event = {event:?}");
-        // if let Some(Event::ExoSwitched { .. }) = event {
-        //     return Ok(());
-        // }
-        // if let Some(Event::Error(e)) = event {
-        //     return Err(ProtocolError::Live(e));
-        // }
-        // Err(ProtocolError::UnexpectedMsg(format!(
-        //     "Invalid message {:?} received after ExoSwitch",
-        //     event
-        // )))
     }
 
     /// Get all available session for a given group id
     pub fn get_sessions(&mut self, group_id: String) -> Result<Vec<Session>, ()> {
         self.send_msg(Action::GetSessions { group_id });
-        let e = self.mp.session_recv.blocking_recv();
+        let e = self.wait_on_next_event();
         if let Some(Event::SessionsList(list)) = e {
             return Ok(list);
         }
