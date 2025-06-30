@@ -9,6 +9,9 @@ version = "0.2.0"
 edition = "2021"
 exclude = ["examples"]
 
+[lib]
+name = "plx"
+
 [dependencies]
 console = "0.15.8"
 serde = { version = "1.0.209", features = ["derive"] }

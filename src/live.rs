@@ -1,7 +1,7 @@
 pub mod client;
+pub mod msg;
 pub mod server;
-// We only want to export the client and server, msg and session must be internal
+pub mod session;
+// This should be kept private
 mod client_manager;
-mod msg;
-mod session;
 mod sessions_manager;
