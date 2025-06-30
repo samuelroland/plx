@@ -1,5 +1,5 @@
 /// Client implementation of the live protocol
-use std::{collections::HashMap, fmt::Display, thread, time::Duration};
+use std::{collections::HashMap, fmt::Display, sync::mpsc::Sender, thread, time::Duration};
 
 use tokio_tungstenite::tungstenite;
 
@@ -96,7 +96,15 @@ impl LiveClient {
     /// Just sending a Msg on the socket
     fn send_msg(&mut self, action: Action) {
         println!("Sending: {action:?}");
-        let _ = self.mp.send.send(action);
+        let _ = self.mp.send.send(action).unwrap();
+    }
+
+    pub fn training_events_subscribe(&mut self, tx: Sender<Event>) {
+        while let Some(a) = self.mp.training_recv.blocking_recv() {
+            // emit tauri event
+            println!("{a:?}");
+            tx.send(a);
+        }
     }
 
     /// Create a new session
@@ -153,19 +161,22 @@ impl LiveClient {
     }
 
     /// Send a check result
-    pub fn send_exo_switch(&mut self, path: String) -> Result<(), ProtocolError> {
+    pub fn send_exo_switch(&mut self, path: String) {
         self.send_msg(Action::ExoSwitch { path });
-        let event = self.mp.training_recv.blocking_recv();
-        if let Some(Event::ExoSwitched { .. }) = event {
-            return Ok(());
-        }
-        if let Some(Event::Error(e)) = event {
-            return Err(ProtocolError::Live(e));
-        }
-        Err(ProtocolError::UnexpectedMsg(format!(
-            "Invalid message {:?} received after ExoSwitch",
-            event
-        )))
+
+        // println!("blocking_recv");
+        // let event = self.mp.training_recv.blocking_recv();
+        // println!("event = {event:?}");
+        // if let Some(Event::ExoSwitched { .. }) = event {
+        //     return Ok(());
+        // }
+        // if let Some(Event::Error(e)) = event {
+        //     return Err(ProtocolError::Live(e));
+        // }
+        // Err(ProtocolError::UnexpectedMsg(format!(
+        //     "Invalid message {:?} received after ExoSwitch",
+        //     event
+        // )))
     }
 
     /// Get all available session for a given group id

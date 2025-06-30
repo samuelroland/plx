@@ -62,12 +62,14 @@ impl ClientManager {
                 // Just listen on the websocket stream to wait for GetSessions / JoinSession messages
                 None => {
                     let stream_el = self.websocket.next().await;
+                    println!("Server: got {stream_el:?}");
                     self.handle_msg(stream_el).await;
                 }
                 // If there is a session, listen on both streams
                 Some(session) => {
                     select! {
                         stream_el = self.websocket.next() => {
+                            println!("Server: got {stream_el:?}");
                             self.handle_msg(stream_el).await;
                         }
                         external_msg = session.client_rx.recv() => {

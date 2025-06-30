@@ -11,6 +11,8 @@ use tokio_tungstenite::{
     WebSocketStream,
 };
 
+use crate::live::msg::LiveProtocolError;
+
 use super::{
     msg::{Action, Event},
     server::{HEADER_LIVE_CLIENT_ID, HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION},
@@ -80,15 +82,22 @@ impl ClientSplitter {
                         // Read messages from socket and forward them in the correct channel
                         ws_msg = socket.next() => {
                            if let Some(Ok(ws_msg)) = ws_msg {
+                                println!("ClientSplitter: got {ws_msg:?}");
                                 match ws_msg.into_text().ok().and_then(|txt| Event::try_from(txt).ok()) {
                                         Some(event) => {
-                                            match event {
+                                            match &event {
                                                 Event::SessionStarted
                                                 | Event::SessionStopped
                                                 | Event::SessionJoined
-                                                | Event::SessionsList(..)
-                                                | Event::Error(..) => {
+                                                | Event::SessionsList(..) => {
                                                     let _ = mp.session_recv.send(event.clone());
+                                                }
+                                                Event::Error(e) => {
+                                                    if let LiveProtocolError::SessionNotFound = e {
+                                                        let _ = mp.training_recv.send(event.clone());
+                                                    } else {
+                                                        let _ = mp.session_recv.send(event.clone());
+                                                    }
                                                 }
                                                 Event::ExoSwitched { .. }  | Event::ForwardFile(..)  | Event::ForwardResult(..)  | Event::Stats(..) => {
                                                     let _ = mp.training_recv.send(event.clone());

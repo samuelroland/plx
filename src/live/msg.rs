@@ -10,18 +10,18 @@ use tokio_tungstenite::tungstenite::Utf8Bytes;
 use super::session::Session;
 
 // TODO: Temporary copy in waiting of refactor to access that
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 pub enum CheckStatus {
     Passed,
     Failed(String, String),
     RunFail(String),
 }
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 pub struct ExoCheckResult {
     pub state: CheckStatus,
 }
 
-#[derive(Serialize, Deserialize, Default, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Default, Clone, Debug)]
 pub struct SessionStats {
     pub followers_count: u16,
     pub leaders_count: u16,
@@ -47,7 +47,7 @@ pub enum Action {
 /// These events are generated after an action, in this case they are not necessarily sent to the
 /// author of the action, but could sent to other clients.
 /// These events can also be generated directly by the server (after some timeout or OS signal received)
-#[derive(Serialize, Deserialize, Clone, Debug, AsRefStr)]
+#[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Debug, AsRefStr)]
 pub enum Event {
     SessionStarted,
     SessionStopped,
@@ -63,7 +63,7 @@ pub enum Event {
 
 /// An error sent from the server to clients after any message
 /// that resolved in an error that is worth sending back to the client
-#[derive(Serialize, Deserialize, Clone, Debug, AsRefStr)]
+#[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Debug, AsRefStr)]
 pub enum LiveProtocolError {
     FailedToStartSession(String),
     FailedToJoinSession(String),
@@ -103,7 +103,7 @@ impl Display for LiveProtocolError {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 pub struct ForwardedFile {
     /// The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h"
     pub file: String,
@@ -113,7 +113,7 @@ pub struct ForwardedFile {
     pub time: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 pub struct ForwardedResult {
     /// The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h"
     pub check_result: ExoCheckResult,

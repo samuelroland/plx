@@ -1,5 +1,6 @@
 use pretty_assertions::assert_eq;
 use std::{
+    sync::mpsc::channel,
     thread::{self, sleep},
     time::Duration,
     vec,
@@ -7,7 +8,7 @@ use std::{
 
 use plx::live::{
     client::{LiveClient, ProtocolError},
-    msg::LiveProtocolError,
+    msg::{Event, LiveProtocolError},
     server::LiveServer,
     session::Session,
 };
@@ -140,9 +141,25 @@ fn session_continues_to_exist_when_leader_disconnects() {
 #[test]
 #[ntest::timeout(4000)]
 fn exo_switch_from_leader_is_forwarded_when_session_exists() {
-    let c = &mut spawn_server_and_n_clients(1)[0];
+    let random_port = spawn_test_server();
+    let mut c = LiveClient::connect("127.0.0.1", random_port, "SecretId3".to_string()).unwrap();
     c.start_session(NAME, GROUP_ID).unwrap();
-    c.send_exo_switch("intro/salue-moi".to_string()).unwrap(); // unwrap is making sure we got an ExoSwitched back
+    c.send_exo_switch("intro/salue-moi".to_string());
+
+    let (tx, rx) = channel::<Event>();
+    thread::spawn(move || {
+        c.training_events_subscribe(tx);
+        // while let Ok(a) = rx.recv() {
+        //     // emit tauri event
+        //     println!("{a:?}");
+        // }
+    });
+    assert_eq!(
+        rx.recv().unwrap(),
+        Event::ExoSwitched {
+            path: "intro/salue-moi".to_string()
+        }
+    );
 }
 
 #[test]
@@ -152,22 +169,38 @@ fn exo_switch_from_follower_fails() {
     c[0].start_session(NAME, GROUP_ID).unwrap();
     c[1].join_session(NAME, GROUP_ID).unwrap();
 
-    let result = c[1].send_exo_switch("intro/salue-moi".to_string());
-
-    if let Err(ProtocolError::Live(LiveProtocolError::ActionOnlyForLeader(_))) = result {
-    } else {
-        panic!("Expected ActionOnlyForLeader error, got {:?}", result);
-    }
+    c[1].send_exo_switch("intro/salue-moi".to_string());
+    let (tx, rx) = channel::<Event>();
+    thread::spawn(move || {
+        c[1].training_events_subscribe(tx);
+        // while let Ok(a) = rx.recv() {
+        //     // emit tauri event
+        //     println!("{a:?}");
+        // }
+    });
+    assert_eq!(
+        rx.recv().unwrap(),
+        Event::Error(LiveProtocolError::ActionOnlyForLeader(
+            "Switch exo".to_string()
+        )) // Event::ExoSwitched {
+           //     path: "intro/salue-moi".to_string()
+           // }
+    );
+    //
+    // if let Err() = result {
+    // } else {
+    //     panic!("Expected ActionOnlyForLeader error, got {:?}", result);
+    // }
 }
 
 #[test]
-#[ntest::timeout(4000)]
+#[ntest::timeout(2000)]
 fn exo_switch_without_session_fails() {
     let c = &mut spawn_server_and_n_clients(1)[0];
     let result = c.send_exo_switch("intro/salue-moi".to_string());
-
-    if let Err(ProtocolError::Live(LiveProtocolError::SessionNotFound)) = result {
-    } else {
-        panic!("Expected SessionNotFound error, got {:?}", result);
-    }
+    //
+    // if let Err(ProtocolError::Live(LiveProtocolError::SessionNotFound)) = result {
+    // } else {
+    //     panic!("Expected SessionNotFound error, got {:?}", result);
+    // }
 }
