@@ -3,3 +3,4 @@ examples/*/build
 debug.log
 *.exo-state.toml
 *.course-state.toml
+desktop/src-tauri/icons/squared.svg

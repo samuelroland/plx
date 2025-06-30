@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=PLX
+GenericName=Practice programming in a deliberate Learning Experience
+Exec={{exec}}
+Icon={{icon}}
+Terminal=false
+Type=Application
+StartupNotify=true
