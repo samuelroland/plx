@@ -1,130 +1,17 @@
-use dme_core::util::git::GitRepos;
-use plx::core::{file_utils::file_utils::list_dir_folders, parser::from_dir::FromDir};
-use serde::Serialize;
-use std::{ops::DerefMut, path::PathBuf, sync::Mutex};
+mod commands;
+use commands::{
+    courses::{clone_project, get_projects, open_project},
+    sessions::{get_sessions, join_session, start_session},
+};
+use std::sync::Mutex;
 
-use etcetera::{AppStrategy, AppStrategyArgs};
 use plx::{
-    live::{client::LiveClient, config::LiveConfig, server::DEFAULT_LIVE_PORT, session::Session},
+    live::{client::LiveClient, config::LiveConfig},
     models::project::Project,
 };
 use specta_typescript::Typescript;
-use tauri::{AppHandle, Manager};
+use tauri::Manager;
 use tauri_specta::{collect_commands, Builder};
-
-#[tauri::command]
-#[specta::specta]
-fn get_sessions(app: AppHandle) -> Result<Vec<Session>, String> {
-    let state = app.state::<AppData>();
-    init_client_if_none(state.client.lock().unwrap().deref_mut());
-    let mut guard = state.client.lock().unwrap();
-    if let Some(cli) = guard.deref_mut() {
-        if let Some(current) = state.current.lock().unwrap().as_ref() {
-            let group_id = current.config.group_id.clone();
-            cli.get_sessions(group_id)
-        } else {
-            Ok(vec![])
-        }
-    } else {
-        Ok(vec![])
-    }
-}
-
-#[tauri::command]
-#[specta::specta]
-fn start_session(app: AppHandle, name: String) -> Result<(), String> {
-    let state = app.state::<AppData>();
-    init_client_if_none(state.client.lock().unwrap().deref_mut());
-    let mut guard = state.client.lock().unwrap();
-    if let Some(cli) = guard.deref_mut() {
-        if let Some(current) = state.current.lock().unwrap().as_ref() {
-            let group_id = current.config.group_id.clone();
-            cli.start_session(&name, &group_id)?;
-            Ok(())
-        } else {
-            Err("No opened course".to_string())
-        }
-    } else {
-        Err("No live client".to_string())
-    }
-}
-
-#[tauri::command]
-#[specta::specta]
-fn join_session(app: AppHandle, session: Session) -> Result<(), String> {
-    let state = app.state::<AppData>();
-    init_client_if_none(state.client.lock().unwrap().deref_mut());
-    let mut guard = state.client.lock().unwrap();
-    if let Some(cli) = guard.deref_mut() {
-        cli.join_session(&session.name, &session.group_id)?;
-        Ok(())
-    } else {
-        Err("No live client".to_string())
-    }
-}
-
-fn init_client_if_none(client: &mut Option<LiveClient>) {
-    match client {
-        Some(_) => {}
-        None => {
-            let new_client =
-                LiveClient::connect("127.0.0.1", DEFAULT_LIVE_PORT, "random ".to_string()).unwrap();
-            *client = Some(new_client)
-        }
-    }
-}
-
-use specta::Type;
-#[derive(Serialize, Debug, Clone, Type)]
-struct ProjectInfo {
-    name: String,
-    folder: PathBuf,
-}
-#[tauri::command]
-#[specta::specta]
-async fn get_projects() -> Vec<ProjectInfo> {
-    let base = get_base_directory();
-    list_dir_folders(&base)
-        .unwrap()
-        .iter()
-        .filter_map(|f| Project::from_dir(f).ok())
-        .map(|(p, _)| ProjectInfo {
-            name: p.name.clone(),
-            folder: p.get_folder(),
-        })
-        .collect()
-}
-
-fn get_base_directory() -> PathBuf {
-    etcetera::choose_app_strategy(AppStrategyArgs {
-        app_name: "plx".to_string(),
-        ..Default::default()
-    })
-    .unwrap()
-    .data_dir()
-    .to_path_buf()
-}
-
-#[tauri::command]
-#[specta::specta]
-async fn clone_project(repos: String) -> bool {
-    let base = get_base_directory();
-    GitRepos::from_clone(&repos, &base, Some(1), true).is_ok()
-}
-
-#[tauri::command]
-#[specta::specta]
-async fn open_project(app: AppHandle, path: String) -> Result<ProjectInfo, String> {
-    let state = app.state::<AppData>();
-    let (p, _) = Project::from_dir(&PathBuf::from(&path)).map_err(|(e, _)| format!("{}", e))?;
-    let config = LiveConfig::from_course(&p).map_err(|e| format!("{}", e))?;
-    let project_info = ProjectInfo {
-        name: p.name.clone(),
-        folder: PathBuf::from(path),
-    };
-    *state.current.lock().unwrap() = Some(Current { project: p, config });
-    Ok(project_info)
-}
 
 struct Current {
     config: LiveConfig,
