@@ -2,13 +2,18 @@
 import { onMounted, Ref, ref } from 'vue';
 import { commands, ProjectInfo, Session } from "./bindings";
 
-let props = defineProps<{ sessionDashboardOpen: () => void, joinLiveSessionFn: () => void }>()
+let props = defineProps<{ sessionDashboardOpen: (session: Session) => void, joinLiveSessionFn: () => void }>()
 let course: Ref<ProjectInfo | null> = ref(null)
 let projects: Ref<ProjectInfo[]> = ref([])
 let sessions: Ref<Session[]> = ref([])
 
 async function loadProjects() {
     projects.value = await commands.getProjects()
+    console.log(projects.value)
+}
+
+async function loadSessions() {
+    sessions.value = await commands.getSessions()
     console.log(projects.value)
 }
 
@@ -25,7 +30,7 @@ async function cloneCourse() {
     if (git_url) {
         const success = await commands.cloneProject(git_url)
         if (success) {
-            props.sessionDashboardOpen()
+            loadSessions()
         }
     }
 }
@@ -45,8 +50,8 @@ async function startSession() {
     const name = prompt("Enter a session name")
     if (name) {
         const success = await commands.startSession(name)
-        if (success) {
-            props.sessionDashboardOpen()
+        if (success.status == "ok") {
+            props.sessionDashboardOpen(success.data)
         }
     }
 }
@@ -54,7 +59,7 @@ async function startSession() {
 async function joinSession(session: Session) {
     const success = await commands.joinSession(session)
     if (success) {
-        props.sessionDashboardOpen()
+        props.sessionDashboardOpen(session)
     }
 }
 

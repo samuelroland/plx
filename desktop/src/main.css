@@ -9,7 +9,14 @@ h1 {
 }
 
 h2 {
-    @apply text-3xl mt-5 mb-2
+    @apply text-3xl mt-5 mb-2 text-orange-400
+}
+h3 {
+    @apply text-2xl mt-3 mb-2
+}
+
+h4 {
+    @apply text-xl mt-2 mb-2
 }
 button  {
     @apply bg-orange-200 rounded-sm px-2 m-2 hover:bg-amber-300 cursor-pointer
