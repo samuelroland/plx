@@ -1,6 +1,6 @@
 mod commands;
 use commands::{
-    courses::{clone_project, get_projects, open_project},
+    courses::{clone_course, get_local_courses, open_course},
     sessions::{get_sessions, join_session, start_session},
 };
 use std::sync::Mutex;
@@ -28,9 +28,9 @@ pub fn run() {
     let builder = Builder::<tauri::Wry>::new()
         // Then register them (separated by a comma)
         .commands(collect_commands![
-            get_projects,
-            clone_project,
-            open_project,
+            get_local_courses,
+            clone_course,
+            open_course,
             get_sessions,
             start_session,
             join_session
@@ -44,9 +44,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            get_projects,
-            clone_project,
-            open_project,
+            get_local_courses,
+            clone_course,
+            open_course,
             get_sessions,
             start_session,
             join_session

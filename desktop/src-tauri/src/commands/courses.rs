@@ -13,7 +13,7 @@ use specta::Type;
 
 use crate::{AppData, Current};
 #[derive(Serialize, Debug, Clone, Type)]
-pub struct ProjectInfo {
+pub struct CourseInfo {
     name: String,
     folder: PathBuf,
 }
@@ -30,13 +30,13 @@ fn get_base_directory() -> PathBuf {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_projects() -> Vec<ProjectInfo> {
+pub async fn get_local_courses() -> Vec<CourseInfo> {
     let base = get_base_directory();
     list_dir_folders(&base)
         .unwrap()
         .iter()
         .filter_map(|f| Project::from_dir(f).ok())
-        .map(|(p, _)| ProjectInfo {
+        .map(|(p, _)| CourseInfo {
             name: p.name.clone(),
             folder: p.get_folder(),
         })
@@ -45,21 +45,21 @@ pub async fn get_projects() -> Vec<ProjectInfo> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn clone_project(repos: String) -> bool {
+pub async fn clone_course(repos: String) -> bool {
     let base = get_base_directory();
     GitRepos::from_clone(&repos, &base, Some(1), true).is_ok()
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn open_project(app: AppHandle, path: String) -> Result<ProjectInfo, String> {
+pub async fn open_course(app: AppHandle, path: String) -> Result<CourseInfo, String> {
     let state = app.state::<AppData>();
     let (p, _) = Project::from_dir(&PathBuf::from(&path)).map_err(|(e, _)| format!("{}", e))?;
     let config = LiveConfig::from_course(&p).map_err(|e| format!("{}", e))?;
-    let project_info = ProjectInfo {
+    let course_info = CourseInfo {
         name: p.name.clone(),
         folder: PathBuf::from(path),
     };
     *state.current.lock().unwrap() = Some(Current { project: p, config });
-    Ok(project_info)
+    Ok(course_info)
 }
