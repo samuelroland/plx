@@ -4,6 +4,7 @@ import {
   QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
 } from "./ts/commands";
 import { Event, Action } from "./ts/bindings.ts";
+import { useLiveStore } from "./stores/LiveStore.ts";
 
 QUERYSTRING_LIVE_CLIENT_ID_FIELD;
 export class LiveClient {
@@ -29,6 +30,10 @@ export class LiveClient {
     return new LiveClient(socket);
   }
 
+  send_msg(action: Action) {
+    this.socket?.send(JSON.stringify(action));
+  }
+
   disconnect() {
     this.socket?.close();
   }
@@ -42,6 +47,7 @@ function onMessage(message: MessageEvent): any {
 }
 
 function onEvent(event: Event) {
+  const live = useLiveStore();
   console.log("Got event", event);
   switch (event.type) {
     case "SessionStarted":
@@ -52,15 +58,13 @@ function onEvent(event: Event) {
       break;
     case "SessionsList":
       break;
-    case "Stats":
-      break;
     case "ServerStopped":
       break;
     case "ExoSwitched":
       break;
 
     case "ForwardFile": {
-      let entry = answers.value.get(event.content.client_num);
+      let entry = live.answers.get(event.content.client_num);
       if (!entry)
         entry = {
           client_num: event.content.client_num,
@@ -68,11 +72,11 @@ function onEvent(event: Event) {
           files: new Map(),
         };
       entry.files.set(event.content.file.path, event.content.file);
-      answers.value.set(event.content.client_num, entry);
+      live.answers.set(event.content.client_num, entry);
       break;
     }
     case "ForwardResult":
-      let entry = answers.value.get(event.content.client_num);
+      let entry = live.answers.get(event.content.client_num);
       if (!entry)
         entry = {
           client_num: event.content.client_num,
@@ -86,9 +90,9 @@ function onEvent(event: Event) {
           files: new Map(),
         };
       entry.checks_status.push(event.content.result.check_result.state);
-      answers.value.set(event.content.client_num, entry);
+      live.answers.set(event.content.client_num, entry);
       break;
     case "Stats":
-    case "ExoSwitched":
+      live.stats = event.content;
   }
 }

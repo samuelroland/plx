@@ -1,21 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref, Ref } from "vue";
 import AnswerShow from "./AnswerShow.vue";
-import { DEFAULT_LIVE_PORT } from "./ts/commands.ts";
-import { CheckStatus, ClientNum, ForwardedFile } from "./ts/bindings.ts";
-import { LiveClient } from "./client.ts";
+import { useLiveStore } from "./stores/LiveStore.ts";
 
-export interface Answer {
-    client_num: ClientNum;
-    files: Map<string, ForwardedFile>;
-    checks_status: CheckStatus[];
-}
-const answers: Ref<Map<number, Answer>> | null = ref(new Map())
-
-
-onMounted(() => {
-    const client = LiveClient.connect("127.0.0.1", DEFAULT_LIVE_PORT, "super id")
-})
+const live = useLiveStore()
+onMounted(() => { })
 
 </script>
 
@@ -38,8 +27,8 @@ onMounted(() => {
         </div>
         <div class="flex-2 ml-5">
             <h2>Answers</h2>
-            {{ answers.values() }}
-            <div v-for="answer in answers.values()">
+            {{ live.answers.values() }}
+            <div v-for="answer in live.answers.values()">
                 <AnswerShow :answer="answer"></AnswerShow>
             </div>
         </div>
