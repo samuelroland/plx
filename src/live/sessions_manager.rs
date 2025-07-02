@@ -7,7 +7,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use super::msg::LiveProtocolError;
 use super::{
-    client::ClientRole,
+    client_manager::ClientRole,
     msg::{ClientNum, Event},
     session::{BroadcastAction, Session, SessionBroadcaster},
 };

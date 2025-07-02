@@ -30,15 +30,6 @@ use super::{
     session::Session,
 };
 
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub enum ClientRole {
-    /// Default role, for anyone following a session
-    Follower,
-    /// When the client creates a session, it becames a leader client.
-    /// When the session is stopped, it become a `Follower` again.
-    Leader,
-}
-
 struct FollowerState {
     client_num: ClientNum,
     code: Option<HashMap<String, ForwardedFile>>,

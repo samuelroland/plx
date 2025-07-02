@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use super::{
-    client::ClientRole,
+    client_manager::ClientRole,
     msg::{ClientNum, Event, SessionStats},
 };
 
