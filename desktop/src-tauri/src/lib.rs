@@ -3,7 +3,6 @@ use commands::{
     courses::{clone_course, get_local_courses, open_course},
     sessions::{get_sessions, join_session, start_session},
 };
-use std::sync::Mutex;
 
 use plx::{
     live::{
@@ -26,8 +25,7 @@ struct Current {
 }
 
 struct AppData {
-    client: Mutex<Option<LiveClient>>,
-    current: Mutex<Option<Current>>,
+
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -70,8 +68,6 @@ pub fn run() {
         ])
         .setup(|app| {
             app.manage(AppData {
-                client: Mutex::new(None),
-                current: Mutex::new(None),
             });
             Ok(())
         })

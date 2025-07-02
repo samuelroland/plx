@@ -53,13 +53,11 @@ pub async fn clone_course(repos: String) -> bool {
 #[tauri::command]
 #[specta::specta]
 pub async fn open_course(app: AppHandle, path: String) -> Result<CourseInfo, String> {
-    let state = app.state::<AppData>();
     let (p, _) = Project::from_dir(&PathBuf::from(&path)).map_err(|(e, _)| format!("{}", e))?;
     let config = LiveConfig::from_course(&p).map_err(|e| format!("{}", e))?;
     let course_info = CourseInfo {
         name: p.name.clone(),
         folder: PathBuf::from(path),
     };
-    *state.current.lock().unwrap() = Some(Current { project: p, config });
     Ok(course_info)
 }
