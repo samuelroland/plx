@@ -1,52 +1,20 @@
 <script setup lang="ts">
 import { onMounted, ref, Ref } from "vue";
-import Code from "./Code.vue";
-import { commands, ProjectInfo, Session } from "./bindings";
+import AnswerShow from "./AnswerShow.vue";
+import { DEFAULT_LIVE_PORT } from "./ts/commands.ts";
+import { CheckStatus, ClientNum, ForwardedFile } from "./ts/bindings.ts";
+import { LiveClient } from "./client.ts";
 
-let course: Ref<Exo | null> = ref(null)
-
-type Answer = string
+export interface Answer {
+    client_num: ClientNum;
+    files: Map<string, ForwardedFile>;
+    checks_status: CheckStatus[];
+}
 const answers: Ref<Map<number, Answer>> | null = ref(new Map())
 
-// async function getExo() {
-//
-// }
-let codes = [
-    `
-double vectorAverage(const vector<int> & vec) {
-    long sum = 0;
-    for (auto v: vec) {
-        sum += v;
-    }
-    return (double) sum / vec.size();
-}
-`,
-    `
-double vectorAverage(const vector<int> &vec) {
-    return (double) accumulate(vec.begin(), vec.end(), 0) / vec.size();
-}
-`,
-    `double vectorAverage(const vector<int> &vec) {
-    long sum = 0;
-    for (
-    return (double) sum / vec.size();
-}
-`,
-    `double vectorAverage(const vector<int> &vec) {
-    long sum = 0;
-    for (int i = 0; i < vec.size(); i++) {
-        sum += vec[i];
-    }
-    if (vec.size() == 0) return 0;
-    return (double) sum / vec.size();
-}
-`
-]
 
 onMounted(() => {
-    codes.forEach((code, idx) => {
-        answers.value.set(idx, code)
-    })
+    const client = LiveClient.connect("127.0.0.1", DEFAULT_LIVE_PORT, "super id")
 })
 
 </script>
@@ -70,8 +38,9 @@ onMounted(() => {
         </div>
         <div class="flex-2 ml-5">
             <h2>Answers</h2>
-            <div v-for="answer in answers">
-                <div class="my-2"><Code :code="answer[1]"></Code></div>
+            {{ answers.values() }}
+            <div v-for="answer in answers.values()">
+                <AnswerShow :answer="answer"></AnswerShow>
             </div>
         </div>
     </div>

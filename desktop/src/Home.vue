@@ -1,19 +1,22 @@
 <script setup lang="ts">
 import { onMounted, Ref, ref } from 'vue';
-import { commands, ProjectInfo, Session } from "./bindings";
+import { commands, CourseInfo, Session } from "./ts/commands.ts";
 
 let props = defineProps<{ sessionDashboardOpen: (session: Session) => void, joinLiveSessionFn: () => void }>()
-let course: Ref<ProjectInfo | null> = ref(null)
-let projects: Ref<ProjectInfo[]> = ref([])
+let course: Ref<CourseInfo | null> = ref(null)
+let projects: Ref<CourseInfo[]> = ref([])
 let sessions: Ref<Session[]> = ref([])
 
 async function loadProjects() {
-    projects.value = await commands.getProjects()
+    projects.value = await commands.getLocalCourses()
     console.log(projects.value)
 }
 
 async function loadSessions() {
-    sessions.value = await commands.getSessions()
+    let result = await commands.getSessions()
+    if (result.status == "ok") {
+        sessions.value = result.data
+    }
     console.log(projects.value)
 }
 
@@ -28,7 +31,7 @@ onMounted(async () => {
 async function cloneCourse() {
     const git_url = prompt("Enter a course Git URL")
     if (git_url) {
-        const success = await commands.cloneProject(git_url)
+        const success = await commands.cloneCourse(git_url)
         if (success) {
             loadSessions()
         }
@@ -36,8 +39,10 @@ async function cloneCourse() {
 }
 
 async function openCourse(path: string) {
-    const result = await commands.openProject(path)
-    course.value = result as unknown as ProjectInfo
+    let result = await commands.openCourse(path)
+    if (result.status == "ok") {
+        course.value = result.data
+    }
     console.log("course loaded !")
     const result2 = await commands.getSessions()
     if (result2.status == "ok") {
