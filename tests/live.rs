@@ -4,14 +4,14 @@ use pretty_assertions::assert_eq;
 use std::{
     sync::{mpsc::channel, Arc},
     thread::{self, sleep},
-    time::{Duration, SystemTime},
+    time::Duration,
     vec,
 };
 
 use plx::live::{
     client::LiveClient,
     msg::{ClientNum, Event, ForwardedFile, LiveProtocolError},
-    server::LiveServer,
+    server::{LiveServer, PROTOCOL_VERSION},
     session::Session,
 };
 
@@ -63,6 +63,93 @@ fn spawn_server_and_n_clients_with_session(n: u16) -> Vec<Arc<LiveClient>> {
 
     clients.into_iter().map(Arc::new).collect()
 }
+
+// Tests around websocket connection
+#[test]
+#[ntest::timeout(2000)]
+fn websocket_can_connect_with_client_id_and_protocol_version() {
+    let port = spawn_test_server();
+    let uuid = "19eff916-bca8-4b79-a94a-2342a3f2647d";
+    let result = tokio_tungstenite::tungstenite::connect(format!(
+        "ws://127.0.0.1:{port}/?live_client_id={uuid}&live_protocol_version={PROTOCOL_VERSION}"
+    ));
+    assert!(result.is_ok(), "failed with body {:?}", result)
+}
+
+#[test]
+#[ntest::timeout(2000)]
+fn websocket_fails_to_connect_without_info() {
+    let port = spawn_test_server();
+    let result = tokio_tungstenite::tungstenite::connect(format!("ws://127.0.0.1:{port}"));
+    assert!(
+        result.is_err(),
+        "should have failed to connect {:?}",
+        result
+    );
+    // We cannot access the response body so I can only test the status code
+    assert!(
+        result
+            .as_ref()
+            .unwrap_err()
+            .to_string()
+            .contains("400 Bad Request"),
+        "{}",
+        result.unwrap_err().to_string()
+    );
+}
+
+#[test]
+#[ntest::timeout(2000)]
+fn websocket_fails_with_missing_client_id() {
+    let port = spawn_test_server();
+    let result = tokio_tungstenite::tungstenite::connect(format!(
+        "ws://127.0.0.1:{port}/?live_client_id=&live_protocol_version={PROTOCOL_VERSION}"
+    ));
+    assert!(
+        result.is_err(),
+        "should have failed to connect {:?}",
+        result
+    );
+    let result = tokio_tungstenite::tungstenite::connect(format!(
+        "ws://127.0.0.1:{port}/?live_protocol_version={PROTOCOL_VERSION}"
+    ));
+    // We cannot access the response body so I can only test the status code
+    assert!(
+        result
+            .as_ref()
+            .unwrap_err()
+            .to_string()
+            .contains("400 Bad Request"),
+        "{}",
+        result.unwrap_err().to_string()
+    );
+}
+
+#[test]
+#[ntest::timeout(2000)]
+fn websocket_fails_with_different_version_number() {
+    let port = spawn_test_server();
+    let result = tokio_tungstenite::tungstenite::connect(format!(
+        "ws://127.0.0.1:{port}/?live_client_id=random-string&live_protocol_version=23.64.7"
+    ));
+    assert!(
+        result.is_err(),
+        "should have failed to connect {:?}",
+        result
+    );
+    // We cannot access the response body so I can only test the status code
+    assert!(
+        result
+            .as_ref()
+            .unwrap_err()
+            .to_string()
+            .contains("400 Bad Request"),
+        "{}",
+        result.unwrap_err().to_string()
+    );
+}
+
+// Tests around session management
 
 #[test]
 #[ntest::timeout(4000)]

@@ -10,6 +10,7 @@ use tokio::{
 use tokio::net::TcpListener;
 use tokio::select;
 use tokio_tungstenite::tungstenite::{handshake, http::Response};
+use url::Url;
 
 use super::{client_manager::ClientManager, sessions_manager::SessionsManager};
 
@@ -17,10 +18,10 @@ use super::{client_manager::ClientManager, sessions_manager::SessionsManager};
 pub const PROTOCOL_VERSION: &str = "0.1.0";
 /// Default port of the live protocol
 pub const DEFAULT_LIVE_PORT: u16 = 9120;
-/// Header sent during WebSocket handshake to announce the protocol version
-pub const HEADER_LIVE_PROTOCOL_VERSION: &str = "LiveProtocolVersion";
-/// Header sent during WebSocket handshake to announce the client id
-pub const HEADER_LIVE_CLIENT_ID: &str = "LiveClientId";
+/// Query string field sent during WebSocket handshake to announce the protocol version
+pub const QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD: &str = "live_protocol_version";
+/// Query string field sent during WebSocket handshake to announce the client id
+pub const QUERYSTRING_LIVE_CLIENT_ID_FIELD: &str = "live_client_id";
 
 /// The live server serving live sessions, this server is an async implementation
 /// with the Tokio runtime
@@ -109,45 +110,41 @@ impl LiveServer {
             handshake::server::Response,
             handshake::server::ErrorResponse,
         > {
-            let protocol_version = request
-                .headers()
-                .get(HEADER_LIVE_PROTOCOL_VERSION)
-                .ok_or_else(|| {
-                    error_reponse(format!(
-                        "Missing field {} in the HTTP headers.",
-                        HEADER_LIVE_PROTOCOL_VERSION,
-                    ))
-                })?;
-
-            let version = protocol_version
-                .to_str()
+            // Note: we have no way to access the full URL, we need to prepend it with what's after
+            // the path, it already include the first /
+            let url = Url::parse(&format!("ws://localhost{}", request.uri()))
                 .map_err(|e| error_reponse(e.to_string()))?;
+            let mut protocol_version = String::default();
+            for (key, value) in url.query_pairs() {
+                if key == QUERYSTRING_LIVE_CLIENT_ID_FIELD {
+                    client_id = value.to_string();
+                    continue;
+                }
 
-            if version != PROTOCOL_VERSION {
-                return Err(error_reponse(format!("The server is only working with a live protocol version of {}, please update the client to match this version.", PROTOCOL_VERSION)));
+                if key == QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD {
+                    protocol_version = value.to_string();
+                    continue;
+                }
             }
 
-            client_id = request
-                .headers()
-                .get(HEADER_LIVE_CLIENT_ID)
-                .ok_or_else(|| {
-                    error_reponse(format!(
-                        "Missing field {} in the HTTP headers.",
-                        HEADER_LIVE_CLIENT_ID,
-                    ))
-                })?
-                .to_str()
-                .map_err(|e| error_reponse(e.to_string()))?
-                .to_string();
-
-            if client_id.trim().is_empty() {
+            if protocol_version.is_empty() {
                 return Err(error_reponse(format!(
-                    "Field {} is empty.",
-                    HEADER_LIVE_CLIENT_ID
+                    "Missing field {} in the query string",
+                    QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
                 )));
             }
 
-            // let error = client_id = request.headers().get(HEADER_LIVE_CLIENT_ID)?;
+            if protocol_version != PROTOCOL_VERSION {
+                return Err(error_reponse(format!("The server is only working with a live protocol version of {}, please update the client to match this version.", PROTOCOL_VERSION)));
+            }
+
+            if client_id.is_empty() {
+                return Err(error_reponse(format!(
+                    "Missing field {} in the query string",
+                    QUERYSTRING_LIVE_CLIENT_ID_FIELD,
+                )));
+            }
+
             Ok(response)
         };
 

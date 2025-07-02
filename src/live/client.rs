@@ -16,7 +16,9 @@ use tokio_tungstenite::{
 
 use super::{
     msg::{Action, Event},
-    server::{HEADER_LIVE_CLIENT_ID, HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION},
+    server::{
+        PROTOCOL_VERSION, QUERYSTRING_LIVE_CLIENT_ID_FIELD, QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
+    },
 };
 
 use tokio_tungstenite::tungstenite;
@@ -104,12 +106,8 @@ impl LiveClient {
         // Just prepare the future to run on the runtime
         let runtime_handle = runtime.spawn(async move {
             println!("Starting ClientSplitter tokio runtime");
-            let uri: Uri = format!("ws://{}:{}", domain, port).parse().unwrap(); // todo fix unwrap + todo support TLS !
-            let builder = ClientRequestBuilder::new(uri)
-                .with_header(HEADER_LIVE_PROTOCOL_VERSION, PROTOCOL_VERSION)
-                .with_header(HEADER_LIVE_CLIENT_ID, client_id);
-            let (mut socket, _) = tokio_tungstenite::connect_async(builder).await.unwrap();
-
+            let url: Uri = format!("ws://{domain}:{port}/?{QUERYSTRING_LIVE_CLIENT_ID_FIELD}={client_id}&{QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD}={PROTOCOL_VERSION}").parse().unwrap(); // todo fix unwrap + todo support TLS !
+            let (mut socket, _) = tokio_tungstenite::connect_async(url).await.unwrap();
             loop {
                 select! {
                     // Read messages from socket and forward them
