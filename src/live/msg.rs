@@ -1,6 +1,8 @@
 use chrono::serde::ts_seconds;
 use chrono::{DateTime, Utc};
+use specta::Type;
 use strum::AsRefStr;
+use typeshare::typeshare;
 
 use std::fmt::Display;
 
@@ -11,17 +13,21 @@ use super::session::Session;
 
 // TODO: Temporary copy in waiting of refactor to access that
 #[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
+#[serde(tag = "type", content = "content")]
+#[typeshare]
 pub enum CheckStatus {
     Passed,
-    Failed(String, String),
+    Failed(String),
     RunFail(String),
 }
 #[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
+#[typeshare]
 pub struct ExoCheckResult {
     pub state: CheckStatus,
 }
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Default, Clone, Debug)]
+#[typeshare]
 pub struct SessionStats {
     pub followers_count: u16,
     pub leaders_count: u16,
@@ -29,6 +35,8 @@ pub struct SessionStats {
 
 /// The protocol defines a set of valid actions that only clients can send
 #[derive(Serialize, Deserialize, Clone, Debug, AsRefStr)]
+#[serde(tag = "type", content = "content")]
+#[typeshare]
 pub enum Action {
     // Actions on sessions
     StartSession { name: String, group_id: String },
@@ -39,7 +47,7 @@ pub enum Action {
 
     // Code exo syncing
     ExoSwitch { path: String },
-    SendFile { file: String, content: String },
+    SendFile { path: String, content: String },
     SendResult { check_result: ExoCheckResult },
 }
 
@@ -48,6 +56,8 @@ pub enum Action {
 /// author of the action, but could sent to other clients.
 /// These events can also be generated directly by the server (after some timeout or OS signal received)
 #[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Debug, AsRefStr)]
+#[serde(tag = "type", content = "content")]
+#[typeshare]
 pub enum Event {
     SessionStarted,
     SessionStopped,
@@ -55,15 +65,26 @@ pub enum Event {
     SessionsList(Vec<Session>),
     Stats(SessionStats),
     ServerStopped,
-    ExoSwitched { path: String },
-    ForwardFile(ClientNum, ForwardedFile),
-    ForwardResult(ClientNum, ForwardedResult),
+    ExoSwitched {
+        path: String,
+    },
+    ForwardFile {
+        client_num: ClientNum,
+        file: ForwardedFile,
+    },
+    ForwardResult {
+        client_num: ClientNum,
+        result: ForwardedResult,
+    },
+
     Error(LiveProtocolError),
 }
 
 /// An error sent from the server to clients after any message
 /// that resolved in an error that is worth sending back to the client
 #[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Debug, AsRefStr)]
+#[typeshare]
+#[serde(tag = "type", content = "content")]
 pub enum LiveProtocolError {
     FailedToStartSession(String),
     FailedToJoinSession(String),
@@ -104,9 +125,10 @@ impl Display for LiveProtocolError {
 }
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
+#[typeshare]
 pub struct ForwardedFile {
     /// The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h"
-    pub file: String,
+    pub path: String,
     pub content: String,
     /// The time where this code was received on the server
     #[serde(with = "ts_seconds")]
@@ -114,6 +136,7 @@ pub struct ForwardedFile {
 }
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
+#[typeshare]
 pub struct ForwardedResult {
     /// The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h"
     pub check_result: ExoCheckResult,
@@ -124,7 +147,8 @@ pub struct ForwardedResult {
 
 /// A incremental number attributed by the server to each client after session join, to let clients identify other clients.
 /// This MUST NOT be derived from the secret client_id, this ClientNum is not secret but should be different at each session.
-#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Clone, Debug, Type)]
+#[typeshare]
 pub struct ClientNum(pub u16);
 
 // Implement serialisation and deserialisation strategy for Event and Action.

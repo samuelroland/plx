@@ -6,7 +6,14 @@ use commands::{
 use std::sync::Mutex;
 
 use plx::{
-    live::{client::LiveClient, config::LiveConfig},
+    live::{
+        client::LiveClient,
+        config::LiveConfig,
+        server::{
+            DEFAULT_LIVE_PORT, PROTOCOL_VERSION, QUERYSTRING_LIVE_CLIENT_ID_FIELD,
+            QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
+        },
+    },
     models::project::Project,
 };
 use specta_typescript::Typescript;
@@ -33,8 +40,18 @@ pub fn run() {
             open_course,
             get_sessions,
             start_session,
-            join_session
-        ]);
+            join_session,
+        ])
+        .constant("PROTOCOL_VERSION", PROTOCOL_VERSION)
+        .constant("DEFAULT_LIVE_PORT", DEFAULT_LIVE_PORT)
+        .constant(
+            "QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD",
+            QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
+        )
+        .constant(
+            "QUERYSTRING_LIVE_CLIENT_ID_FIELD",
+            QUERYSTRING_LIVE_CLIENT_ID_FIELD,
+        );
 
     #[cfg(debug_assertions)]
     builder

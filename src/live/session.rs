@@ -1,4 +1,6 @@
+use specta::Type;
 use std::collections::HashMap;
+use typeshare::typeshare;
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -10,7 +12,8 @@ use super::{
 
 /// A live session, this is the representation sent to clients
 /// when listing all sessions or after session creation
-#[derive(Serialize, Deserialize, Eq, Ord, PartialOrd, PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, Ord, PartialOrd, PartialEq, Clone, Debug, Type)]
+#[typeshare]
 pub struct Session {
     /// An arbitrary name defined by the leader to help followers choose the correct sessions
     /// among the multiple live sessions at the same time on the same group_id
