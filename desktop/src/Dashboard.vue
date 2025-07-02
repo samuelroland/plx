@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, Ref } from "vue";
+import { onMounted } from "vue";
 import AnswerShow from "./AnswerShow.vue";
 import { useLiveStore } from "./stores/LiveStore.ts";
 

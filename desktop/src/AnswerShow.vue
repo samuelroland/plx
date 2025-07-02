@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { Answer } from './ts/bindings';
-
+import { Answer } from './stores/LiveStore';
 
 let props = defineProps<{ answer: Answer }>()
 
