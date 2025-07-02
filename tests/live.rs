@@ -295,7 +295,7 @@ fn assert_events_eq(e1: &Event, e2: &Event) {
         Event::ForwardFile(client_num, forwarded_file) => {
             if let Event::ForwardFile(client_num2, forwarded_file2) = e2 {
                 assert_eq!(client_num, client_num2);
-                assert_eq!(forwarded_file.file, forwarded_file2.file);
+                assert_eq!(forwarded_file.path, forwarded_file2.path);
                 assert_eq!(forwarded_file.content, forwarded_file2.content);
                 assert!((forwarded_file.time - forwarded_file2.time).abs() < TimeDelta::seconds(2));
                 return;
@@ -339,14 +339,14 @@ fn forwarding_to_leaders_work() {
     c2.send_file("main.c".to_string(), "client 2, code v1".to_string());
     sleep(Duration::from_millis(200));
     c1.send_file("main.c".to_string(), "client 1, code v2".to_string());
-    let now = DateTime::<Utc>::from(SystemTime::now());
+    let now = Utc::now();
 
     assert_events_eq(
         &c0.wait_on_next_event().unwrap(),
         &Event::ForwardFile(
             ClientNum(2),
             ForwardedFile {
-                file: "main.c".to_string(),
+                path: "main.c".to_string(),
                 content: "client 1, code v1".to_string(),
                 time: now,
             },
@@ -358,7 +358,7 @@ fn forwarding_to_leaders_work() {
         &Event::ForwardFile(
             ClientNum(3),
             ForwardedFile {
-                file: "main.c".to_string(),
+                path: "main.c".to_string(),
                 content: "client 2, code v1".to_string(),
                 time: now,
             },
@@ -370,7 +370,7 @@ fn forwarding_to_leaders_work() {
         &Event::ForwardFile(
             ClientNum(2),
             ForwardedFile {
-                file: "main.c".to_string(),
+                path: "main.c".to_string(),
                 content: "client 1, code v2".to_string(),
                 time: now,
             },

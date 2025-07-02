@@ -218,7 +218,10 @@ impl LiveClient {
 
     /// Send a file content after a change
     pub fn send_file(&mut self, file: String, content: String) {
-        self.send_msg(Action::SendFile { file, content });
+        self.send_msg(Action::SendFile {
+            path: file,
+            content,
+        });
     }
 
     /// Send a check result
@@ -232,12 +235,12 @@ impl LiveClient {
     }
 
     /// Get all available session for a given group id
-    pub fn get_sessions(&mut self, group_id: String) -> Result<Vec<Session>, ()> {
+    pub fn get_sessions(&mut self, group_id: String) -> Result<Vec<Session>, String> {
         self.send_msg(Action::GetSessions { group_id });
         let e = self.wait_on_next_event();
         if let Some(Event::SessionsList(list)) = e {
             return Ok(list);
         }
-        Err(())
+        Err("Couldn't get sessions list".to_string())
     }
 }

@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::SystemTime};
+use std::sync::Arc;
 
 use crate::live::msg::LiveProtocolError;
 
@@ -9,7 +9,7 @@ use super::{
     session::BroadcastAction,
     sessions_manager::SessionsManager,
 };
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use futures_util::{stream::FusedStream, SinkExt};
 use log::info;
 use tokio::{
@@ -212,17 +212,20 @@ impl ClientManager {
                         .await;
                     }
 
-                    Ok(Action::SendFile { file, content }) => match &self.session {
+                    Ok(Action::SendFile {
+                        path: file,
+                        content,
+                    }) => match &self.session {
                         Some(session) => {
                             let _ = session.session_tx.send(BroadcastAction::SendToLeaders(
-                                Event::ForwardFile(
-                                    session.client_num.clone(),
-                                    ForwardedFile {
-                                        file,
+                                Event::ForwardFile {
+                                    client_num: session.client_num.clone(),
+                                    file: ForwardedFile {
+                                        path: file,
                                         content,
-                                        time: DateTime::<Utc>::from(SystemTime::now()),
+                                        time: Utc::now(),
                                     },
-                                ),
+                                },
                             ));
                         }
                         None => {
@@ -233,13 +236,13 @@ impl ClientManager {
                     Ok(Action::SendResult { check_result }) => match &self.session {
                         Some(session) => {
                             let _ = session.session_tx.send(BroadcastAction::SendToLeaders(
-                                Event::ForwardResult(
-                                    session.client_num.clone(),
-                                    ForwardedResult {
+                                Event::ForwardResult {
+                                    client_num: session.client_num.clone(),
+                                    result: ForwardedResult {
                                         check_result,
-                                        time: DateTime::<Utc>::from(SystemTime::now()),
+                                        time: Utc::now(),
                                     },
-                                ),
+                                },
                             ));
                         }
                         None => {
