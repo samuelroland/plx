@@ -28,5 +28,5 @@ specta = "=2.0.0-rc.22"
 specta-typescript = "0.0.9"
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
 ## TODO Temporary
-dme-core = { path = "../../../dme-for-plx/app/core/" }
+dme-core = { git = "https://github.com/samuelroland/dme" }
 typeshare = "1.0.4"
