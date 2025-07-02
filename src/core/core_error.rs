@@ -1,8 +1,12 @@
 use core::fmt;
 
+use crate::live::config::LIVECONFIG_FILENAME;
+
 pub enum CoreInitError {
     PlxProjNotFound,
     ProjFilesParsingError(String),
+    NoLiveConfiguration,
+    LiveConfigParseError(String),
 }
 
 impl fmt::Display for CoreInitError {
@@ -11,6 +15,14 @@ impl fmt::Display for CoreInitError {
             CoreInitError::PlxProjNotFound => write!(f, "PLX didn't find a course.toml in the current folder, this is not the root of a PLX course."),
             CoreInitError::ProjFilesParsingError(detail) => {
                 write!(f, "Parsing error: {}", detail)
+            }
+            CoreInitError::NoLiveConfiguration => write!(
+                f,
+                "No live configuration found, expected {}",
+                LIVECONFIG_FILENAME
+            ),
+            CoreInitError::LiveConfigParseError(e) => {
+                write!(f, "Parse error of file {}: {}", LIVECONFIG_FILENAME, e)
             }
         }
     }

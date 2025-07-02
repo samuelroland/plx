@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use log::warn;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ pub struct Project {
     pub(crate) name: String,
     pub(crate) skills: Arc<Vec<Skill>>,
     pub(crate) state: ProjectState,
-    folder: std::path::PathBuf,
+    folder: PathBuf,
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Debug)]
@@ -38,6 +38,9 @@ pub(crate) struct ProjectInfo {
     skill_folders: Vec<std::path::PathBuf>,
 }
 impl Project {
+    pub fn get_folder(&self) -> PathBuf {
+        self.folder.clone()
+    }
     /// returns the current exo pointed by the state
     /// This can fail if for instance the skills/exos were moved/deleted between two plx runs
     pub fn resume(&mut self) -> Option<&Exo> {
