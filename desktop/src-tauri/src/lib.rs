@@ -1,8 +1,5 @@
 mod commands;
-use commands::{
-    courses::{clone_course, get_local_courses, open_course},
-    sessions::{get_sessions, join_session, start_session},
-};
+use commands::courses::{clone_course, get_local_courses, open_course};
 
 use plx::{
     live::{
@@ -24,9 +21,7 @@ struct Current {
     project: Project,
 }
 
-struct AppData {
-
-}
+struct AppData {}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -36,9 +31,6 @@ pub fn run() {
             get_local_courses,
             clone_course,
             open_course,
-            get_sessions,
-            start_session,
-            join_session,
         ])
         .constant("PROTOCOL_VERSION", PROTOCOL_VERSION)
         .constant("DEFAULT_LIVE_PORT", DEFAULT_LIVE_PORT)
@@ -62,13 +54,9 @@ pub fn run() {
             get_local_courses,
             clone_course,
             open_course,
-            get_sessions,
-            start_session,
-            join_session
         ])
         .setup(|app| {
-            app.manage(AppData {
-            });
+            app.manage(AppData {});
             Ok(())
         })
         .run(tauri::generate_context!())
