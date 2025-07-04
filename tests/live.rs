@@ -10,7 +10,7 @@ use std::{
 
 use plx::live::{
     client::LiveClient,
-    msg::{ClientNum, Event, ForwardedFile, LiveProtocolError},
+    msg::{Action, ClientNum, Event, ForwardedFile, LiveProtocolError},
     server::{LiveServer, PROTOCOL_VERSION},
     session::Session,
 };
@@ -146,6 +146,60 @@ fn websocket_fails_with_different_version_number() {
 }
 
 // Tests around session management
+
+#[test]
+#[ntest::timeout(4000)]
+fn can_join_session_and_get_correct_events_back() {
+    let c = &mut spawn_server_and_n_clients(3);
+    c[0].send_msg(Action::StartSession {
+        name: NAME.to_string(),
+        group_id: GROUP_ID.to_string(),
+    });
+    assert_eq!(
+        c[0].wait_on_next_event().unwrap(),
+        Event::SessionJoined(ClientNum(0))
+    );
+    c[1].send_msg(Action::JoinSession {
+        name: NAME.to_string(),
+        group_id: GROUP_ID.to_string(),
+    });
+    assert_eq!(
+        c[1].wait_on_next_event().unwrap(),
+        Event::SessionJoined(ClientNum(1))
+    );
+    c[2].send_msg(Action::JoinSession {
+        name: NAME.to_string(),
+        group_id: GROUP_ID.to_string(),
+    });
+    assert_eq!(
+        c[2].wait_on_next_event().unwrap(),
+        Event::SessionJoined(ClientNum(2))
+    );
+}
+
+#[test]
+#[ntest::timeout(4000)]
+fn cannot_create_same_session_twice() {
+    let c = &mut spawn_server_and_n_clients(3);
+    c[0].send_msg(Action::StartSession {
+        name: NAME.to_string(),
+        group_id: GROUP_ID.to_string(),
+    });
+    assert_eq!(
+        c[0].wait_on_next_event().unwrap(),
+        Event::SessionJoined(ClientNum(0))
+    );
+    c[0].send_msg(Action::StartSession {
+        name: NAME.to_string(),
+        group_id: GROUP_ID.to_string(),
+    });
+    assert_eq!(
+        c[0].wait_on_next_event().unwrap(),
+        Event::Error(LiveProtocolError::FailedToStartSession(
+            "There is already a session with the same group id and name combination.".to_string()
+        ))
+    );
+}
 
 #[test]
 #[ntest::timeout(4000)]
@@ -343,7 +397,7 @@ fn forwarding_to_leaders_work() {
     assert_events_eq(
         &c0.wait_on_next_event().unwrap(),
         &Event::ForwardFile {
-            client_num: ClientNum(2),
+            client_num: ClientNum(1),
             file: ForwardedFile {
                 path: "main.c".to_string(),
                 content: "client 1, code v1".to_string(),
@@ -355,7 +409,7 @@ fn forwarding_to_leaders_work() {
     assert_events_eq(
         &c0.wait_on_next_event().unwrap(),
         &Event::ForwardFile {
-            client_num: ClientNum(3),
+            client_num: ClientNum(2),
             file: ForwardedFile {
                 path: "main.c".to_string(),
                 content: "client 2, code v1".to_string(),
@@ -367,7 +421,7 @@ fn forwarding_to_leaders_work() {
     assert_events_eq(
         &c0.wait_on_next_event().unwrap(),
         &Event::ForwardFile {
-            client_num: ClientNum(2),
+            client_num: ClientNum(1),
             file: ForwardedFile {
                 path: "main.c".to_string(),
                 content: "client 1, code v2".to_string(),

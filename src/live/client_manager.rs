@@ -133,14 +133,14 @@ impl ClientManager {
                                     SessionLink {
                                         client_rx,
                                         client_tx: client_tx.clone(),
-                                        client_num,
+                                        client_num: client_num.clone(),
                                         role: ClientRole::Leader,
                                         session_tx,
                                     }
                                 });
                                 info!("Session created");
 
-                                let _ = client_tx.send(Event::SessionStarted);
+                                let _ = client_tx.send(Event::SessionJoined(client_num));
                             }
                             Err(e) => {
                                 self.send_error(LiveProtocolError::FailedToStartSession(e))
@@ -277,7 +277,7 @@ impl ClientManager {
                         }
                     }
                     Err(e) => {
-                        info!("{}", e)
+                        info!("{e}")
                     }
                 }
             }

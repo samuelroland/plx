@@ -1,6 +1,6 @@
 use std::future::IntoFuture;
 /// Client implementation of the live protocol
-use std::{collections::HashMap, fmt::Display, sync::mpsc::Sender, thread, time::Duration};
+use std::{fmt::Display, sync::mpsc::Sender, thread, time::Duration};
 
 use std::net::TcpStream;
 
@@ -9,10 +9,7 @@ use tokio::select;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio_stream::StreamExt;
 use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{
-    tungstenite::{http::Uri, stream::MaybeTlsStream, ClientRequestBuilder},
-    WebSocketStream,
-};
+use tokio_tungstenite::{tungstenite::stream::MaybeTlsStream, WebSocketStream};
 use url::Url;
 
 use super::{
@@ -25,22 +22,9 @@ use super::{
 use tokio_tungstenite::tungstenite;
 
 use super::{
-    msg::{
-        ClientNum, ExoCheckResult, ForwardedFile, ForwardedResult, LiveProtocolError, SessionStats,
-    },
+    msg::{ClientNum, ExoCheckResult, LiveProtocolError},
     session::Session,
 };
-
-struct FollowerState {
-    client_num: ClientNum,
-    code: Option<HashMap<String, ForwardedFile>>,
-    check_result: Option<ForwardedResult>,
-}
-
-struct SessionDetails {
-    session: Session,
-    stats: SessionStats,
-}
 
 type Ws = WebSocketStream<MaybeTlsStream<TcpStream>>;
 pub struct LiveClient {
@@ -48,12 +32,8 @@ pub struct LiveClient {
     pub(super) send: UnboundedSender<Action>,
     /// All events bac
     pub(super) recv: UnboundedReceiver<Event>,
-    // The states of followers clients in the current session, only relevant for leader clients.
-    // It will be empty for follower clients.
-    // followers_states: HashMap<ClientNum, FollowerState>,
 
-    // When connected to a session, retain a few details locally
-    // session: Option<SessionDetails>,
+    client_num: Option<ClientNum>,
 }
 
 #[derive(Debug)]
@@ -106,7 +86,7 @@ impl LiveClient {
                     // Read messages from socket and forward them
                     ws_msg = socket.next() => {
                         if let Some(Ok(ws_msg)) = ws_msg {
-                            println!("ClientSplitter: got {ws_msg:?}");
+                            println!("LiveClient: got {ws_msg:?}");
                             match ws_msg.into_text().ok().and_then(|txt| Event::try_from(txt).ok()) {
                                     Some(event) => {
                                         let _ = recv_tx.send(event.clone());
@@ -144,6 +124,7 @@ impl LiveClient {
         let client = LiveClient {
             send: send_tx,
             recv: recv_rx,
+            client_num: None,
         };
 
         Ok(client)
@@ -156,7 +137,7 @@ impl LiveClient {
     }
 
     /// Just sending a Msg on the socket
-    fn send_msg(&mut self, action: Action) {
+    pub fn send_msg(&mut self, action: Action) {
         println!("Sending: {action:?}");
         self.send.send(action).unwrap();
     }
@@ -179,7 +160,8 @@ impl LiveClient {
             group_id: group_id.to_string(),
         });
         let event = self.wait_on_next_event();
-        if let Some(Event::SessionStarted) = event {
+        if let Some(Event::SessionJoined(client_num)) = event {
+            self.client_num = Some(client_num);
             Ok(Session {
                 name: name.to_string(),
                 group_id: group_id.to_string(),
@@ -200,8 +182,9 @@ impl LiveClient {
             name: name.to_string(),
             group_id: group_id.to_string(),
         });
-        if let Some(Event::SessionJoined) = self.wait_on_next_event() {
+        if let Some(Event::SessionJoined(client_num)) = self.wait_on_next_event() {
             println!("Joined session '{name}'");
+            self.client_num = Some(client_num)
         }
         Ok(Session {
             name: name.to_string(),

@@ -59,9 +59,8 @@ pub enum Action {
 #[serde(tag = "type", content = "content")]
 #[typeshare]
 pub enum Event {
-    SessionStarted,
     SessionStopped,
-    SessionJoined,
+    SessionJoined(ClientNum),
     SessionsList(Vec<Session>),
     Stats(SessionStats),
     ServerStopped,

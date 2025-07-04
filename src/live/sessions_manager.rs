@@ -48,7 +48,7 @@ impl SessionsManager {
     ) -> Result<(ClientNum, UnboundedSender<BroadcastAction>), String> {
         let (session_tx, session_rx) = tokio::sync::mpsc::unbounded_channel::<BroadcastAction>();
         let mut session_broadcaster = SessionBroadcaster::new(session_rx);
-        let leaders_client_num = ClientNum(1);
+        let leaders_client_num = ClientNum(0);
         {
             if self
                 .sessions_by_group_and_name
@@ -131,7 +131,7 @@ impl SessionsManager {
             new_client_num.clone(),
             client_tx.clone(),
         ));
-        let _ = client_tx.send(Event::SessionJoined);
+        let _ = client_tx.send(Event::SessionJoined(new_client_num.clone()));
         let _ = session_tx.send(BroadcastAction::SendStats);
 
         Ok((new_client_num, role, session_tx))
@@ -151,10 +151,8 @@ impl SessionsManager {
 
         match read_guard.get(group_id) {
             Some(group) => {
-                let mut list: Vec<Session> = group
-                    .iter()
-                    .map(|(_, state)| state.session.clone())
-                    .collect();
+                let mut list: Vec<Session> =
+                    group.values().map(|state| state.session.clone()).collect();
                 list.sort();
                 list
             }
