@@ -8,9 +8,9 @@ if ! test -d node_modules; then
     pnpm install
 fi
 
-pnpm tauri build && pnpm tauri bundle
+pnpm tauri build
 if test -f /usr/bin/rpm 2>/dev/null; then
-    sudo rpm -i --reinstall src-tauri/target/release/bundle/rpm/dme-*.x86_64.rpm
+    sudo rpm -i --reinstall src-tauri/target/release/bundle/rpm/*-*.x86_64.rpm
 else
-    sudo apt reinstall ./src-tauri/target/release/bundle/deb/dme_*_amd64.deb
+    sudo apt reinstall ./src-tauri/target/release/bundle/deb/*_*_amd64.deb
 fi
