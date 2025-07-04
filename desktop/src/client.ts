@@ -13,7 +13,12 @@ export class LiveClient {
     this.socket = socket;
   }
 
-  static connect(domain: string, port: number, client_id: string): LiveClient {
+  static connect(
+    domain: string,
+    port: number,
+    client_id: string,
+    onEvent: (event: Event) => void,
+  ): LiveClient {
     let querystring = new URLSearchParams();
     querystring.append(QUERYSTRING_LIVE_CLIENT_ID_FIELD, client_id);
     querystring.append(
@@ -23,76 +28,33 @@ export class LiveClient {
     const socket = new WebSocket(
       "ws://" + domain + ":" + port + "/?" + querystring.toString(),
     );
+    // TODO: manage connection failures !
 
-    socket.onmessage = (event: MessageEvent) => {
-      onMessage(event);
+    socket.onmessage = (msg: MessageEvent) => {
+      try {
+        let event = JSON.parse(msg.data) as Event;
+        onEvent(event);
+      } catch {
+        console.warn("Got message with invalid JSON: ");
+      }
     };
     return new LiveClient(socket);
   }
 
   send_msg(action: Action) {
-    this.socket?.send(JSON.stringify(action));
+    console.log("Send action ", action);
+    // If the socket is not yet fully connected, retry in 20ms
+    if (this.socket?.readyState !== this.socket?.OPEN) {
+      console.log("retry");
+      setTimeout(() => {
+        this.send_msg(action);
+      }, 20);
+      return;
+    }
+    this.socket?.send(JSON.stringify(action)); // fail here !
   }
 
   disconnect() {
     this.socket?.close();
-  }
-}
-
-function onMessage(message: MessageEvent): any {
-  try {
-    let event = JSON.parse(message.data) as Event;
-    onEvent(event);
-  } catch {}
-}
-
-function onEvent(event: Event) {
-  const live = useLiveStore();
-  console.log("Got event", event);
-  switch (event.type) {
-    case "SessionStarted":
-      break;
-    case "SessionStopped":
-      break;
-    case "SessionJoined":
-      break;
-    case "SessionsList":
-      break;
-    case "ServerStopped":
-      break;
-    case "ExoSwitched":
-      break;
-
-    case "ForwardFile": {
-      let entry = live.answers.get(event.content.client_num);
-      if (!entry)
-        entry = {
-          client_num: event.content.client_num,
-          checks_status: [],
-          files: new Map(),
-        };
-      entry.files.set(event.content.file.path, event.content.file);
-      live.answers.set(event.content.client_num, entry);
-      break;
-    }
-    case "ForwardResult":
-      let entry = live.answers.get(event.content.client_num);
-      if (!entry)
-        entry = {
-          client_num: event.content.client_num,
-          checks_status: [],
-          files: new Map(),
-        };
-      if (!entry)
-        entry = {
-          client_num: event.content.client_num,
-          checks_status: [],
-          files: new Map(),
-        };
-      entry.checks_status.push(event.content.result.check_result.state);
-      live.answers.set(event.content.client_num, entry);
-      break;
-    case "Stats":
-      live.stats = event.content;
   }
 }

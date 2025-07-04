@@ -1,16 +1,19 @@
 // This a global Pinia store to store and change the state of everything related to a live session
 
 import { defineStore } from "pinia";
-import { CourseInfo, DEFAULT_LIVE_PORT, Session } from "../ts/commands";
+import { CourseInfo, DEFAULT_LIVE_PORT } from "../ts/commands";
 import {
+  Event,
+  Action,
   CheckStatus,
   ClientNum,
   ClientRole,
   ForwardedFile,
-  LiveConfig,
+  Session,
   SessionStats,
 } from "../ts/bindings";
 import { LiveClient } from "../client";
+import { useGlobalStore } from "./GlobalStore";
 
 export interface Answer {
   client_num: ClientNum;
@@ -22,48 +25,146 @@ export const useLiveStore = defineStore("live", {
   state: () => ({
     client: null as LiveClient | null,
     course: null as CourseInfo | null,
-    config: null as LiveConfig | null,
+    // Sessions available for the selected course, kept empty when no course
+    available_sessions: [] as Session[],
     role: ClientRole,
     session: null as Session | null,
     answers: new Map() as Map<number, Answer>,
     stats: null as SessionStats | null,
-
-    waitingWsEvents: {} as { [key: string]: boolean },
+    // Some temporary states, usualy in waiting a websocket Event back after an Action
+    tmp: {
+      joining_session: null as Session | null, // is not null between JoinSession and SessionJoined/Error
+      starting_session: null as Session | null, // is not null between StartSession and SessionStarted/Error
+    },
   }),
   getters: {
     // Only if the 3 fields are not null, the session is in progress
-    sessionInProgress: (state) => state.course && state.config && state.session,
+    sessionInProgress: (state) =>
+      state.course && state.course.config && state.session,
   },
   actions: {
-    connect() {
-      this.client = LiveClient.connect(
-        "127.0.0.1",
-        DEFAULT_LIVE_PORT,
-        "super id",
-      );
+    connect_if_no_client() {
+      if (!this.client) {
+        this.client = LiveClient.connect(
+          "127.0.0.1",
+          DEFAULT_LIVE_PORT,
+          "super id",
+          onEvent,
+        );
+      }
     },
-    start_session(name: string, group_id: string) {
-      this.client?.send_msg({
-        type: "StartSession",
-        content: { name, group_id },
-      });
+    start_session(name: string) {
+      this.connect_if_no_client();
+      if (this.course?.config?.group_id) {
+        let session = { name, group_id: this.course?.config?.group_id };
+        this.client?.send_msg({
+          type: "StartSession",
+          content: session,
+        });
+        this.tmp.starting_session = session;
+      }
     },
-    join_session(name: string, group_id: string) {
+    join_session(name: string) {
+      this.connect_if_no_client();
+      if (this.course?.config?.group_id) {
+        let session = { name, group_id: this.course?.config?.group_id };
+        this.client?.send_msg({
+          type: "JoinSession",
+          content: session,
+        });
+        this.tmp.joining_session = session;
+      }
+    },
+    leave_session() {
+      this.connect_if_no_client();
       this.client?.send_msg({
-        type: "JoinSession",
-        content: { name, group_id },
+        type: "LeaveSession",
       });
     },
     // Get sessions for the group_id in LiveConfig
     get_sessions() {
-      if (this.config?.group_id) {
+      this.connect_if_no_client();
+      console.log("okay");
+      if (this.course?.config?.group_id) {
         this.client?.send_msg({
           type: "GetSessions",
-          content: { group_id: this.config?.group_id },
+          content: { group_id: this.course.config?.group_id },
         });
       } else {
-        alert("No this.config?.group_id ");
+        alert(
+          "This course has no valid live configuration, cannot connect to a live server.",
+        );
       }
     },
   },
 });
+
+// Define the logic to react on an Event received from the server via LiveClient
+function onEvent(event: Event) {
+  const live = useLiveStore();
+  console.log("Got event", event);
+  switch (event.type) {
+    case "SessionStarted":
+      live.session = live.tmp.starting_session;
+      live.tmp.starting_session = null;
+      break;
+    case "SessionStopped":
+      break;
+    case "SessionJoined":
+      live.session = live.tmp.joining_session;
+      live.tmp.joining_session = null;
+      break;
+    case "SessionsList":
+      live.available_sessions = event.content;
+      break;
+    case "ServerStopped":
+      break;
+    case "ExoSwitched":
+      break;
+
+    case "ForwardFile": {
+      let entry = live.answers.get(event.content.client_num);
+      if (!entry)
+        entry = {
+          client_num: event.content.client_num,
+          checks_status: [],
+          files: new Map(),
+        };
+      entry.files.set(event.content.file.path, event.content.file);
+      live.answers.set(event.content.client_num, entry);
+      break;
+    }
+    case "ForwardResult":
+      let entry = live.answers.get(event.content.client_num);
+      if (!entry)
+        entry = {
+          client_num: event.content.client_num,
+          checks_status: [],
+          files: new Map(),
+        };
+      if (!entry)
+        entry = {
+          client_num: event.content.client_num,
+          checks_status: [],
+          files: new Map(),
+        };
+      entry.checks_status.push(event.content.result.check_result.state);
+      live.answers.set(event.content.client_num, entry);
+      break;
+    case "Stats":
+      live.stats = event.content;
+      break;
+    case "Error":
+      console.error(event.content);
+      alert(event.content);
+      break;
+  }
+
+  const global = useGlobalStore();
+  // Handle page switch
+  if (live.sessionInProgress) {
+    global.page = "dashboard";
+  }
+
+  console.log("liveStore", live);
+}
