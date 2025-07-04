@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { onMounted, Ref, ref } from 'vue';
-import { commands, CourseInfo, Session } from "./ts/commands.ts";
+import { commands, CourseInfo } from "./ts/commands.ts";
 import { useLiveStore } from './stores/LiveStore.ts';
 import { useGlobalStore } from './stores/GlobalStore.ts';
+import { Session } from './ts/bindings.ts';
 
-let courses: Ref<CourseInfo[]> = ref([{ name: "PRG2", folder: "/path/to/prg2" }, { name: "SYE", folder: "/path/to/sye" }, { name: "PRG1", folder: "/path/to/prg1" }])
-// let courses: Ref<CourseInfo[]> = ref([])
-let sessions: Ref<Session[]> = ref([])
+let courses: Ref<CourseInfo[]> = ref([])
 
 let selectedCourse: Ref<string | null> = ref(null)
 
@@ -37,10 +36,11 @@ async function cloneCourse() {
 }
 
 async function openCourse(path: string) {
+    live.available_sessions = []; // reset so we don't see some sessions for the previously selected course
     selectedCourse.value = path
-    let result = await commands.openCourse(path)
-    if (result.status == "ok") {
-        live.course = result.data
+    let course = courses.value.find(c => c.folder == path)
+    if (course) {
+        live.course = course
     } else {
         alert("Course doesnt exist at path " + path)
     }
@@ -49,23 +49,12 @@ async function openCourse(path: string) {
 
 async function startSession() {
     const name = prompt("Enter a session name")
-    if (name) {
-        const success = await commands.startSession(name)
-        if (success.status == "ok") {
-            global.page = "dashboard"
-        }
+    if (name && name.trim().length > 0) {
+        live.start_session(name)
     }
 }
 
-async function joinSession(session: Session) {
-    const success = await commands.joinSession(session)
-    if (success.status == "ok") {
-        global.page = "dashboard"
-        live.session = success.data
-    } else {
-        alert(success.error)
-    }
-}
+
 
 </script>
 
@@ -82,10 +71,9 @@ async function joinSession(session: Session) {
             <div class="mt-4"><button @click="cloneCourse">Add course</button></div>
         </div>
         <div class="flex">
-            <div @click="openCourse(project.folder)" class="cursor-pointer p-2"
+            <div @click="() => openCourse(project.folder)" class="cursor-pointer p-2"
                 :class="selectedCourse == project.folder ? 'bg-orange-200' : ''" v-for="project in courses">
-                {{
-                    project.name }}
+                {{ project.name }}
             </div>
         </div>
         <div class="text-gray-700 italic" v-if="courses.length == 0">No course found...</div>
@@ -94,13 +82,12 @@ async function joinSession(session: Session) {
                 <button @click="startSession">Start live session</button>
             </div>
             <div class="text-gray-700 italic" v-if="live.course == null">Pick a course first</div>
-            <div class="text-gray-700 italic" v-if="live.course != null && sessions.length == 0">No session found,
-                create a
-                new
-                one...</div>
+            <div class="text-gray-700 italic" v-if="live.course != null && live.available_sessions.length == 0">
+                No session running for this course, create a new one...
+            </div>
             <ol>
-                <li @click="joinSession(session)" class="hover:bg-orange-100 cursor-pointer p-2"
-                    v-for="session in sessions">{{ session.name }} {{ session.group_id }}
+                <li @click="live.join_session(session.name)" class="hover:bg-orange-100 cursor-pointer p-2"
+                    v-for="session in live.available_sessions">{{ session.name }}
                 </li>
             </ol>
         </div>

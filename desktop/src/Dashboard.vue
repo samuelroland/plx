@@ -27,7 +27,6 @@ onMounted(() => { })
         </div>
         <div class="flex-2 ml-5">
             <h2>Answers</h2>
-            {{ live.answers.values() }}
             <div v-for="answer in live.answers.values()">
                 <AnswerShow :answer="answer"></AnswerShow>
             </div>
