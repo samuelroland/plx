@@ -1,9 +1,11 @@
 mod commands;
-use commands::courses::{clone_course, get_local_courses, open_course};
+use commands::{
+    courses::{clone_course, get_local_courses},
+    render::{highlight_code_with_tree_sitter, load_default_theme_css},
+};
 
 use plx::{
     live::{
-        client::LiveClient,
         config::LiveConfig,
         server::{
             DEFAULT_LIVE_PORT, PROTOCOL_VERSION, QUERYSTRING_LIVE_CLIENT_ID_FIELD,
@@ -30,7 +32,8 @@ pub fn run() {
         .commands(collect_commands![
             get_local_courses,
             clone_course,
-            open_course,
+            highlight_code_with_tree_sitter,
+            load_default_theme_css
         ])
         .constant("PROTOCOL_VERSION", PROTOCOL_VERSION)
         .constant("DEFAULT_LIVE_PORT", DEFAULT_LIVE_PORT)
@@ -53,7 +56,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_local_courses,
             clone_course,
-            open_course,
+            highlight_code_with_tree_sitter,
+            load_default_theme_css
         ])
         .setup(|app| {
             app.manage(AppData {});
