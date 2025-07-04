@@ -3,14 +3,13 @@ import { onMounted, Ref, ref } from 'vue';
 import { commands, CourseInfo } from "./ts/commands.ts";
 import { useLiveStore } from './stores/LiveStore.ts';
 import { useGlobalStore } from './stores/GlobalStore.ts';
-import { Session } from './ts/bindings.ts';
+import { useTrainStore } from './stores/TrainStore.ts';
 
 let courses: Ref<CourseInfo[]> = ref([])
 
-let selectedCourse: Ref<string | null> = ref(null)
+let selectedCoursePath: Ref<string | null> = ref(null)
 
 const live = useLiveStore()
-const global = useGlobalStore()
 
 async function loadProjects() {
     courses.value = await commands.getLocalCourses()
@@ -37,7 +36,7 @@ async function cloneCourse() {
 
 async function openCourse(path: string) {
     live.available_sessions = []; // reset so we don't see some sessions for the previously selected course
-    selectedCourse.value = path
+    selectedCoursePath.value = path
     let course = courses.value.find(c => c.folder == path)
     if (course) {
         live.course = course
@@ -54,7 +53,10 @@ async function startSession() {
     }
 }
 
-
+function trainLocally(course_path: string) {
+    const train = useTrainStore()
+    train.loadCourse(course_path)
+}
 
 </script>
 
@@ -72,19 +74,21 @@ async function startSession() {
         </div>
         <div class="flex">
             <div @click="() => openCourse(project.folder)" class="cursor-pointer p-2"
-                :class="selectedCourse == project.folder ? 'bg-orange-200' : ''" v-for="project in courses">
+                :class="selectedCoursePath == project.folder ? 'bg-orange-200' : ''" v-for="project in courses">
                 {{ project.name }}
             </div>
         </div>
         <div class="text-gray-700 italic" v-if="courses.length == 0">No course found...</div>
-        <div v-if="selectedCourse">
+        <div v-if="selectedCoursePath">
             <div class="flex">
                 <button @click="startSession">Start live session</button>
+                <button @click="trainLocally(selectedCoursePath)">Train locally</button>
             </div>
             <div class="text-gray-700 italic" v-if="live.course == null">Pick a course first</div>
             <div class="text-gray-700 italic" v-if="live.course != null && live.available_sessions.length == 0">
                 No session running for this course, create a new one...
             </div>
+            <div v-if="live.course != null && live.available_sessions.length > 0">Join one of the live session:</div>
             <ol>
                 <li @click="live.join_session(session.name)" class="hover:bg-orange-100 cursor-pointer p-2"
                     v-for="session in live.available_sessions">{{ session.name }}

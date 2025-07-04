@@ -9,7 +9,7 @@ onMounted(() => { })
 </script>
 
 <template>
-    <div class="lg:flex w-full p-5 h-full">
+    <div class="lg:flex w-full px-5 h-full">
         <div class="flex-1 min-w-2/5">
             <h1>Moyenne d'un vecteur</h1>
             <p>Créer une fonction vectorAverage() qui prend en paramètre un vecteur de int et retourne la moyenne des
@@ -25,10 +25,12 @@ onMounted(() => { })
             <p>Arguments: ["0"]</p>
             <p>Output: The average of first 0 values is 0</p>
         </div>
-        <div class="flex-2 ml-5">
+        <div class="flex-2 ml-5 overflow-hidden max-h-full">
             <h2>Answers</h2>
-            <div v-for="answer in live.answers.values()">
-                <AnswerShow :answer="answer"></AnswerShow>
+            <div class="overflow-auto h-full pb-20">
+                <div v-for="answer in live.answers.values()">
+                    <AnswerShow :answer="answer"></AnswerShow>
+                </div>
             </div>
         </div>
     </div>

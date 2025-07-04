@@ -11,6 +11,7 @@ import {
   ForwardedFile,
   Session,
   SessionStats,
+  ExoCheckResult,
 } from "../ts/bindings";
 import { LiveClient } from "../client";
 import { useGlobalStore } from "./GlobalStore";
@@ -18,23 +19,24 @@ import { useGlobalStore } from "./GlobalStore";
 export interface Answer {
   client_num: ClientNum;
   files: Map<string, ForwardedFile>;
-  checks_status: CheckStatus[];
+  checks_status: Map<number, ExoCheckResult>;
 }
 
 export const useLiveStore = defineStore("live", {
   state: () => ({
     client: null as LiveClient | null,
+    client_num: -1 as number,
     course: null as CourseInfo | null,
     // Sessions available for the selected course, kept empty when no course
     available_sessions: [] as Session[],
-    role: ClientRole,
+    role: ClientRole.Follower,
     session: null as Session | null,
     answers: new Map() as Map<number, Answer>,
     stats: null as SessionStats | null,
     // Some temporary states, usualy in waiting a websocket Event back after an Action
     tmp: {
       joining_session: null as Session | null, // is not null between JoinSession and SessionJoined/Error
-      starting_session: null as Session | null, // is not null between StartSession and SessionStarted/Error
+      starting_session: null as Session | null, // is not null between StartSession and SessionJoined/Error
     },
   }),
   getters: {
@@ -104,15 +106,20 @@ function onEvent(event: Event) {
   const live = useLiveStore();
   console.log("Got event", event);
   switch (event.type) {
-    case "SessionStarted":
-      live.session = live.tmp.starting_session;
-      live.tmp.starting_session = null;
-      break;
     case "SessionStopped":
       break;
     case "SessionJoined":
-      live.session = live.tmp.joining_session;
-      live.tmp.joining_session = null;
+      live.client_num = event.content;
+      if (live.tmp.joining_session != null) {
+        live.session = live.tmp.joining_session;
+        live.tmp.joining_session = null;
+        live.role = ClientRole.Follower;
+      }
+      if (live.tmp.starting_session != null) {
+        live.session = live.tmp.starting_session;
+        live.tmp.starting_session = null;
+        live.role = ClientRole.Leader;
+      }
       break;
     case "SessionsList":
       live.available_sessions = event.content;
@@ -127,7 +134,7 @@ function onEvent(event: Event) {
       if (!entry)
         entry = {
           client_num: event.content.client_num,
-          checks_status: [],
+          checks_status: new Map(),
           files: new Map(),
         };
       entry.files.set(event.content.file.path, event.content.file);
@@ -139,16 +146,19 @@ function onEvent(event: Event) {
       if (!entry)
         entry = {
           client_num: event.content.client_num,
-          checks_status: [],
+          checks_status: new Map(),
           files: new Map(),
         };
       if (!entry)
         entry = {
           client_num: event.content.client_num,
-          checks_status: [],
+          checks_status: new Map(),
           files: new Map(),
         };
-      entry.checks_status.push(event.content.result.check_result.state);
+      entry.checks_status.set(
+        event.content.result.check_result.index,
+        event.content.result.check_result,
+      );
       live.answers.set(event.content.client_num, entry);
       break;
     case "Stats":
