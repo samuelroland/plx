@@ -1,4 +1,4 @@
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{TimeDelta, Utc};
 use core::panic;
 use pretty_assertions::assert_eq;
 use std::{
@@ -44,7 +44,7 @@ fn spawn_server_and_n_clients(n: u16) -> Vec<LiveClient> {
     let random_port = spawn_test_server();
     let mut clients = Vec::new();
     for i in 0..n {
-        let c = LiveClient::connect("127.0.0.1", random_port, format!("SecretId{}", i)).unwrap();
+        let c = LiveClient::connect("127.0.0.1", random_port, format!("SecretId{i}")).unwrap();
         clients.push(c);
     }
     clients
@@ -73,7 +73,15 @@ fn websocket_can_connect_with_client_id_and_protocol_version() {
     let result = tokio_tungstenite::tungstenite::connect(format!(
         "ws://127.0.0.1:{port}/?live_client_id={uuid}&live_protocol_version={PROTOCOL_VERSION}"
     ));
-    assert!(result.is_ok(), "failed with body {:?}", result)
+    assert!(result.is_ok(), "failed with body {result:?}")
+}
+#[test]
+#[ntest::timeout(2000)]
+fn websocket_can_connect_with_client_id_containins_special_chars() {
+    let port = spawn_test_server();
+    let client_id = "what's that $??\"&\"*%ç*".to_string();
+    let result = LiveClient::connect("localhost", port, client_id);
+    assert!(result.is_ok())
 }
 
 #[test]
@@ -81,11 +89,7 @@ fn websocket_can_connect_with_client_id_and_protocol_version() {
 fn websocket_fails_to_connect_without_info() {
     let port = spawn_test_server();
     let result = tokio_tungstenite::tungstenite::connect(format!("ws://127.0.0.1:{port}"));
-    assert!(
-        result.is_err(),
-        "should have failed to connect {:?}",
-        result
-    );
+    assert!(result.is_err(), "should have failed to connect {result:?}");
     // We cannot access the response body so I can only test the status code
     assert!(
         result
@@ -105,11 +109,7 @@ fn websocket_fails_with_missing_client_id() {
     let result = tokio_tungstenite::tungstenite::connect(format!(
         "ws://127.0.0.1:{port}/?live_client_id=&live_protocol_version={PROTOCOL_VERSION}"
     ));
-    assert!(
-        result.is_err(),
-        "should have failed to connect {:?}",
-        result
-    );
+    assert!(result.is_err(), "should have failed to connect {result:?}");
     let result = tokio_tungstenite::tungstenite::connect(format!(
         "ws://127.0.0.1:{port}/?live_protocol_version={PROTOCOL_VERSION}"
     ));
@@ -132,11 +132,7 @@ fn websocket_fails_with_different_version_number() {
     let result = tokio_tungstenite::tungstenite::connect(format!(
         "ws://127.0.0.1:{port}/?live_client_id=random-string&live_protocol_version=23.64.7"
     ));
-    assert!(
-        result.is_err(),
-        "should have failed to connect {:?}",
-        result
-    );
+    assert!(result.is_err(), "should have failed to connect {result:?}");
     // We cannot access the response body so I can only test the status code
     assert!(
         result
@@ -292,27 +288,30 @@ fn exo_switch_without_session_fails() {
 /// Consider a time variation of 2 secondes to be equal timestamp
 fn assert_events_eq(e1: &Event, e2: &Event) {
     match e1 {
-        Event::ForwardFile(client_num, forwarded_file) => {
-            if let Event::ForwardFile(client_num2, forwarded_file2) = e2 {
+        Event::ForwardFile { client_num, file } => {
+            if let Event::ForwardFile {
+                client_num: client_num2,
+                file: file2,
+            } = e2
+            {
                 assert_eq!(client_num, client_num2);
-                assert_eq!(forwarded_file.path, forwarded_file2.path);
-                assert_eq!(forwarded_file.content, forwarded_file2.content);
-                assert!((forwarded_file.time - forwarded_file2.time).abs() < TimeDelta::seconds(2));
+                assert_eq!(file.path, file2.path);
+                assert_eq!(file.content, file2.content);
+                assert!((file.time - file2.time).abs() < TimeDelta::seconds(2));
                 return;
             }
             panic!("{e1:?} and {e2:?} should have equal type !");
         }
-        Event::ForwardResult(client_num, forwarded_result) => {
-            if let Event::ForwardResult(client_num2, forwarded_result2) = e2 {
+        Event::ForwardResult { client_num, result } => {
+            if let Event::ForwardResult {
+                client_num: client_num2,
+                result: result2,
+            } = e2
+            {
                 assert_eq!(client_num, client_num2);
-                assert_eq!(
-                    forwarded_result.check_result,
-                    forwarded_result2.check_result
-                );
+                assert_eq!(result.check_result, result2.check_result);
 
-                assert!(
-                    (forwarded_result.time - forwarded_result2.time).abs() < TimeDelta::seconds(2)
-                );
+                assert!((result.time - result2.time).abs() < TimeDelta::seconds(2));
                 return;
             }
             panic!("{e1:?} and {e2:?} should have equal type !");
@@ -343,37 +342,37 @@ fn forwarding_to_leaders_work() {
 
     assert_events_eq(
         &c0.wait_on_next_event().unwrap(),
-        &Event::ForwardFile(
-            ClientNum(2),
-            ForwardedFile {
+        &Event::ForwardFile {
+            client_num: ClientNum(2),
+            file: ForwardedFile {
                 path: "main.c".to_string(),
                 content: "client 1, code v1".to_string(),
                 time: now,
             },
-        ),
+        },
     );
 
     assert_events_eq(
         &c0.wait_on_next_event().unwrap(),
-        &Event::ForwardFile(
-            ClientNum(3),
-            ForwardedFile {
+        &Event::ForwardFile {
+            client_num: ClientNum(3),
+            file: ForwardedFile {
                 path: "main.c".to_string(),
                 content: "client 2, code v1".to_string(),
                 time: now,
             },
-        ),
+        },
     );
 
     assert_events_eq(
         &c0.wait_on_next_event().unwrap(),
-        &Event::ForwardFile(
-            ClientNum(2),
-            ForwardedFile {
+        &Event::ForwardFile {
+            client_num: ClientNum(2),
+            file: ForwardedFile {
                 path: "main.c".to_string(),
                 content: "client 1, code v2".to_string(),
                 time: now,
             },
-        ),
+        },
     );
 }
