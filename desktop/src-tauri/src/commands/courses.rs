@@ -5,17 +5,16 @@ use plx::{
     models::project::Project,
 };
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
 
 use etcetera::{AppStrategy, AppStrategyArgs};
 use serde::Serialize;
 use specta::Type;
 
-use crate::{AppData, Current};
-#[derive(Serialize, Debug, Clone, Type)]
+#[derive(Serialize, Debug, Type)]
 pub struct CourseInfo {
     name: String,
     folder: PathBuf,
+    config: Option<LiveConfig>,
 }
 
 fn get_base_directory() -> PathBuf {
@@ -36,9 +35,19 @@ pub async fn get_local_courses() -> Vec<CourseInfo> {
         .unwrap()
         .iter()
         .filter_map(|f| Project::from_dir(f).ok())
-        .map(|(p, _)| CourseInfo {
-            name: p.name.clone(),
-            folder: p.get_folder(),
+        .map(|(p, _)| {
+            let config = LiveConfig::from_course(&p)
+                .map_err(|e| {
+                    let message = format!("{}", e);
+                    println!("Error {message}");
+                    message
+                })
+                .ok();
+            CourseInfo {
+                name: p.name.clone(),
+                folder: p.get_folder(),
+                config,
+            }
         })
         .collect()
 }
@@ -48,16 +57,4 @@ pub async fn get_local_courses() -> Vec<CourseInfo> {
 pub async fn clone_course(repos: String) -> bool {
     let base = get_base_directory();
     GitRepos::from_clone(&repos, &base, Some(1), true).is_ok()
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn open_course(app: AppHandle, path: String) -> Result<CourseInfo, String> {
-    let (p, _) = Project::from_dir(&PathBuf::from(&path)).map_err(|(e, _)| format!("{}", e))?;
-    let config = LiveConfig::from_course(&p).map_err(|e| format!("{}", e))?;
-    let course_info = CourseInfo {
-        name: p.name.clone(),
-        folder: PathBuf::from(path),
-    };
-    Ok(course_info)
 }

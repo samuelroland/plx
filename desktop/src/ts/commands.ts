@@ -11,37 +11,16 @@ async getLocalCourses() : Promise<CourseInfo[]> {
 async cloneCourse(repos: string) : Promise<boolean> {
     return await TAURI_INVOKE("clone_course", { repos });
 },
-async openCourse(path: string) : Promise<Result<CourseInfo, string>> {
+async highlightCodeWithTreeSitter(file: string, code: string) : Promise<Result<string, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("open_course", { path }) };
+    return { status: "ok", data: await TAURI_INVOKE("highlight_code_with_tree_sitter", { file, code }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async getSessions() : Promise<Result<Session[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_sessions") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async startSession(name: string) : Promise<Result<Session, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("start_session", { name }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async joinSession(session: Session) : Promise<Result<Session, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("join_session", { session }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async loadDefaultThemeCss() : Promise<string> {
+    return await TAURI_INVOKE("load_default_theme_css");
 }
 }
 
@@ -51,32 +30,15 @@ async joinSession(session: Session) : Promise<Result<Session, string>> {
 
 /** user-defined constants **/
 
+export const DEFAULT_LIVE_PORT = 9120 as const;
 export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
 export const PROTOCOL_VERSION = "0.1.0" as const;
-export const DEFAULT_LIVE_PORT = 9120 as const;
 export const QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD = "live_protocol_version" as const;
 
 /** user-defined types **/
 
-export type CourseInfo = { name: string; folder: string }
-/**
- * A live session, this is the representation sent to clients
- * when listing all sessions or after session creation
- */
-export type Session = { 
-/**
- * An arbitrary name defined by the leader to help followers choose the correct sessions
- * among the multiple live sessions at the same time on the same group_id
- * We imagine it could be named like "Course name - Teacher fullname"
- */
-name: string; 
-/**
- * The group id is a way to group related sessions together.
- * This can be an arbitrary string chosen by leader clients when creating a session.
- * Listing available sessions can only be done via this group_id to filter the list
- * By default, PLX clients will send the Git HTTPS link
- */
-group_id: string }
+export type CourseInfo = { name: string; folder: string; config: LiveConfig | null }
+export type LiveConfig = { domain: string; port: number; group_id: string }
 
 /** tauri-specta globals **/
 

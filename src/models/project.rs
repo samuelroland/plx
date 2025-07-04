@@ -20,7 +20,7 @@ use super::{
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Project {
-    pub(crate) name: String,
+    pub name: String,
     pub(crate) skills: Arc<Vec<Skill>>,
     pub(crate) state: ProjectState,
     folder: PathBuf,

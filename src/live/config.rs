@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use typeshare::typeshare;
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
 
 pub const LIVECONFIG_FILENAME: &str = "live.toml";
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Type)]
 #[typeshare]
 pub struct LiveConfig {
     pub domain: String,
