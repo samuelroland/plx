@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useTrainStore } from './stores/TrainStore';
-import { Exo, Skill } from './ts/commands';
-import { onKeyStroke } from "@vueuse/core"
+import { Exo } from './ts/commands';
 import Markdown from './Markdown.vue';
 
 const props = defineProps<{ exo: Exo | undefined }>()
+
+// Display CLI arguments as string, use JSON.stringify in case it needs to have escapes and quotes shown
+function argsify(args: string[]): string {
+    console.log(args, JSON.stringify(args))
+    return args.map(e => e.includes(" ") || e.includes("\n") || e.includes("\t") ? JSON.stringify(e) : e).join(" ")
+}
 
 </script>
 
@@ -16,10 +19,13 @@ const props = defineProps<{ exo: Exo | undefined }>()
 
     <div>
         <h2>Checks</h2>
-        <div v-for="check in exo?.checks">
-            <h3>{{ check.name }}</h3>
-            <h4 v-if="check.args && check.args.length > 0">Arguments: {{ check.args.join(" ") }}</h4>
-            <h4>Expected: <span class="text-orange-400">{{ check.test.expected }}</span></h4>
+        <div v-for="(check, idx) in exo?.checks">
+            <h3><span class="font-bold">C{{ idx + 1 }}:</span> {{ check.name }}</h3>
+            <h4 v-if="check.args && check.args.length > 0">Arguments: <span class="text-lg text-gray-500 font-mono">{{
+                argsify(check.args
+                    ?? []) }}</span></h4>
+            <h4>Expected</h4>
+            <pre class="p-3 rounded-md">{{ check.test.expected }}</pre>
         </div>
     </div>
 </template>
