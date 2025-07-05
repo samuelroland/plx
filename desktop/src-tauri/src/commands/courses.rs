@@ -2,7 +2,7 @@ use dme_core::util::git::GitRepos;
 use plx::{
     core::{file_utils::file_utils::list_dir_folders, parser::from_dir::FromDir},
     live::config::LiveConfig,
-    models::project::Project,
+    models::{project::Project, skill::Skill},
 };
 use std::path::PathBuf;
 
@@ -57,4 +57,12 @@ pub async fn get_local_courses() -> Vec<CourseInfo> {
 pub async fn clone_course(repos: String) -> bool {
     let base = get_base_directory();
     GitRepos::from_clone(&repos, &base, Some(1), true).is_ok()
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_full_course_details(course_path: PathBuf) -> Result<Project, String> {
+    Ok(Project::from_dir(&course_path)
+        .map_err(|(e, _)| e.to_string())?
+        .0)
 }

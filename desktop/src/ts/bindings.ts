@@ -15,10 +15,12 @@ export type ClientNum = number;
 
 export type CheckStatus = 
 	| { type: "Passed", content?: undefined }
-	| { type: "Failed", content: string }
-	| { type: "RunFail", content: string };
+	| { type: "CheckFailed", content: string }
+	| { type: "BuildFailed", content: string }
+	| { type: "RunFailed", content: string };
 
 export interface ExoCheckResult {
+	index: number;
 	state: CheckStatus;
 }
 
@@ -111,9 +113,8 @@ export enum ClientRole {
  * These events can also be generated directly by the server (after some timeout or OS signal received)
  */
 export type Event = 
-	| { type: "SessionStarted", content?: undefined }
 	| { type: "SessionStopped", content?: undefined }
-	| { type: "SessionJoined", content?: undefined }
+	| { type: "SessionJoined", content: ClientNum }
 	| { type: "SessionsList", content: Session[] }
 	| { type: "Stats", content: SessionStats }
 	| { type: "ServerStopped", content?: undefined }

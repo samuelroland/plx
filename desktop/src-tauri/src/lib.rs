@@ -1,7 +1,9 @@
 mod commands;
 use commands::{
-    courses::{clone_course, get_local_courses},
-    render::{highlight_code_with_tree_sitter, load_default_theme_css},
+    courses::{clone_course, get_full_course_details, get_local_courses},
+    render::{
+        highlight_code_with_tree_sitter, load_default_theme_css, render_markdown_with_highlighting,
+    },
 };
 
 use plx::{
@@ -33,7 +35,9 @@ pub fn run() {
             get_local_courses,
             clone_course,
             highlight_code_with_tree_sitter,
-            load_default_theme_css
+            load_default_theme_css,
+            get_full_course_details,
+            render_markdown_with_highlighting
         ])
         .constant("PROTOCOL_VERSION", PROTOCOL_VERSION)
         .constant("DEFAULT_LIVE_PORT", DEFAULT_LIVE_PORT)
@@ -57,7 +61,9 @@ pub fn run() {
             get_local_courses,
             clone_course,
             highlight_code_with_tree_sitter,
-            load_default_theme_css
+            load_default_theme_css,
+            get_full_course_details,
+            render_markdown_with_highlighting
         ])
         .setup(|app| {
             app.manage(AppData {});

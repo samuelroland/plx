@@ -2,6 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use log::warn;
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
 use crate::core::{
     file_utils::file_parser::{ParseError, ParseWarning},
@@ -18,10 +19,11 @@ use super::{
     skill::Skill,
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Serialize, Debug, PartialEq, Eq, Type)]
 pub struct Project {
     pub name: String,
     pub(crate) skills: Arc<Vec<Skill>>,
+    #[serde(skip)]
     pub(crate) state: ProjectState,
     folder: PathBuf,
 }

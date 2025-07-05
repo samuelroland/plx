@@ -7,8 +7,9 @@ use crate::core::{
 
 use super::{constants::SKILL_INFO_FILE, exo::Exo, exo_state::ExoState};
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Debug, PartialEq, Eq, Clone, Type)]
 pub struct Skill {
     pub name: String,
     pub path: std::path::PathBuf,

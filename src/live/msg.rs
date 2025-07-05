@@ -17,12 +17,14 @@ use super::session::Session;
 #[typeshare]
 pub enum CheckStatus {
     Passed,
-    Failed(String),
-    RunFail(String),
+    CheckFailed(String),
+    BuildFailed(String),
+    RunFailed(String),
 }
 #[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 #[typeshare]
 pub struct ExoCheckResult {
+    pub index: u16, // just the index in the list of checks, to identify checks across Event
     pub state: CheckStatus,
 }
 

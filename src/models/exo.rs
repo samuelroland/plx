@@ -4,6 +4,7 @@ use super::{
     exo_state::ExoState,
 };
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
 use crate::core::{
     compiler::compiler::Compiler,
@@ -31,7 +32,7 @@ pub(super) struct ExoStateInfo {
 }
 
 /// Represents a Plx Exo
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Debug, PartialEq, Eq, Clone, Type)]
 pub struct Exo {
     pub(crate) name: String,
     pub(crate) instruction: Option<String>,

@@ -21,6 +21,22 @@ async highlightCodeWithTreeSitter(file: string, code: string) : Promise<Result<s
 },
 async loadDefaultThemeCss() : Promise<string> {
     return await TAURI_INVOKE("load_default_theme_css");
+},
+async getFullCourseDetails(coursePath: string) : Promise<Result<Project, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_full_course_details", { coursePath }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async renderMarkdownWithHighlighting(content: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("render_markdown_with_highlighting", { content }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -31,14 +47,29 @@ async loadDefaultThemeCss() : Promise<string> {
 /** user-defined constants **/
 
 export const DEFAULT_LIVE_PORT = 9120 as const;
-export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
-export const PROTOCOL_VERSION = "0.1.0" as const;
 export const QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD = "live_protocol_version" as const;
+export const PROTOCOL_VERSION = "0.1.0" as const;
+export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
 
 /** user-defined types **/
 
+/**
+ * Represents a Exo Check
+ */
+export type Check = { name: string; args?: string[]; test: CheckTest }
+/**
+ * Represents the actual check type
+ */
+export type CheckTest = { type: "Output"; expected: string }
 export type CourseInfo = { name: string; folder: string; config: LiveConfig | null }
+/**
+ * Represents a Plx Exo
+ */
+export type Exo = { name: string; instruction: string | null; state: ExoState; files: string[]; solutions: string[]; checks: Check[]; favorite: boolean; folder: string }
+export type ExoState = "Todo" | "InProgress" | "Done"
 export type LiveConfig = { domain: string; port: number; group_id: string }
+export type Project = { name: string; skills: Skill[]; folder: string }
+export type Skill = { name: string; path: string; exos: Exo[] }
 
 /** tauri-specta globals **/
 
