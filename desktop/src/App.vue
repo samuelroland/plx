@@ -29,8 +29,6 @@ onMounted(async () => {
         <div class="h-[95vh] flex items-center justify-center">
             <Home v-if="global.page == 'home'">
             </Home>
-            <Join v-if="global.page == 'join'"></Join>
-            <Start v-if="global.page == 'start'"></Start>
             <Dashboard v-if="global.page == 'dashboard'"></Dashboard>
             <Course v-if="global.page == 'course'"></Course>
         </div>
