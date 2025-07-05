@@ -85,6 +85,7 @@ export const useLiveStore = defineStore("live", {
     },
     // Get sessions for the group_id in LiveConfig
     get_sessions() {
+      this.available_sessions = [];
       this.connect_if_no_client();
       console.log("okay");
       if (this.course?.config?.group_id) {

@@ -87,7 +87,9 @@ function trainLocally(course_path: string) {
             <div class="text-gray-700 italic" v-if="live.course != null && live.available_sessions.length == 0">
                 No session running for this course, create a new one...
             </div>
-            <div v-if="live.course != null && live.available_sessions.length > 0">Join one of the live session:</div>
+            <div v-if="live.course != null && live.available_sessions.length > 0">Join one of the live session:
+                <button @click="() => live.get_sessions()">Reload</button>
+            </div>
             <ol>
                 <li @click="live.join_session(session.name)" class="hover:bg-orange-100 cursor-pointer p-2"
                     v-for="session in live.available_sessions">{{ session.name }}
