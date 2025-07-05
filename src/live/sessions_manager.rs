@@ -45,7 +45,7 @@ impl SessionsManager {
         group_id: String,
         leader_client_id: String,
         client_tx: UnboundedSender<Event>,
-    ) -> Result<(ClientNum, UnboundedSender<BroadcastAction>), String> {
+    ) -> Result<(ClientNum, UnboundedSender<BroadcastAction>), LiveProtocolError> {
         let (session_tx, session_rx) = tokio::sync::mpsc::unbounded_channel::<BroadcastAction>();
         let mut session_broadcaster = SessionBroadcaster::new(session_rx);
         let leaders_client_num = ClientNum(0);
@@ -58,10 +58,10 @@ impl SessionsManager {
                 .and_then(|subhashmap| subhashmap.get(&name))
                 .is_some()
             {
-                return Err(
+                return Err(LiveProtocolError::FailedToStartSession(
                     "There is already a session with the same group id and name combination."
                         .to_string(),
-                );
+                ));
             }
         }
         tokio::spawn(async move {
@@ -108,13 +108,17 @@ impl SessionsManager {
         group_id: String,
         client_id: String,
         client_tx: UnboundedSender<Event>,
-    ) -> Result<(ClientNum, ClientRole, UnboundedSender<BroadcastAction>), String> {
+    ) -> Result<(ClientNum, ClientRole, UnboundedSender<BroadcastAction>), LiveProtocolError> {
         let mut write_guard = self.sessions_by_group_and_name.write().await;
         let session = write_guard
             .get_mut(&group_id)
-            .ok_or("No session found with this group id")?
+            .ok_or(LiveProtocolError::FailedToJoinSession(
+                "No session found with this group id".to_string(),
+            ))?
             .get_mut(&name)
-            .ok_or("No session found with this name in this group id")?;
+            .ok_or(LiveProtocolError::FailedToJoinSession(
+                "No session found with this name in this group id".to_string(),
+            ))?;
         let new_client_num = ClientNum(session.last_attributed_client_num.0 + 1);
         session.last_attributed_client_num = new_client_num.clone();
         let session_tx = session.tx.clone();

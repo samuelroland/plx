@@ -143,8 +143,7 @@ impl ClientManager {
                                 let _ = client_tx.send(Event::SessionJoined(client_num));
                             }
                             Err(e) => {
-                                self.send_error(LiveProtocolError::FailedToStartSession(e))
-                                    .await;
+                                self.send_error(e).await;
                             }
                         }
                     }
@@ -194,8 +193,7 @@ impl ClientManager {
                                     })
                                 }
                                 Err(e) => {
-                                    self.send_error(LiveProtocolError::FailedToJoinSession(e))
-                                        .await;
+                                    self.send_error(e).await;
                                 }
                             }
                         }
