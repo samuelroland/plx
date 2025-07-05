@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useTrainStore } from './stores/TrainStore';
-import { Exo, Skill } from './ts/commands';
+import { useTrainStore } from '../stores/TrainStore';
+import { Exo, Skill } from '../ts/commands';
 import { onKeyStroke } from "@vueuse/core"
-import CodeExo from './CodeExo.vue';
+import CodeExo from '../blocks/CodeExo.vue';
 
 // Overview of a course, its skills and exos
 

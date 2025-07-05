@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import Home from "./Home.vue";
-import Join from "./Join.vue";
-import Start from "./Start.vue";
-import Dashboard from "./Dashboard.vue";
-import Course from "./Course.vue";
+import Home from "./pages/Home.vue";
+import Dashboard from "./pages/Dashboard.vue";
+import Course from "./pages/Course.vue";
 import { useLiveStore } from "./stores/LiveStore";
 import { useGlobalStore } from "./stores/GlobalStore";
 import { onMounted, ref } from "vue";

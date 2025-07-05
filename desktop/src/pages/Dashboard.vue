@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
-import AnswerShow from "./AnswerShow.vue";
-import { useLiveStore } from "./stores/LiveStore.ts";
+import AnswerShow from "../blocks/AnswerShow.vue";
+import { useLiveStore } from "../stores/LiveStore.ts";
 
 const live = useLiveStore()
 onMounted(() => { })

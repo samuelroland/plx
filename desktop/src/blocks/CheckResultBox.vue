@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CheckStatus, ExoCheckResult } from './ts/bindings';
+import { CheckStatus, ExoCheckResult } from '../ts/bindings';
 import Code from './Code.vue';
 
 const props = defineProps<{ check: ExoCheckResult }>()

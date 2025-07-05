@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Exo } from './ts/commands';
+import { Exo } from '../ts/commands';
 import Markdown from './Markdown.vue';
 
 const props = defineProps<{ exo: Exo | undefined }>()

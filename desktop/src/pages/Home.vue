@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { onMounted, Ref, ref } from 'vue';
-import { commands, CourseInfo } from "./ts/commands.ts";
-import { useLiveStore } from './stores/LiveStore.ts';
-import { useGlobalStore } from './stores/GlobalStore.ts';
-import { useTrainStore } from './stores/TrainStore.ts';
+import { commands, CourseInfo } from "../ts/commands.ts";
+import { useLiveStore } from '../stores/LiveStore.ts';
+import { useTrainStore } from '../stores/TrainStore.ts';
 
 let courses: Ref<CourseInfo[]> = ref([])
 

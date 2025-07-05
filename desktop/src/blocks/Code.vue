@@ -2,7 +2,7 @@
 // Give some code to highlight, given a empty path, it is considered to be a raw output
 // to not highglight
 import { onMounted, ref, Ref, watch } from 'vue';
-import { commands } from './ts/commands';
+import { commands } from '../ts/commands';
 
 const highlightedCode: Ref<null | string> = ref(null)
 const rawOutput: Ref<null | string> = ref(null)

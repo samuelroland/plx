@@ -3,7 +3,7 @@
 // to highlight with TreeSitter
 
 import { onMounted, ref, Ref, watch } from 'vue';
-import { commands } from './ts/commands';
+import { commands } from '../ts/commands';
 
 const renderedHtml: Ref<null | string> = ref(null)
 
