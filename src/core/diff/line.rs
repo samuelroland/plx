@@ -38,4 +38,25 @@ impl Line {
         }
         result
     }
+
+    pub(super) fn to_html(&self) -> String {
+        let mut result = String::new();
+        let (sign, line_css_class) = match self.difference_type {
+            DiffType::Removed => ("-", "diff-minus"),
+            DiffType::Added => ("+", "diff-plus"),
+            DiffType::NoDiff => (" ", "diff-none"),
+        };
+
+        let mut line = String::new();
+        for chunk in &self.line_chunks {
+            line.push_str(&chunk.to_html());
+        }
+        result.push_str(&format!(
+            "<span class='{line_css_class}'>{sign} {line}</span>"
+        ));
+        if self.missing_new_line {
+            result.push_str("</br>");
+        }
+        result
+    }
 }

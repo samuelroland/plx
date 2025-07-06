@@ -17,4 +17,12 @@ impl Hunk {
             .collect::<Vec<String>>()
             .join("")
     }
+
+    pub(super) fn to_html(&self) -> String {
+        self.lines
+            .iter()
+            .map(|line| line.to_html())
+            .collect::<Vec<String>>()
+            .join("")
+    }
 }

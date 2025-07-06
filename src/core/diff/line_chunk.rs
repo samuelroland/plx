@@ -21,4 +21,12 @@ impl LineChunk {
             format!("{}", style.apply_to(&self.value).dim())
         }
     }
+
+    pub(super) fn to_html(&self) -> String {
+        if self.is_different {
+            format!("<span class='diff-bold'>{}</span>", self.value)
+        } else {
+            format!("<span>{}</span>", self.value)
+        }
+    }
 }

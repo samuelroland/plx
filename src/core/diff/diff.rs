@@ -1,4 +1,6 @@
+use serde::{Serialize, Serializer};
 use similar::{ChangeTag, TextDiff};
+use specta::{datatype::DataType, Generics, Type, TypeCollection};
 
 use super::{diff_type::DiffType, hunk::Hunk, line::Line, line_chunk::LineChunk};
 
@@ -6,6 +8,22 @@ use super::{diff_type::DiffType, hunk::Hunk, line::Line, line_chunk::LineChunk};
 /// Represents a diff (allows us to show a difference like git-delta's github)
 pub struct Diff {
     differences: Vec<Hunk>,
+}
+
+// Tell Tauri-spect that Diff will be a string after serialization
+impl Type for Diff {
+    fn inline(type_map: &mut TypeCollection, generics: Generics) -> DataType {
+        String::inline(type_map, generics)
+    }
+}
+// Serialize as HTML string
+impl Serialize for Diff {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.to_html().serialize(serializer)
+    }
 }
 
 impl Diff {
@@ -27,6 +45,15 @@ impl Diff {
         }
         result
     }
+
+    pub fn to_html(&self) -> String {
+        let mut result = String::new();
+        for hunk in self.differences.iter() {
+            result.push_str(&hunk.to_html());
+        }
+        result
+    }
+
     // Trims all line ends
     fn trim_lines(text: &str) -> String {
         text.lines()
