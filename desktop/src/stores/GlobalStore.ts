@@ -2,7 +2,7 @@
 
 import { defineStore } from "pinia";
 
-export type Page = "home" | "join" | "start" | "dashboard" | "course";
+export type Page = "home" | "join" | "start" | "dashboard" | "course" | "train";
 
 export const useGlobalStore = defineStore("global", {
   state: () => ({

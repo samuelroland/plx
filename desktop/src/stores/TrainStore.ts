@@ -62,5 +62,19 @@ export const useTrainStore = defineStore("train", {
         alert(result.error);
       }
     },
+
+    async startExo() {
+      const exo = this.currentExo();
+      if (!exo) return;
+      const result = await commands.startExo(exo.folder);
+      alert(result);
+    },
+
+    async stopExo() {
+      const exo = this.currentExo();
+      if (!exo) return;
+      const result = await commands.stopExo(exo.folder);
+      alert(result);
+    },
   },
 });

@@ -4,11 +4,12 @@ import { useTrainStore } from '../stores/TrainStore';
 import { Exo, Skill } from '../ts/commands';
 import { onKeyStroke } from "@vueuse/core"
 import CodeExo from '../blocks/CodeExo.vue';
+import { useGlobalStore } from '../stores/GlobalStore';
 
 // Overview of a course, its skills and exos
 
 const train = useTrainStore()
-
+const global = useGlobalStore()
 
 onMounted(() => {
     // Define up and down actions on selection
@@ -46,6 +47,11 @@ onMounted(() => {
             train.selectedExoIdx = (train.currentSkill()?.exos.length ?? 1) - 1
         } else {
             train.selectedSkillIdx = (train.course?.skills.length ?? 0) - 1
+        }
+    })
+    onKeyStroke(['Enter'], (_) => {
+        if (train.exosSelection) {
+            global.page = "train"
         }
     })
 })

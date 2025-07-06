@@ -2,6 +2,7 @@
 import Home from "./pages/Home.vue";
 import Dashboard from "./pages/Dashboard.vue";
 import Course from "./pages/Course.vue";
+import Train from "./pages/Train.vue";
 import { useLiveStore } from "./stores/LiveStore";
 import { useGlobalStore } from "./stores/GlobalStore";
 import { onMounted, ref } from "vue";
@@ -31,6 +32,7 @@ onMounted(async () => {
             </Home>
             <Dashboard v-if="global.page == 'dashboard'"></Dashboard>
             <Course v-if="global.page == 'course'"></Course>
+            <Train v-if="global.page == 'train'"></Train>
         </div>
     </div>
 </template>
