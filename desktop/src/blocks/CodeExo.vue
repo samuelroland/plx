@@ -2,7 +2,6 @@
 import { Exo, ExoCheckResult, ExoStatusReport } from '../ts/commands';
 import Code from './Code.vue';
 import Markdown from './Markdown.vue';
-import Convert from 'ansi-to-html';
 
 const props = defineProps<{ exo: Exo | undefined, exo_status?: ExoStatusReport | undefined }>()
 
@@ -23,17 +22,19 @@ function bgFromCheckResult(result: ExoCheckResult | undefined) {
     return ""
 }
 
-function ansiToHtml(ansi: string) {
-    var convert = new Convert();
-    return convert.toHtml(ansi);
-}
-
 </script>
 
 <template>
     <span v-if="exo == undefined" class="text-red-500">Exo is undefined and cannot be rendered</span>
     <h1>{{ exo?.name }}</h1>
     <Markdown :content="exo?.instruction ?? ''"></Markdown>
+
+    <div v-if="exo_status?.compilation_running || exo_status?.compilation_success == false">
+        <h3 v-if="exo_status?.compilation_running">Build</h3>
+        <h3 v-if="!exo_status?.compilation_running && !exo_status?.compilation_success" class="text-red-500">Build
+            failed</h3>
+        <pre v-html="exo_status?.compilation_output ?? ''" />
+    </div>
 
     <div>
         <h2>Checks</h2>
@@ -62,13 +63,4 @@ function ansiToHtml(ansi: string) {
         </div>
     </div>
 
-
-    <div v-if="exo_status?.compilation_running || exo_status?.compilation_success == false">
-        <h3 v-if="exo_status?.compilation_running">Build</h3>
-        <h3 v-if="!exo_status?.compilation_running && !exo_status?.compilation_success" class="text-red-500">Build
-            failed</h3>
-        <pre v-html="ansiToHtml(exo_status?.compilation_output.join('\n') ?? '')" />
-    </div>
-
-    {{ exo_status }}
 </template>
