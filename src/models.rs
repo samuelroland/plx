@@ -6,4 +6,5 @@ pub mod exo;
 pub mod exo_state;
 pub mod project;
 pub mod skill;
+pub mod ui_action;
 pub mod ui_state;

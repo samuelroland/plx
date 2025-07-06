@@ -1,11 +1,11 @@
 use crate::core::diff::diff::Diff;
 
-use super::key::Key;
+use super::ui_action::UiAction;
 
 /// Represents every possible app event
 #[derive(Debug, PartialEq, Eq)]
 pub enum Event {
-    KeyPressed(Key),
+    RequestedAction(UiAction),
     EditorOpened,
     CouldNotOpenEditor,
     CompilationStart,
