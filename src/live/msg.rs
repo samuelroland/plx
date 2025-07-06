@@ -1,7 +1,7 @@
 use chrono::serde::ts_seconds;
 use chrono::{DateTime, Utc};
 use specta::Type;
-use strum::AsRefStr;
+use strum_macros::AsRefStr;
 use typeshare::typeshare;
 
 use std::fmt::Display;
