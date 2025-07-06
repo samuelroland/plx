@@ -20,7 +20,10 @@ export class LiveClient {
     onEvent: (event: Event) => void,
   ): LiveClient {
     let querystring = new URLSearchParams();
-    querystring.append(QUERYSTRING_LIVE_CLIENT_ID_FIELD, client_id);
+    querystring.append(
+      QUERYSTRING_LIVE_CLIENT_ID_FIELD,
+      Math.random().toString(), // TODO: use a fixed and persisted client_id,
+    );
     querystring.append(
       QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
       PROTOCOL_VERSION,
@@ -43,7 +46,7 @@ export class LiveClient {
 
   async send_msg(action: Action) {
     const MAX_RETRIES = 5;
-    const RETRY_DELAY_MS = 100; // ms
+    const RETRY_DELAY_MS = 100;
 
     console.log("Send action ", action);
 
@@ -52,7 +55,7 @@ export class LiveClient {
         this.socket?.send(JSON.stringify(action));
         return;
       }
-      console.log("retry sending action");
+      console.log("WebSocket is not opened yet, waiting before trying again");
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
     }
   }
