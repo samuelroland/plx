@@ -41,17 +41,20 @@ export class LiveClient {
     return new LiveClient(socket);
   }
 
-  send_msg(action: Action) {
+  async send_msg(action: Action) {
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY_MS = 100; // ms
+
     console.log("Send action ", action);
-    // If the socket is not yet fully connected, retry in 20ms
-    if (this.socket?.readyState !== this.socket?.OPEN) {
-      console.log("retry");
-      setTimeout(() => {
-        this.send_msg(action);
-      }, 20);
-      return;
+
+    for (let try_count = 0; try_count < MAX_RETRIES; try_count++) {
+      if (this.socket?.readyState === this.socket?.OPEN) {
+        this.socket?.send(JSON.stringify(action));
+        return;
+      }
+      console.log("retry sending action");
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
     }
-    this.socket?.send(JSON.stringify(action)); // fail here !
   }
 
   disconnect() {

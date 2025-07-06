@@ -4,7 +4,7 @@ import Code from './Code.vue';
 import Markdown from './Markdown.vue';
 import Convert from 'ansi-to-html';
 
-const props = defineProps<{ exo: Exo | undefined, exo_status: ExoStatusReport | undefined }>()
+const props = defineProps<{ exo: Exo | undefined, exo_status?: ExoStatusReport | undefined }>()
 
 // Display CLI arguments as string, use JSON.stringify in case it needs to have escapes and quotes shown
 function argsify(args: string[]): string {
