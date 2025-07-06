@@ -10,7 +10,7 @@ const rawOutput: Ref<null | string> = ref(null)
 let props = defineProps<{ code: string, path?: string | null }>()
 
 async function refreshCode(code: string) {
-    if (props.path == null) {
+    if (!props.path) {
         rawOutput.value = code
         highlightedCode.value = null
         return;

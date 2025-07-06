@@ -9,10 +9,12 @@ const train = useTrainStore()
 const global = useGlobalStore()
 
 onKeyStroke(['Escape'], (_) => {
+    train.stopExo()
     global.page = "course"
 })
 
 onMounted(() => {
+    train.stopExo()
     train.startExo()
 })
 
@@ -20,6 +22,6 @@ onMounted(() => {
 
 <template>
     <div class="h-full w-full px-5">
-        <CodeExo :exo="train.currentExo()"></CodeExo>
+        <CodeExo :exo="train.currentExo()" :exo_status="train.exo_status"></CodeExo>
     </div>
 </template>

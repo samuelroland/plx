@@ -29,3 +29,14 @@ input {
 li {
     @apply list-decimal
 }
+.diff-plus {
+    @apply bg-green-200
+}
+
+.diff-minus {
+    @apply bg-red-200
+}
+
+.diff-bold {
+    @apply font-bold
+}
