@@ -13,7 +13,7 @@ use crate::core::{
 };
 
 use super::{
-    constants::{COURSE_INFO_FILE, COURSE_STATE_FILE, EXO_STATE_FILE},
+    constants::{COURSE_INFO_FILE, EXO_STATE_FILE},
     exo::{Exo, ExoStateInfo},
     exo_state::ExoState,
     skill::Skill,
@@ -23,16 +23,9 @@ use super::{
 pub struct Project {
     pub name: String,
     pub(crate) skills: Arc<Vec<Skill>>,
-    #[serde(skip)]
-    pub(crate) state: ProjectState,
     folder: PathBuf,
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Debug)]
-pub(crate) struct ProjectState {
-    pub(crate) curr_skill_idx: usize,
-    pub(crate) curr_exo_idx: usize,
-}
 #[derive(Deserialize)]
 pub(crate) struct ProjectInfo {
     name: String,
@@ -42,116 +35,6 @@ pub(crate) struct ProjectInfo {
 impl Project {
     pub fn get_folder(&self) -> PathBuf {
         self.folder.clone()
-    }
-    /// returns the current exo pointed by the state
-    /// This can fail if for instance the skills/exos were moved/deleted between two plx runs
-    pub fn resume(&mut self) -> Option<&Exo> {
-        if self.state.curr_skill_idx < self.skills.len()
-            && self.state.curr_exo_idx < self.skills[self.state.curr_skill_idx].exos.len()
-        {
-            return Some(&self.skills[self.state.curr_skill_idx].exos[self.state.curr_exo_idx]);
-        }
-        None
-    }
-    fn is_first_skill(&self) -> bool {
-        self.state.curr_skill_idx == 0
-    }
-    fn is_first_exo(&self) -> bool {
-        self.state.curr_exo_idx == 0
-    }
-
-    fn is_last_skill(&self) -> bool {
-        self.state.curr_skill_idx == self.skills.len() - 1
-    }
-    fn is_last_exo(&self) -> bool {
-        self.state.curr_exo_idx == self.skills[self.state.curr_skill_idx].exos.len() - 1
-    }
-
-    /// Saves state to file
-    fn save_state(&self) {
-        if let Err(err) = write_object_to_file(&self.folder.join(COURSE_STATE_FILE), &self.state) {
-            warn!("Couldn't store project state {:?}", err);
-        }
-    }
-
-    /// Sets current exo index
-    /// This function should be used instead of assigning to curr_exo directly as it handles
-    /// storage of the project state
-    fn set_curr_exo(&mut self, i: usize) {
-        // Checking so we don't save the state unnecessarily
-        if self.state.curr_exo_idx != i {
-            self.state.curr_exo_idx = i;
-            self.save_state();
-        }
-    }
-
-    /// Sets current skill index
-    /// This function should be used instead of assigning to curr_skill directly as it handles
-    /// storage of the project state
-    fn set_curr_skill(&mut self, i: usize) {
-        // Checking so we don't save the state unnecessarily
-        if self.state.curr_skill_idx != i {
-            self.state.curr_skill_idx = i;
-            self.save_state();
-        }
-    }
-
-    /// Change to the previous exo
-    /// if we are already at the first exo in a skill and if wrap is set,
-    /// it will search for the last exo in the previous skill
-    pub fn prev_exo(&mut self, wrap: bool) {
-        if !self.is_first_exo() {
-            self.state.curr_exo_idx -= 1
-        } else if wrap {
-            if !self.is_first_skill() {
-                self.set_curr_skill(self.state.curr_skill_idx - 1);
-            } else {
-                self.set_curr_skill(self.skills.len() - 1);
-            }
-            self.set_curr_exo(self.skills[self.state.curr_skill_idx].exos.len() - 1);
-        }
-    }
-
-    /// Change to the previous skill
-    /// if we are already at the first skill if wrap is set,
-    /// it will go back go to the last skill
-    pub fn prev_skill(&mut self, wrap: bool) {
-        if self.is_first_skill() {
-            if wrap {
-                self.set_curr_skill(self.skills.len() - 1);
-            }
-        } else {
-            self.set_curr_skill(self.state.curr_skill_idx - 1);
-        }
-        self.set_curr_exo(0);
-    }
-
-    /// Change to the next exo
-    /// if we are already at the last exo in a skill and if wrap is set,
-    /// it will search for the first exo in the next skill
-    pub fn next_exo(&mut self, wrap: bool) {
-        if !self.is_last_exo() {
-            self.state.curr_exo_idx += 1
-        } else if wrap {
-            self.set_curr_exo(0);
-            if !self.is_last_skill() {
-                self.set_curr_skill(self.state.curr_skill_idx + 1);
-            } else {
-                self.set_curr_skill(0);
-            }
-        }
-    }
-
-    /// Change to the next skill
-    /// if we are already at the last skill if wrap is set,
-    /// it will wrap to the first skill
-    pub fn next_skill(&mut self, wrap: bool) {
-        if !self.is_last_skill() {
-            self.set_curr_skill(self.state.curr_skill_idx + 1);
-        } else if wrap {
-            self.set_curr_skill(0);
-        }
-        self.set_curr_exo(0);
     }
 
     /// Saves exo state to file
@@ -191,12 +74,8 @@ impl FromDir for Project {
         // Get course info by searching for the course.toml file
         // TODO magic value maybe change this
         let course_info_file = dir.join(COURSE_INFO_FILE);
-        let course_state_file = dir.join(COURSE_STATE_FILE);
         let course_info = object_creator::create_object_from_file::<ProjectInfo>(&course_info_file)
             .map_err(|err| (err, vec![]))?;
-        let project_state =
-            object_creator::create_object_from_file::<ProjectState>(&course_state_file)
-                .unwrap_or_default();
 
         // Using the skill folders found in the course.toml file, parse every skill
         // /!\ Folders not found in the course.toml file are ignored /!\
@@ -235,7 +114,6 @@ impl FromDir for Project {
                 Self {
                     name: course_info.name,
                     skills: Arc::new(skills),
-                    state: project_state,
                     folder: dir.to_path_buf(),
                 },
                 warnings,
@@ -341,7 +219,6 @@ mod tests {
                     ]),
                 },
             ]),
-            state:ProjectState{curr_exo_idx: 0, curr_skill_idx:0}
         };
         let (actual, warnings) = project.unwrap();
         assert_eq!(expected, actual);

@@ -6,7 +6,6 @@ pub mod app;
 pub mod core;
 pub mod live;
 pub mod models;
-pub mod ui;
 
 fn main() {
     WriteLogger::init(

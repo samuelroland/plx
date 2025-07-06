@@ -14,7 +14,6 @@ use crate::{
         check_state::CheckStatus, constants::TARGET_FILE_BASE_NAME, event::Event, exo::Exo,
         project::Project, ui_state::UiState,
     },
-    ui::ui::Ui,
 };
 use log::{error, info};
 use std::{
@@ -79,7 +78,6 @@ impl App {
             run: true,
             current_run: None,
         };
-        app.start_ui(ui_state_rx);
         Ok(app)
     }
 
@@ -91,28 +89,6 @@ impl App {
         self.ui_state = new_state;
     }
 
-    /// Tries to resume the last exo that was being worked on the last time the app was closed  
-    ///  
-    /// If the last exo is found, it will try to resume it, otherwise it will go to the skill selection screen
-    ///
-    ///
-    pub(super) fn resume_last_exo(&mut self) {
-        if let Some(exo) = &self.project.resume() {
-            //TODO refactor this code (duplicate)
-            match App::start_exo(&self.work_handler, exo) {
-                Ok(cr) => {
-                    self.current_run = Some(cr);
-                    self.go_to_compiling();
-                }
-                Err(err) => {
-                    error!("Couldn't start exo {}", err);
-                    self.go_to_skill_selection();
-                }
-            }
-        } else {
-            self.go_to_skill_selection();
-        }
-    }
     /// Main thread
     ///
     /// Main application loop
@@ -151,23 +127,6 @@ impl App {
             return Some(wh.spawn_worker(work));
         }
         None
-    }
-    /// Starts the UI
-    ///
-    /// The UI will be launched as a separate worker so this function will not block
-    ///
-    fn start_ui(&mut self, ui_state_rx: Receiver<UiState>) {
-        let ui = Ui::new(ui_state_rx);
-        self.go_to_home();
-        App::start_work(&self.work_handler, Box::new(ui));
-    }
-    /// Stops the UI
-    /// Useful if we want to restart the UI
-    ///
-    fn _stop_ui(&mut self) {
-        if let Ok(mut work_handler) = self.work_handler.lock() {
-            work_handler.stop_workers(WorkType::Ui);
-        }
     }
 
     /// Opens a new editor using a worker
