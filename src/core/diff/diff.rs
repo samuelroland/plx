@@ -10,12 +10,13 @@ pub struct Diff {
     differences: Vec<Hunk>,
 }
 
-// Tell Tauri-spect that Diff will be a string after serialization
+// Tell Tauri-specta that Diff will be a string after serialization
 impl Type for Diff {
     fn inline(type_map: &mut TypeCollection, generics: Generics) -> DataType {
         String::inline(type_map, generics)
     }
 }
+
 // Serialize as HTML string
 impl Serialize for Diff {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

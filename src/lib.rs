@@ -1,3 +1,4 @@
+pub mod app;
 pub mod core;
 pub mod live;
 pub mod models;
