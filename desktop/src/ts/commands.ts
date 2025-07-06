@@ -22,9 +22,9 @@ async highlightCodeWithTreeSitter(file: string, code: string) : Promise<Result<s
 async loadDefaultThemeCss() : Promise<string> {
     return await TAURI_INVOKE("load_default_theme_css");
 },
-async getFullCourseDetails(coursePath: string) : Promise<Result<Project, string>> {
+async loadFullCourseDetails(coursePath: string, exoStatusUiChannel: TAURI_CHANNEL<ExoStatusReport>) : Promise<Result<Project, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_full_course_details", { coursePath }) };
+    return { status: "ok", data: await TAURI_INVOKE("load_full_course_details", { coursePath, exoStatusUiChannel }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -37,6 +37,9 @@ async renderMarkdownWithHighlighting(content: string) : Promise<Result<string, s
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async sendUiActionToApp(action: UiAction) : Promise<void> {
+    await TAURI_INVOKE("send_ui_action_to_app", { action });
 }
 }
 
@@ -46,10 +49,10 @@ async renderMarkdownWithHighlighting(content: string) : Promise<Result<string, s
 
 /** user-defined constants **/
 
-export const DEFAULT_LIVE_PORT = 9120 as const;
-export const QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD = "live_protocol_version" as const;
 export const PROTOCOL_VERSION = "0.1.0" as const;
 export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
+export const DEFAULT_LIVE_PORT = 9120 as const;
+export const QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD = "live_protocol_version" as const;
 
 /** user-defined types **/
 
@@ -57,6 +60,14 @@ export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
  * Represents a Exo Check
  */
 export type Check = { name: string; args?: string[]; test: CheckTest }
+/**
+ * Handles the check and it's current status
+ */
+export type CheckState = { check: Check; status: CheckStatus }
+/**
+ * Represents the status of a check
+ */
+export type CheckStatus = { type: "Passed" } | { type: "Failed"; content: { expected: string; given: string; diff: string } } | { type: "Checking" } | { type: "Running" } | { type: "RunFail"; content: string } | { type: "Pending" }
 /**
  * Represents the actual check type
  */
@@ -66,10 +77,36 @@ export type CourseInfo = { name: string; folder: string; config: LiveConfig | nu
  * Represents a Plx Exo
  */
 export type Exo = { name: string; instruction: string | null; state: ExoState; files: string[]; solutions: string[]; checks: Check[]; favorite: boolean; folder: string }
+/**
+ * ExoCheckResult
+ * 
+ * This struct is used to store the result of a run + check
+ * Each exo run will have as many ExoCheckResults as the number of checks the exo has
+ * This helps us keep the output of the run and the check state together
+ */
+export type ExoCheckResult = { state: CheckState; output: string[] }
 export type ExoState = "Todo" | "InProgress" | "Done"
+/**
+ * ExoStatusReport
+ * 
+ * This struct is used to store the result of a run + check
+ * It keeps the information of an exo run, including the check results,
+ * the compilation output and the path to the elf file
+ * See `ExoCheckResult` for more information about the check results
+ */
+export type ExoStatusReport = { check_results: ExoCheckResult[]; compilation_output: string[]; compilation_success: boolean; compilation_running: boolean }
 export type LiveConfig = { domain: string; port: number; group_id: string }
 export type Project = { name: string; skills: Skill[]; folder: string }
 export type Skill = { name: string; path: string; exos: Exo[] }
+export type TAURI_CHANNEL<TSend> = null
+/**
+ * An action requested by the UI
+ */
+export type UiAction = { type: "StartExo"; content: { exo_folder: string } } | { type: "StopExo" } | 
+/**
+ * Stop the App instance and all the workers
+ */
+{ type: "StopApp" }
 
 /** tauri-specta globals **/
 

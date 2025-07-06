@@ -1,31 +1,34 @@
 mod commands;
+use std::sync::{
+    mpsc::{Receiver, Sender},
+    Mutex,
+};
+
 use commands::{
-    courses::{clone_course, get_full_course_details, get_local_courses},
+    courses::{clone_course, get_local_courses, load_full_course_details},
     render::{
         highlight_code_with_tree_sitter, load_default_theme_css, render_markdown_with_highlighting,
     },
+    train::send_ui_action_to_app,
 };
 
 use plx::{
-    live::{
-        config::LiveConfig,
-        server::{
-            DEFAULT_LIVE_PORT, PROTOCOL_VERSION, QUERYSTRING_LIVE_CLIENT_ID_FIELD,
-            QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
-        },
+    app::exo_status_report::ExoStatusReport,
+    live::server::{
+        DEFAULT_LIVE_PORT, PROTOCOL_VERSION, QUERYSTRING_LIVE_CLIENT_ID_FIELD,
+        QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
     },
-    models::project::Project,
+    models::ui_action::UiAction,
 };
 use specta_typescript::Typescript;
 use tauri::Manager;
 use tauri_specta::{collect_commands, Builder};
 
-struct Current {
-    config: LiveConfig,
-    project: Project,
+struct AppData {
+    /// We start an App instance and we start run_forever() in a separated thread
+    /// we will have a way to send UiAction here to keep a link with this instance
+    ui_action_tx: Mutex<Option<Sender<UiAction>>>,
 }
-
-struct AppData {}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -36,8 +39,9 @@ pub fn run() {
             clone_course,
             highlight_code_with_tree_sitter,
             load_default_theme_css,
-            get_full_course_details,
-            render_markdown_with_highlighting
+            load_full_course_details,
+            render_markdown_with_highlighting,
+            send_ui_action_to_app
         ])
         .constant("PROTOCOL_VERSION", PROTOCOL_VERSION)
         .constant("DEFAULT_LIVE_PORT", DEFAULT_LIVE_PORT)
@@ -62,11 +66,14 @@ pub fn run() {
             clone_course,
             highlight_code_with_tree_sitter,
             load_default_theme_css,
-            get_full_course_details,
-            render_markdown_with_highlighting
+            load_full_course_details,
+            render_markdown_with_highlighting,
+            send_ui_action_to_app
         ])
         .setup(|app| {
-            app.manage(AppData {});
+            app.manage(AppData {
+                ui_action_tx: Mutex::new(None),
+            });
             Ok(())
         })
         .run(tauri::generate_context!())

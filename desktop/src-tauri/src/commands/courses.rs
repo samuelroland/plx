@@ -1,14 +1,22 @@
 use dme_core::util::git::GitRepos;
 use plx::{
+    app::{app::App, exo_status_report::ExoStatusReport},
     core::{file_utils::file_utils::list_dir_folders, parser::from_dir::FromDir},
     live::config::LiveConfig,
-    models::{project::Project, skill::Skill},
+    models::project::Project,
 };
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{mpsc, Mutex},
+    thread,
+};
+use tauri::{ipc::Channel, AppHandle, Manager};
 
 use etcetera::{AppStrategy, AppStrategyArgs};
 use serde::Serialize;
 use specta::Type;
+
+use crate::AppData;
 
 #[derive(Serialize, Debug, Type)]
 pub struct CourseInfo {
@@ -61,8 +69,40 @@ pub async fn clone_course(repos: String) -> bool {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_full_course_details(course_path: PathBuf) -> Result<Project, String> {
-    Ok(Project::from_dir(&course_path)
+pub async fn load_full_course_details(
+    app: AppHandle,
+    course_path: PathBuf,
+    exo_status_ui_channel: Channel<ExoStatusReport>,
+) -> Result<Project, String> {
+    let state = app.state::<AppData>();
+    let (exo_status_tx, exo_status_rx) = mpsc::channel();
+    let (ui_action_tx, ui_action_rx) = mpsc::channel();
+    let project = Project::from_dir(&course_path)
         .map_err(|(e, _)| e.to_string())?
-        .0)
+        .0;
+
+    // TODO: fix this unwrap mess
+
+    // Setup app instance
+    let app = App::new_in_folder(&course_path, exo_status_tx, ui_action_rx)
+        .map_err(|e| e.to_string())
+        .unwrap();
+
+    // Run it forever in another thread, we move it so we lose it's reference, but the
+    // 2 channels are enough to communicate with it
+    thread::spawn(move || {
+        app.run_forever();
+    });
+
+    // Just save the ui_action_tx to be reused by send_ui_action_to_app
+    *state.ui_action_tx.lock().unwrap() = Some(ui_action_tx);
+
+    // Listen on exo status update sent by the App and just forward that in the Tauri's channel
+    thread::spawn(move || {
+        while let Ok(status) = exo_status_rx.recv() {
+            exo_status_ui_channel.send(status).unwrap();
+        }
+    });
+
+    Ok(project)
 }

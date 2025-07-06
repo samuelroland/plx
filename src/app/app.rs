@@ -8,11 +8,11 @@ use crate::{
         launcher::launcher::Launcher,
         parser::from_dir::FromDir,
         watcher::watcher::FileWatcher,
-        work::{work::Work, work_handler::WorkHandler, work_type::WorkType},
+        work::{work::Work, work_handler::WorkHandler},
     },
     models::{
         check_state::CheckStatus, constants::TARGET_FILE_BASE_NAME, event::Event, exo::Exo,
-        project::Project, ui_state::UiState,
+        project::Project, ui_action::UiAction, ui_state::UiState,
     },
 };
 use log::{error, info};
@@ -22,6 +22,7 @@ use std::{
         mpsc::{self, Receiver, Sender},
         Arc, Mutex,
     },
+    thread,
 };
 
 use super::{
@@ -36,7 +37,8 @@ pub struct App {
     pub(super) project: Project,
     pub(super) work_handler: Arc<Mutex<WorkHandler>>,
     pub(super) event_rx: Receiver<Event>,
-    pub(super) ui_state_tx: Sender<UiState>,
+    exo_status_tx: Sender<ExoStatusReport>,
+    // ui_action_rx: Receiver<UiAction>,
     pub(super) run: bool,
     pub(super) current_run: Option<ExoStatusReport>,
 }
@@ -51,14 +53,26 @@ impl App {
     /// A Result containing the App instance if the project is found or an   
     /// error if the project is not found
     ///
-    pub fn new() -> Result<Self, CoreInitError> {
+    pub fn new(
+        exo_status_tx: Sender<ExoStatusReport>,
+        ui_action_rx: Receiver<UiAction>,
+    ) -> Result<Self, CoreInitError> {
         let current_folder = match current_folder() {
             Ok(folder) => folder,
             Err(_err) => return Err(CoreInitError::PlxProjNotFound), // TODO maybe be more specific
                                                                      // here by adding the error detail
         };
+
+        Self::new_in_folder(&current_folder, exo_status_tx, ui_action_rx)
+    }
+
+    pub fn new_in_folder(
+        folder: &PathBuf,
+        exo_status_tx: Sender<ExoStatusReport>,
+        ui_action_rx: Receiver<UiAction>,
+    ) -> Result<Self, CoreInitError> {
         // TODO these warnings should be accessible to the user
-        let (project, _warnings) = match Project::from_dir(&current_folder) {
+        let (project, _warnings) = match Project::from_dir(folder) {
             Ok((project, warnings)) => (project, warnings),
             Err((err, _warnings)) => {
                 // TODO handle these warnings even in case of failure
@@ -66,27 +80,32 @@ impl App {
             }
         };
         let (event_tx, event_rx) = mpsc::channel();
-        let (ui_state_tx, ui_state_rx) = mpsc::channel();
         let work_handler = WorkHandler::new(event_tx.clone());
 
-        let mut app = App {
+        // TODO: quick and dirty thread, refactor to worker ??
+        thread::spawn(move || {
+            while let Ok(action) = ui_action_rx.recv() {
+                event_tx.send(Event::RequestedAction(action)).unwrap();
+            }
+        });
+
+        let app = App {
             ui_state: UiState::Home,
             project,
             work_handler,
             event_rx,
-            ui_state_tx,
+            exo_status_tx,
             run: true,
             current_run: None,
         };
         Ok(app)
     }
 
-    /// Sets a new UiState
-    /// It's important to set the ui_state using this functions as it will also notify the UI of the change
-    pub(super) fn set_ui_state(&mut self, new_state: UiState) {
-        //TODO maybe restart the ui if the channel is closed ?
-        let _ = self.ui_state_tx.send(new_state.clone());
-        self.ui_state = new_state;
+    /// Send a the updated ExoStatusReport to the UI
+    pub(super) fn send_new_exo_status(&mut self) {
+        if let Some(status) = &self.current_run {
+            self.exo_status_tx.send(status.clone());
+        }
     }
 
     /// Main thread
@@ -97,7 +116,7 @@ impl App {
             if let Ok(event) = self.event_rx.recv() {
                 info!("{:?}", event);
                 match event {
-                    Event::KeyPressed(key) => self.on_key_press(key),
+                    Event::RequestedAction(action) => self.on_ui_action(action),
                     Event::EditorOpened => {}
                     Event::CouldNotOpenEditor => {} //TODO warn the user ?
                     Event::OutputCheckPassed(check_index) => self.on_check_passed(check_index),
