@@ -1,4 +1,3 @@
-use crate::app::app::App;
 use live::server::{LiveServer, DEFAULT_LIVE_PORT};
 use simplelog::*;
 use std::{env::args, fs::File};
@@ -21,11 +20,6 @@ fn main() {
         println!("Started PLX server on port {DEFAULT_LIVE_PORT}");
         server.start(DEFAULT_LIVE_PORT, true); // this is blocking indefinitly
     } else {
-        match App::new() {
-            Ok(app) => app.run_forever(),
-            Err(err) => {
-                eprintln!("Error starting plx {err}");
-            }
-        }
+        eprintln!("Only the server is available here, use 'server' argument");
     }
 }
