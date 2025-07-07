@@ -1,4 +1,5 @@
 use dme_core::util::git::GitRepos;
+use log::info;
 use plx::{
     app::{app::App, exo_status_report::ExoStatusReport},
     core::{file_utils::file_utils::list_dir_folders, parser::from_dir::FromDir},
@@ -6,6 +7,7 @@ use plx::{
     models::project::Project,
 };
 use std::{
+    fs::{create_dir, create_dir_all},
     path::PathBuf,
     sync::{mpsc, Mutex},
     thread,
@@ -26,13 +28,19 @@ pub struct CourseInfo {
 }
 
 fn get_base_directory() -> PathBuf {
-    etcetera::choose_app_strategy(AppStrategyArgs {
+    let folder = etcetera::choose_app_strategy(AppStrategyArgs {
         app_name: "plx".to_string(),
         ..Default::default()
     })
     .unwrap()
     .data_dir()
-    .to_path_buf()
+    .to_path_buf();
+    info!("Using base directory: {folder:?}");
+    if !folder.exists() {
+        info!("Created non existant base directory {folder:?}");
+        create_dir_all(&folder).expect("Couldn't create directory {folder}");
+    }
+    folder
 }
 
 #[tauri::command]
@@ -46,7 +54,7 @@ pub async fn get_local_courses() -> Vec<CourseInfo> {
         .map(|(p, _)| {
             let config = LiveConfig::from_course(&p)
                 .map_err(|e| {
-                    let message = format!("{}", e);
+                    let message = format!("{e}");
                     println!("Error {message}");
                     message
                 })
