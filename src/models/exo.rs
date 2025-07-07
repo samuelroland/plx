@@ -4,7 +4,7 @@ use super::{
     exo_state::ExoState,
 };
 use serde::{Deserialize, Serialize};
-use specta::Type;
+use specta_macros::Type;
 
 use crate::core::{
     compiler::compiler::Compiler,

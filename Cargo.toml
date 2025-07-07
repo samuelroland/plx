@@ -42,9 +42,17 @@ typeshare = "1.0.4"
 
 # Tauri is not used outside of the Tauri desktop app, but we still need to include to use Tauri specta
 # and generate some TypeScript types for the frontend
-specta = "=2.0.0-rc.22"
-tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
+# Instead of the 2 dependencies below, that ultimately requires `tauri` and all prerequisites of system dependencies
+# specta = "=2.0.0-rc.22"
+# tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
+# when can just import the sub crates we really need
+# This reduce our dependency count from ~500 to 182 !
+specta = { version = "=2.0.0-rc.22", features = ["export"] }
+specta-macros = "2.0.0-rc.18"
+specta-typescript = "0.0.9"
+
 ansi-to-html = "0.2.2"
+serde_with = "3.14.0"
 
 [dev-dependencies]
 ntest = "0.9.3"

@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use serde::{Serialize, Serializer};
-use specta::Type;
+use specta_macros::Type;
 
 use crate::models::{check_state::CheckState, exo::Exo};
 

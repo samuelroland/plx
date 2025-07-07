@@ -1,4 +1,4 @@
-use specta::Type;
+use specta_macros::Type;
 use std::collections::HashMap;
 use typeshare::typeshare;
 

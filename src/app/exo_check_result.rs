@@ -1,5 +1,5 @@
 use serde::Serialize;
-use specta::Type;
+use specta_macros::Type;
 
 use crate::models::{check::Check, check_state::CheckState};
 

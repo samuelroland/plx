@@ -1,6 +1,6 @@
 use chrono::serde::ts_seconds;
 use chrono::{DateTime, Utc};
-use specta::Type;
+use specta_macros::Type;
 use strum_macros::AsRefStr;
 use typeshare::typeshare;
 

@@ -27,8 +27,7 @@ etcetera = "0.10.0"
 specta = "=2.0.0-rc.22"
 specta-typescript = "0.0.9"
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
-## TODO Temporary
-dme-core = { git = "https://github.com/samuelroland/dme" }
+dme-core = { git = "https://github.com/samuelroland/dme", branch = "secure-and-easy-rendering" }
 typeshare = "1.0.4"
 simplelog = "0.12.2"
 log = "0.4.27"

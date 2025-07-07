@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use serde::Serialize;
-use specta::Type;
+use specta_macros::Type;
 
 use crate::core::diff::diff::Diff;
 
@@ -25,6 +25,8 @@ pub enum CheckStatus {
 /// Handles the check and it's current status
 #[derive(Serialize, Debug, Clone, PartialEq, Type)]
 pub struct CheckState {
+    // The UI already has the check via the whole project info, do not serialize it again here
+    #[serde(skip_serializing)]
     pub(crate) check: Arc<Check>,
     pub(crate) status: CheckStatus,
 }

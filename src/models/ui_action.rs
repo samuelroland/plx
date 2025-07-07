@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use specta::Type;
+use specta_macros::Type;
 
 /// An action requested by the UI
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Type)]

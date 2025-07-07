@@ -7,12 +7,16 @@ use crate::core::{
 
 use super::{constants::SKILL_INFO_FILE, exo::Exo, exo_state::ExoState};
 use serde::{Deserialize, Serialize};
-use specta::Type;
+use serde_with::serde_as;
+use specta_macros::Type;
 
+#[serde_as]
 #[derive(Serialize, Debug, PartialEq, Eq, Clone, Type)]
 pub struct Skill {
     pub name: String,
     pub path: std::path::PathBuf,
+    // Fix serialization by using it as a normal Vec
+    #[serde_as(as = "Vec<_>")]
     pub exos: Arc<Vec<Exo>>,
 }
 #[derive(Deserialize, Serialize)]

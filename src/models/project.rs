@@ -2,7 +2,8 @@ use std::{path::PathBuf, sync::Arc};
 
 use log::warn;
 use serde::{Deserialize, Serialize};
-use specta::Type;
+use serde_with::serde_as;
+use specta_macros::Type;
 
 use crate::core::{
     file_utils::file_parser::{ParseError, ParseWarning},
@@ -19,9 +20,12 @@ use super::{
     skill::Skill,
 };
 
+#[serde_as]
 #[derive(Serialize, Debug, PartialEq, Eq, Type)]
 pub struct Project {
     pub name: String,
+    // Fix serialization by using it as a normal Vec
+    #[serde_as(as = "Vec<_>")]
     pub(crate) skills: Arc<Vec<Skill>>,
     folder: PathBuf,
 }
