@@ -48,7 +48,7 @@ pub enum Action {
     GetSessions { group_id: String },
 
     // Code exo syncing
-    ExoSwitch { path: String },
+    SwitchExo { path: String },
     SendFile { path: String, content: String },
     SendResult { check_result: ExoCheckResult },
 }

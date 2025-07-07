@@ -207,7 +207,7 @@ impl LiveClient {
 
     /// Send a check result
     pub fn send_exo_switch(&mut self, path: String) {
-        self.send_msg(Action::ExoSwitch { path });
+        self.send_msg(Action::SwitchExo { path });
     }
 
     /// Get all available session for a given group id

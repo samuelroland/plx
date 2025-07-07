@@ -258,7 +258,7 @@ impl ClientManager {
                                 .await;
                         }
                     },
-                    Ok(Action::ExoSwitch { path }) => {
+                    Ok(Action::SwitchExo { path }) => {
                         if let Some(session) = &self.session {
                             if session.role == ClientRole::Follower {
                                 self.send_error(LiveProtocolError::ActionOnlyForLeader(

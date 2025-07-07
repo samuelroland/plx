@@ -13,36 +13,36 @@
  */
 export type ClientNum = number;
 
-export type CheckStatus = 
-	| { type: "Passed", content?: undefined }
-	| { type: "CheckFailed", content: string }
-	| { type: "BuildFailed", content: string }
-	| { type: "RunFailed", content: string };
+export type CheckStatus =
+  | { type: "Passed"; content?: undefined }
+  | { type: "CheckFailed"; content: string }
+  | { type: "BuildFailed"; content: string }
+  | { type: "RunFailed"; content: string };
 
 export interface ExoCheckResult {
-	index: number;
-	state: CheckStatus;
+  index: number;
+  state: CheckStatus;
 }
 
 export interface ForwardedFile {
-	/** The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h" */
-	path: string;
-	content: string;
-	/** The time where this code was received on the server */
-	time: number;
+  /** The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h" */
+  path: string;
+  content: string;
+  /** The time where this code was received on the server */
+  time: number;
 }
 
 export interface ForwardedResult {
-	/** The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h" */
-	check_result: ExoCheckResult;
-	/** The time where this result was received on the server */
-	time: number;
+  /** The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h" */
+  check_result: ExoCheckResult;
+  /** The time where this result was received on the server */
+  time: number;
 }
 
 export interface LiveConfig {
-	domain: string;
-	port: number;
-	group_id: string;
+  domain: string;
+  port: number;
+  group_id: string;
 }
 
 /**
@@ -50,60 +50,78 @@ export interface LiveConfig {
  * when listing all sessions or after session creation
  */
 export interface Session {
-	/**
-	 * An arbitrary name defined by the leader to help followers choose the correct sessions
-	 * among the multiple live sessions at the same time on the same group_id
-	 * We imagine it could be named like "Course name - Teacher fullname"
-	 */
-	name: string;
-	/**
-	 * The group id is a way to group related sessions together.
-	 * This can be an arbitrary string chosen by leader clients when creating a session.
-	 * Listing available sessions can only be done via this group_id to filter the list
-	 * By default, PLX clients will send the Git HTTPS link
-	 */
-	group_id: string;
+  /**
+   * An arbitrary name defined by the leader to help followers choose the correct sessions
+   * among the multiple live sessions at the same time on the same group_id
+   * We imagine it could be named like "Course name - Teacher fullname"
+   */
+  name: string;
+  /**
+   * The group id is a way to group related sessions together.
+   * This can be an arbitrary string chosen by leader clients when creating a session.
+   * Listing available sessions can only be done via this group_id to filter the list
+   * By default, PLX clients will send the Git HTTPS link
+   */
+  group_id: string;
 }
 
 export interface SessionStats {
-	followers_count: number;
-	leaders_count: number;
+  followers_count: number;
+  leaders_count: number;
 }
 
 /** The protocol defines a set of valid actions that only clients can send */
-export type Action = 
-	| { type: "StartSession", content: {
-	name: string;
-	group_id: string;
-}}
-	| { type: "StopSession", content?: undefined }
-	| { type: "JoinSession", content: {
-	name: string;
-	group_id: string;
-}}
-	| { type: "LeaveSession", content?: undefined }
-	| { type: "GetSessions", content: {
-	group_id: string;
-}}
-	| { type: "ExoSwitch", content: {
-	path: string;
-}}
-	| { type: "SendFile", content: {
-	path: string;
-	content: string;
-}}
-	| { type: "SendResult", content: {
-	check_result: ExoCheckResult;
-}};
+export type Action =
+  | {
+      type: "StartSession";
+      content: {
+        name: string;
+        group_id: string;
+      };
+    }
+  | { type: "StopSession"; content?: undefined }
+  | {
+      type: "JoinSession";
+      content: {
+        name: string;
+        group_id: string;
+      };
+    }
+  | { type: "LeaveSession"; content?: undefined }
+  | {
+      type: "GetSessions";
+      content: {
+        group_id: string;
+      };
+    }
+  | {
+      type: "SwitchExo";
+      content: {
+        path: string;
+      };
+    }
+  | {
+      type: "SendFile";
+      content: {
+        path: string;
+        content: string;
+      };
+    }
+  | {
+      type: "SendResult";
+      content: {
+        check_result: ExoCheckResult;
+      };
+    };
 
 export enum ClientRole {
-	/** Default role, for anyone following a session */
-	Follower = "Follower",
-	/**
-	 * When the client creates a session, it becames a leader client.
-	 * When the session is stopped, it become a `Follower` again.
-	 */
-	Leader = "Leader",
+  /** Default role, for anyone following a session */
+  Follower = "Follower",
+  /**
+   * When the client creates a session, it becames a leader client.
+   * When the session is stopped, it become a `Follower` again.
+   */
+  Leader = "Leader",
 }
 
 /**
@@ -112,36 +130,44 @@ export enum ClientRole {
  * author of the action, but could sent to other clients.
  * These events can also be generated directly by the server (after some timeout or OS signal received)
  */
-export type Event = 
-	| { type: "SessionStopped", content?: undefined }
-	| { type: "SessionJoined", content: ClientNum }
-	| { type: "SessionsList", content: Session[] }
-	| { type: "Stats", content: SessionStats }
-	| { type: "ServerStopped", content?: undefined }
-	| { type: "ExoSwitched", content: {
-	path: string;
-}}
-	| { type: "ForwardFile", content: {
-	client_num: ClientNum;
-	file: ForwardedFile;
-}}
-	| { type: "ForwardResult", content: {
-	client_num: ClientNum;
-	result: ForwardedResult;
-}}
-	| { type: "Error", content: LiveProtocolError };
+export type Event =
+  | { type: "SessionStopped"; content?: undefined }
+  | { type: "SessionJoined"; content: ClientNum }
+  | { type: "SessionsList"; content: Session[] }
+  | { type: "Stats"; content: SessionStats }
+  | { type: "ServerStopped"; content?: undefined }
+  | {
+      type: "ExoSwitched";
+      content: {
+        path: string;
+      };
+    }
+  | {
+      type: "ForwardFile";
+      content: {
+        client_num: ClientNum;
+        file: ForwardedFile;
+      };
+    }
+  | {
+      type: "ForwardResult";
+      content: {
+        client_num: ClientNum;
+        result: ForwardedResult;
+      };
+    }
+  | { type: "Error"; content: LiveProtocolError };
 
 /**
  * An error sent from the server to clients after any message
  * that resolved in an error that is worth sending back to the client
  */
-export type LiveProtocolError = 
-	| { type: "FailedToStartSession", content: string }
-	| { type: "FailedToJoinSession", content: string }
-	| { type: "FailedSendingWithoutSession", content?: undefined }
-	| { type: "FailedToLeaveSession", content?: undefined }
-	| { type: "SessionNotFound", content?: undefined }
-	| { type: "CannotJoinOtherSession", content?: undefined }
-	| { type: "ForbiddenSessionStop", content?: undefined }
-	| { type: "ActionOnlyForLeader", content: string };
-
+export type LiveProtocolError =
+  | { type: "FailedToStartSession"; content: string }
+  | { type: "FailedToJoinSession"; content: string }
+  | { type: "FailedSendingWithoutSession"; content?: undefined }
+  | { type: "FailedToLeaveSession"; content?: undefined }
+  | { type: "SessionNotFound"; content?: undefined }
+  | { type: "CannotJoinOtherSession"; content?: undefined }
+  | { type: "ForbiddenSessionStop"; content?: undefined }
+  | { type: "ActionOnlyForLeader"; content: string };
