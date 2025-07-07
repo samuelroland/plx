@@ -72,14 +72,12 @@ impl ClientManager {
                 // Just listen on the websocket stream to wait for GetSessions / JoinSession messages
                 None => {
                     let stream_el = self.websocket.next().await;
-                    println!("Server: got {stream_el:#?}");
                     self.handle_msg(stream_el).await;
                 }
                 // If there is a session, listen on both streams
                 Some(session) => {
                     select! {
                         stream_el = self.websocket.next() => {
-                            println!("Server: got {stream_el:#?}");
                             self.handle_msg(stream_el).await;
                         }
                         external_msg = session.client_rx.recv() => {
@@ -111,7 +109,11 @@ impl ClientManager {
     async fn handle_msg(&mut self, stream_element: Option<Result<Message, Error>>) {
         match stream_element {
             Some(Ok(msg)) => {
-                match Action::try_from(msg.into_text().unwrap()) {
+                let maybe_action = Action::try_from(msg.into_text().unwrap());
+                if let Ok(action) = &maybe_action {
+                    println!("SERVER: Received from {}: {action:#?}", self.client_id);
+                }
+                match maybe_action {
                     Ok(Action::StartSession { name, group_id }) => {
                         // TODO
                         // TODO: check name and group validity
@@ -288,7 +290,7 @@ impl ClientManager {
     }
 
     async fn send_event(&mut self, event: Event) {
-        println!("Sending to {} {event:#?}", self.client_id);
+        println!("SERVER: Sending to {}: {event:#?}", self.client_id);
         let _ = self
             .websocket
             .send(Message::Text(event.try_into().unwrap()))

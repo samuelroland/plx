@@ -64,7 +64,7 @@ impl LiveServer {
             }
 
             // Start binding here, so it can fail if the port is already used.
-            let listener = TcpListener::bind(format!("0.0.0.0:{}", port))
+            let listener = TcpListener::bind(format!("0.0.0.0:{port}"))
                 .await
                 .expect("Couldn't not bind on port {port}");
 
@@ -129,19 +129,17 @@ impl LiveServer {
 
             if protocol_version.is_empty() {
                 return Err(error_reponse(format!(
-                    "Missing field {} in the query string",
-                    QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
+                    "Missing field {QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD} in the query string",
                 )));
             }
 
             if protocol_version != PROTOCOL_VERSION {
-                return Err(error_reponse(format!("The server is only working with a live protocol version of {}, please update the client to match this version.", PROTOCOL_VERSION)));
+                return Err(error_reponse(format!("The server is only working with a live protocol version of {PROTOCOL_VERSION}, please update the client to match this version.")));
             }
 
             if client_id.is_empty() {
                 return Err(error_reponse(format!(
-                    "Missing field {} in the query string",
-                    QUERYSTRING_LIVE_CLIENT_ID_FIELD,
+                    "Missing field {QUERYSTRING_LIVE_CLIENT_ID_FIELD} in the query string",
                 )));
             }
 
@@ -168,7 +166,7 @@ impl LiveServer {
                     client_manager.run().await;
                 });
             }
-            Err(e) => warn!("Got a handshake error: {}", e.to_string()),
+            Err(e) => warn!("Got a handshake error: {e}"),
         }
     }
 }
