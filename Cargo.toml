@@ -13,33 +13,37 @@ exclude = ["examples"]
 name = "plx"
 
 [dependencies]
-console = "0.15.8"
+console = "0.16.*"
 serde = { version = "1.0.209", features = ["derive"] }
 toml = "0.8.19"
+serde_json = "1.0.140"
+# Text diffing
 similar = { version = "2.6.0", features = ["inline"] }
+# Macros for enum utils
 strum = "0.27.1"
 strum_macros = "0.27.1"
 dunce = "1.0.5"
-notify = "6.1.1"
-notify-debouncer-mini = "0.4.0"
-log = "0.4.22"
-simplelog = "0.12.2"
+notify = "8.1.0"
+notify-debouncer-mini = "0.6.0"
+log = "0.4.*"
+simplelog = "0.12.*"
 tokio = { version = "1", features = ["rt", "net", "macros"] }
 tokio-tungstenite = "0.27.0"
 tokio-stream = "0.1.17"
 futures-util = "0.3.31"
-serde_json = "1.0.140"
 ctrlc = "3.4.7"
+# To get and manage the current time in Utc format and serialize as timestamps
 chrono = { version = "0.4", features = ["serde"] }
-typeshare = "1.0.4"
+## To parse URLs
 url = "2.5.4"
+
+typeshare = "1.0.4"
+## typeshare-annotation = "1.0.4" could also replace that but it doesn't contains less unused dependency
 
 # Tauri is not used outside of the Tauri desktop app, but we still need to include to use Tauri specta
 # and generate some TypeScript types for the frontend
 specta = "=2.0.0-rc.22"
-specta-typescript = "0.0.9"
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
-tauri = { version = "2.0", features = [] }
 ansi-to-html = "0.2.2"
 
 [dev-dependencies]
