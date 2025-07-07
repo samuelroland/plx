@@ -47,10 +47,17 @@ export const useLiveStore = defineStore("live", {
   },
   actions: {
     connect_if_no_client() {
+      const config = this.course?.config;
+      if (!config) {
+        alert(
+          "No live.toml configuration found in course repository, cannot connect to a live server !",
+        );
+        return;
+      }
       if (!this.client) {
         this.client = LiveClient.connect(
-          "127.0.0.1",
-          DEFAULT_LIVE_PORT,
+          config.domain,
+          config.port,
           "super id",
           onEvent,
         );
