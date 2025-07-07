@@ -16,13 +16,17 @@ fn main() {
             "--lang=typescript",
             format!("--output-file={DESTINATION_TS_BINDINGS}").as_str(), // this is desktop/src/bindings.ts
         ])
-        .output()
-        .expect("\nMAKE SURE YOU HAVE THE TYPESHARE CLI installed !\nYou can install it with:\ncargo install typeshare-cli\n\n\n");
-    assert!(
-        res.status.success(),
-        "\nTYPESHARE TYPES GENERATION FAILURE:\n\n{}",
-        String::from_utf8(res.stderr).unwrap()
-    );
+        .output();
+    match res {
+        Ok(res) => {
+            assert!(
+                res.status.success(),
+                "\nTYPESHARE TYPES GENERATION FAILURE:\n\n{}",
+                String::from_utf8(res.stderr).unwrap()
+            );
+        }
+        Err(e) => println!("typeshare CLI not found, no typescript types generated..."),
+    }
 
     let mut content = std::fs::read_to_string(DESTINATION_TS_BINDINGS).unwrap();
     // Manage TS_BINDINGS_REPLACEMENTS
