@@ -1,13 +1,21 @@
 // This a global Pinia store to manage the state of everything related to training on code exos
 
 import { defineStore } from "pinia";
-import { commands, Exo, Project, Skill } from "../ts/commands";
+import { commands, Exo, ExoStatusReport, Project, Skill } from "../ts/commands";
 import { useGlobalStore } from "./GlobalStore";
+import { Channel } from "@tauri-apps/api/core";
+import { useLiveStore } from "./LiveStore";
 
 export const useTrainStore = defineStore("train", {
   state: () => ({
     // The complete course details -> course + skills details + exos details
     course: null as Project | null,
+
+    exo_status: undefined as ExoStatusReport | undefined,
+
+    in_live_session: false as boolean,
+
+    current_live_exo: undefined as Exo | undefined,
 
     // Skills and exo selection, used in Course and Train
     selectedSkillIdx: 0,
@@ -20,9 +28,24 @@ export const useTrainStore = defineStore("train", {
       return this.course?.skills[this.selectedSkillIdx];
     },
     currentExo(): Exo | undefined {
-      return this.course?.skills[this.selectedSkillIdx].exos[
-        this.selectedExoIdx
-      ];
+      if (this.in_live_session) {
+        return this.current_live_exo;
+      } else {
+        return this.course?.skills[this.selectedSkillIdx].exos[
+          this.selectedExoIdx
+        ];
+      }
+    },
+
+    findExo(path: string) {
+      for (const skill of this.course?.skills ?? []) {
+        for (const exo of skill.exos) {
+          if (exo.folder == path) {
+            return exo;
+          }
+        }
+      }
+      return undefined;
     },
 
     switchExo(increment: number) {
@@ -54,7 +77,9 @@ export const useTrainStore = defineStore("train", {
 
     async loadCourse(course_path: string) {
       const global = useGlobalStore();
-      const result = await commands.getFullCourseDetails(course_path);
+      const channel = new Channel<ExoStatusReport>();
+      channel.onmessage = this.onExoStatusChange;
+      const result = await commands.loadFullCourseDetails(course_path, channel);
       if (result.status == "ok") {
         this.course = result.data;
         global.page = "course";
@@ -63,18 +88,29 @@ export const useTrainStore = defineStore("train", {
       }
     },
 
+    onExoStatusChange(status: ExoStatusReport) {
+      const live = useLiveStore();
+      this.exo_status = status;
+      if (status.compilation_success != this.exo_status.compilation_success) {
+        // live.send_check(status)
+      }
+    },
+
     async startExo() {
+      this.in_live_session;
+      this.exo_status = undefined;
       const exo = this.currentExo();
       if (!exo) return;
-      const result = await commands.startExo(exo.folder);
-      alert(result);
+      const result = await commands.sendUiActionToApp({
+        type: "StartExo",
+        content: { exo_folder: exo.folder },
+      });
     },
 
     async stopExo() {
-      const exo = this.currentExo();
-      if (!exo) return;
-      const result = await commands.stopExo(exo.folder);
-      alert(result);
+      const result = await commands.sendUiActionToApp({
+        type: "StopExo",
+      });
     },
   },
 });
