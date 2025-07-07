@@ -133,6 +133,7 @@ export enum ClientRole {
 export type Event =
   | { type: "SessionStopped"; content?: undefined }
   | { type: "SessionJoined"; content: ClientNum }
+  | { type: "SessionLeaved"; content?: undefined }
   | { type: "SessionsList"; content: Session[] }
   | { type: "Stats"; content: SessionStats }
   | { type: "ServerStopped"; content?: undefined }

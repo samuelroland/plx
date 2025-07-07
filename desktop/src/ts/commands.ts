@@ -70,11 +70,11 @@ export const commands = {
 
 /** user-defined constants **/
 
-export const PROTOCOL_VERSION = "0.1.0" as const;
-export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
 export const DEFAULT_LIVE_PORT = 9120 as const;
+export const PROTOCOL_VERSION = "0.1.0" as const;
 export const QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD =
   "live_protocol_version" as const;
+export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
 
 /** user-defined types **/
 
@@ -85,7 +85,7 @@ export type Check = { name: string; args?: string[]; test: CheckTest };
 /**
  * Handles the check and it's current status
  */
-export type CheckState = { check: Check; status: CheckStatus };
+export type CheckState = { status: CheckStatus };
 /**
  * Represents the status of a check
  */
