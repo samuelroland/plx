@@ -1,7 +1,7 @@
 // This a global Pinia store to store and change the state of everything related to a live session
 
 import { defineStore } from "pinia";
-import { CourseInfo, DEFAULT_LIVE_PORT } from "../ts/commands";
+import { commands, CourseInfo, DEFAULT_LIVE_PORT } from "../ts/commands";
 import {
   Event,
   Action,
@@ -15,6 +15,7 @@ import {
 } from "../ts/bindings";
 import { LiveClient } from "../client";
 import { useGlobalStore } from "./GlobalStore";
+import { useTrainStore } from "./TrainStore";
 
 export interface Answer {
   client_num: ClientNum;
@@ -105,6 +106,7 @@ export const useLiveStore = defineStore("live", {
 // Define the logic to react on an Event received from the server via LiveClient
 function onEvent(event: Event) {
   const live = useLiveStore();
+  const train = useTrainStore();
   console.log("Got event", event);
   switch (event.type) {
     case "SessionStopped":
@@ -128,6 +130,12 @@ function onEvent(event: Event) {
     case "ServerStopped":
       break;
     case "ExoSwitched":
+      if (train.in_live_session) {
+        train.current_live_exo = train.findExo(event.content.path);
+        if (!train.current_live_exo) {
+          alert("exo not found " + event.content.path);
+        }
+      }
       break;
 
     case "ForwardFile": {
@@ -174,7 +182,12 @@ function onEvent(event: Event) {
   const global = useGlobalStore();
   // Handle page switch
   if (live.sessionInProgress) {
-    global.page = "dashboard";
+    if (live.role == ClientRole.Follower) {
+      train.in_live_session = true;
+      global.page = "train";
+    } else {
+      global.page = "dashboard";
+    }
   }
 
   console.log("liveStore", live);
