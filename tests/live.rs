@@ -10,7 +10,7 @@ use std::{
 
 use plx::live::{
     client::LiveClient,
-    msg::{Action, ClientNum, Event, ForwardedFile, LiveProtocolError},
+    msg::{Action, ClientNum, Event, ForwardedFile, LiveProtocolError, SessionStats},
     server::{LiveServer, PROTOCOL_VERSION},
     session::Session,
 };
@@ -34,7 +34,7 @@ fn spawn_test_server() -> u16 {
         server.start(random_dynamic_port, false);
     });
     // just a short sleep so the server has time to start before clients start connecting
-    thread::sleep(Duration::from_millis(100));
+    thread::sleep(Duration::from_millis(90));
     random_dynamic_port
 }
 
@@ -283,6 +283,62 @@ fn session_continues_to_exist_when_leader_disconnects() {
     }
 
     assert_eq!(c1.get_sessions("PRG2group".to_string()).unwrap(), vec![]);
+}
+
+#[test]
+#[ntest::timeout(2000)]
+fn client_can_leave_session_and_leader_can_receive_stats() {
+    let c = &mut spawn_server_and_n_clients(3);
+    c[0].start_session(NAME, GROUP_ID).unwrap();
+    c[1].join_session(NAME, GROUP_ID).unwrap();
+    assert_events_eq(
+        &c[0].wait_on_next_event().unwrap(),
+        &Event::Stats({
+            SessionStats {
+                followers_count: 1,
+                leaders_count: 1,
+            }
+        }),
+    );
+    c[2].join_session(NAME, GROUP_ID).unwrap();
+    assert_events_eq(
+        &c[0].wait_on_next_event().unwrap(),
+        &Event::Stats({
+            SessionStats {
+                followers_count: 2,
+                leaders_count: 1,
+            }
+        }),
+    );
+
+    c[1].leave_session();
+    let session_leaved = c[1].wait_on_next_event().unwrap();
+    assert_events_eq(&session_leaved, &Event::SessionLeaved);
+    assert_events_eq(
+        &c[0].wait_on_next_event().unwrap(),
+        &Event::Stats({
+            SessionStats {
+                followers_count: 1,
+                leaders_count: 1,
+            }
+        }),
+    );
+    c[0].leave_session();
+    let session_leaved = c[0].wait_on_next_event().unwrap();
+    assert_events_eq(&session_leaved, &Event::SessionLeaved);
+}
+
+#[test]
+#[ntest::timeout(2000)]
+fn client_cannot_leave_session_when_not_joined() {
+    let c = &mut spawn_server_and_n_clients(3);
+    c[0].start_session(NAME, GROUP_ID).unwrap();
+    c[1].leave_session();
+    let error = c[1].wait_on_next_event().unwrap();
+    if let Event::Error(LiveProtocolError::FailedToLeaveSession) = error {
+    } else {
+        panic!("{:?}", error)
+    }
 }
 
 #[test]

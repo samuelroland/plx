@@ -63,6 +63,7 @@ pub enum Action {
 pub enum Event {
     SessionStopped,
     SessionJoined(ClientNum),
+    SessionLeaved,
     SessionsList(Vec<Session>),
     Stats(SessionStats),
     ServerStopped,

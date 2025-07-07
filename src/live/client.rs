@@ -192,6 +192,11 @@ impl LiveClient {
         })
     }
 
+    /// Non blocking way to leave the session
+    pub fn leave_session(&mut self) {
+        self.send_msg(Action::LeaveSession);
+    }
+
     /// Send a file content after a change
     pub fn send_file(&mut self, file: String, content: String) {
         self.send_msg(Action::SendFile {

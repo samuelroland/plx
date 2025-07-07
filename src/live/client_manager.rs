@@ -206,6 +206,7 @@ impl ClientManager {
                                 session.session_tx.clone(),
                             );
                             self.session = None;
+                            self.send_event(Event::SessionLeaved).await;
                         }
                         None => {
                             self.send_error(LiveProtocolError::FailedToLeaveSession)
