@@ -8,7 +8,7 @@ pub mod models;
 
 fn main() {
     WriteLogger::init(
-        LevelFilter::Trace,
+        LevelFilter::Debug,
         Config::default(),
         File::create("debug.log").expect("Failed to create log file"),
     )
