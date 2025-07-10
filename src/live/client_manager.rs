@@ -111,7 +111,11 @@ impl ClientManager {
             Some(Ok(msg)) => {
                 let maybe_action = Action::try_from(msg.into_text().unwrap());
                 if let Ok(action) = &maybe_action {
-                    println!("SERVER: Received from {}: {action:#?}", self.client_id);
+                    println!(
+                        "SERVER: Received from {}: {}",
+                        self.client_id,
+                        serde_json::to_string_pretty(&action).unwrap_or("??".to_string())
+                    );
                 }
                 match maybe_action {
                     Ok(Action::StartSession { name, group_id }) => {
@@ -290,7 +294,11 @@ impl ClientManager {
     }
 
     async fn send_event(&mut self, event: Event) {
-        println!("SERVER: Sending to {}: {event:#?}", self.client_id);
+        println!(
+            "SERVER: Sending to {}: {}",
+            self.client_id,
+            serde_json::to_string_pretty(&event).unwrap_or("??".to_string())
+        );
         let _ = self
             .websocket
             .send(Message::Text(event.try_into().unwrap()))
