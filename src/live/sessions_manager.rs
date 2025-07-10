@@ -6,9 +6,9 @@ use tokio::sync::RwLock;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{
-    client_manager::ClientRole,
-    protocol::{ClientNum, Event, LiveProtocolError},
-    session::{BroadcastAction, Session, SessionBroadcaster},
+    protocol::ClientRole,
+    protocol::{ClientNum, Event, LiveProtocolError, Session},
+    session::{BroadcastAction, SessionBroadcaster},
 };
 
 struct SessionState {

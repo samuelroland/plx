@@ -13,11 +13,10 @@ use tokio_tungstenite::{tungstenite::stream::MaybeTlsStream, WebSocketStream};
 use url::Url;
 
 use super::{
-    protocol::{Action, ClientNum, Event, ExoCheckResult, LiveProtocolError},
+    protocol::{Action, ClientNum, Event, ExoCheckResult, LiveProtocolError, Session},
     server::{
         PROTOCOL_VERSION, QUERYSTRING_LIVE_CLIENT_ID_FIELD, QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
     },
-    session::Session,
 };
 use tokio_tungstenite::tungstenite;
 

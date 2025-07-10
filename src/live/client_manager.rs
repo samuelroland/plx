@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 // Client management on the server side of the live protocol
 use super::{
-    protocol::{Action, ClientNum, Event, ForwardedFile, ForwardedResult, LiveProtocolError},
+    protocol::{
+        Action, ClientNum, ClientRole, Event, ForwardedFile, ForwardedResult, LiveProtocolError,
+    },
     session::BroadcastAction,
     sessions_manager::SessionsManager,
 };
@@ -15,17 +17,6 @@ use tokio::{
 };
 use tokio_stream::StreamExt;
 use tokio_tungstenite::tungstenite::{Error, Message};
-use typeshare::typeshare;
-
-#[derive(Eq, PartialEq, Debug, Clone)]
-#[typeshare]
-pub enum ClientRole {
-    /// Default role, for anyone following a session
-    Follower,
-    /// When the client creates a session, it becames a leader client.
-    /// When the session is stopped, it become a `Follower` again.
-    Leader,
-}
 
 /// Manager of a connected client on the server, it owns the websocket connexion
 /// It is responsible to wait on the websocket.read() and external_write_rx.read()

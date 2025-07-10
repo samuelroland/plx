@@ -9,7 +9,42 @@ use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 
-use super::session::Session;
+// PROTOCOL CONCEPTS
+
+/// A live session, this is the representation sent to clients
+/// when listing all sessions or after session creation
+#[derive(Serialize, Deserialize, Eq, Ord, PartialOrd, PartialEq, Clone, Debug, Type)]
+#[typeshare]
+pub struct Session {
+    /// An arbitrary name defined by the leader to help followers choose the correct sessions
+    /// among the multiple live sessions at the same time on the same group_id
+    /// We imagine it could be named like "Course name - Teacher fullname"
+    pub name: String,
+    /// The group id is a way to group related sessions together.
+    /// This can be an arbitrary string chosen by leader clients when creating a session.
+    /// Listing available sessions can only be done via this group_id to filter the list
+    /// By default, PLX clients will send the Git HTTPS link
+    pub group_id: String,
+}
+
+/// A incremental number attributed by the server to each client after session join, to let clients identify other clients.
+/// This MUST NOT be derived from the secret client_id, this ClientNum is not secret but should be different at each session.
+#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Clone, Debug, Type)]
+#[typeshare]
+pub struct ClientNum(pub u16);
+
+#[derive(Eq, PartialEq, Debug, Clone)]
+#[typeshare]
+/// The role of a client attributed when has joined a session
+pub enum ClientRole {
+    /// Default role, for anyone following a session
+    Follower,
+    /// When the client creates a session, it becames a leader client.
+    /// When the session is stopped, it become a `Follower` again.
+    Leader,
+}
+
+// MESSAGES
 
 // TODO: Temporary copy in waiting of refactor to access that
 #[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
@@ -146,12 +181,6 @@ pub struct ForwardedResult {
     #[serde(with = "ts_seconds")]
     pub time: DateTime<Utc>,
 }
-
-/// A incremental number attributed by the server to each client after session join, to let clients identify other clients.
-/// This MUST NOT be derived from the secret client_id, this ClientNum is not secret but should be different at each session.
-#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Clone, Debug, Type)]
-#[typeshare]
-pub struct ClientNum(pub u16);
 
 // Implement serialisation and deserialisation strategy for Event and Action.
 // Currently this is using JSON via serde_json

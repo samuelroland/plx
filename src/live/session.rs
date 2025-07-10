@@ -1,30 +1,7 @@
-use specta_macros::Type;
 use std::collections::HashMap;
-use typeshare::typeshare;
-
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use super::{
-    client_manager::ClientRole,
-    protocol::{ClientNum, Event, SessionStats},
-};
-
-/// A live session, this is the representation sent to clients
-/// when listing all sessions or after session creation
-#[derive(Serialize, Deserialize, Eq, Ord, PartialOrd, PartialEq, Clone, Debug, Type)]
-#[typeshare]
-pub struct Session {
-    /// An arbitrary name defined by the leader to help followers choose the correct sessions
-    /// among the multiple live sessions at the same time on the same group_id
-    /// We imagine it could be named like "Course name - Teacher fullname"
-    pub name: String,
-    /// The group id is a way to group related sessions together.
-    /// This can be an arbitrary string chosen by leader clients when creating a session.
-    /// Listing available sessions can only be done via this group_id to filter the list
-    /// By default, PLX clients will send the Git HTTPS link
-    pub group_id: String,
-}
+use super::protocol::{ClientNum, ClientRole, Event, SessionStats};
 
 /// An action around a broadcasting need
 #[derive(Debug)]
