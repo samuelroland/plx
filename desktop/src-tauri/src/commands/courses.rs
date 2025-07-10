@@ -6,12 +6,7 @@ use plx::{
     live::config::LiveConfig,
     models::project::Project,
 };
-use std::{
-    fs::{create_dir, create_dir_all},
-    path::PathBuf,
-    sync::{mpsc, Mutex},
-    thread,
-};
+use std::{fs::create_dir_all, path::PathBuf, sync::mpsc, thread};
 use tauri::{ipc::Channel, AppHandle, Manager};
 
 use etcetera::{AppStrategy, AppStrategyArgs};

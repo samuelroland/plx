@@ -76,7 +76,7 @@ impl App {
             Ok((project, warnings)) => (project, warnings),
             Err((err, _warnings)) => {
                 // TODO handle these warnings even in case of failure
-                return Err(CoreInitError::ProjFilesParsingError(format!("{:?}", err)));
+                return Err(CoreInitError::ProjFilesParsingError(format!("{err:?}")));
             }
         };
         let (event_tx, event_rx) = mpsc::channel();
@@ -104,7 +104,7 @@ impl App {
     /// Send a the updated ExoStatusReport to the UI
     pub(super) fn send_new_exo_status(&mut self) {
         if let Some(status) = &self.current_run {
-            self.exo_status_tx.send(status.clone());
+            let _ = self.exo_status_tx.send(status.clone());
         }
     }
 
@@ -114,7 +114,7 @@ impl App {
     pub fn run_forever(mut self) {
         while self.run {
             if let Ok(event) = self.event_rx.recv() {
-                info!("{:?}", event);
+                info!("{event:?}");
                 match event {
                     Event::RequestedAction(action) => self.on_ui_action(action),
                     Event::EditorOpened => {}
@@ -177,15 +177,15 @@ impl App {
         let compiler = exo
             .compiler()
             .ok_or(CompilationStartError::CompilerNotSupported)?;
-        info!("Compiler: {:#?}", compiler);
+        info!("Compiler: {compiler:#?}");
 
         let folder = generate_build_folder(exo).map_err(|err| {
-            error!("Error generation build folder ({})", err);
+            error!("Error generation build folder ({err})");
             CompilationStartError::BuildFolderGenerationFailed
         })?;
-        info!("Folder: {:#?}", folder);
+        info!("Folder: {folder:#?}");
         let output_path = if cfg!(windows) {
-            folder.join(format!("{}.exe", TARGET_FILE_BASE_NAME))
+            folder.join(format!("{TARGET_FILE_BASE_NAME}.exe"))
         } else {
             folder.join(TARGET_FILE_BASE_NAME)
         };
@@ -194,7 +194,7 @@ impl App {
         info!("Command: {:#?}", runner.get_full_command());
         App::start_work(wh, Box::new(runner))
             .ok_or(CompilationStartError::ErrorStartingCompileProcess)?;
-        return Ok(output_path);
+        Ok(output_path)
     }
 
     /// Cleans the previous run by stopping and waiting for every non UI worker to finish
@@ -215,6 +215,7 @@ impl App {
     /// - Open the editor. See `open_editor` for more details
     /// - Compile. See `compile` for more details
     /// - Setup this exercise file watchers. See `start_watcher` for more details
+    ///
     /// Every step but the first is done using a separate worker
     /// so this function doesn't block
     /// Returns a `ExoStatusReport` if the exo was successfully started
@@ -228,8 +229,7 @@ impl App {
         // TODO warn user if we couldn't open editor but ignore error for now so it doesn't stop us
         // from launching
         let _ = App::open_editor(wh, exo); // Ignore Error while opening editor for now
-        let output_path =
-            App::compile(wh, exo).map_err(|err| StartExoFail::CouldNotStartCompilation(err))?;
+        let output_path = App::compile(wh, exo).map_err(StartExoFail::CouldNotStartCompilation)?;
         App::start_watcher(wh, exo);
 
         Ok(ExoStatusReport::new(exo, output_path))
@@ -268,7 +268,7 @@ impl App {
                     Arc::clone(&cr.check_results[id].state.check),
                     cr.check_results[id].output.join("\n"),
                 );
-                return Some(App::start_work(&self.work_handler, Box::new(checker))?);
+                return App::start_work(&self.work_handler, Box::new(checker));
             }
         }
         None

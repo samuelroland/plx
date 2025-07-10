@@ -1,8 +1,5 @@
 mod commands;
-use std::sync::{
-    mpsc::{Receiver, Sender},
-    Mutex,
-};
+use std::sync::{mpsc::Sender, Mutex};
 
 use commands::{
     courses::{clone_course, get_local_courses, load_full_course_details},
@@ -13,7 +10,6 @@ use commands::{
 };
 
 use plx::{
-    app::exo_status_report::ExoStatusReport,
     live::server::{
         DEFAULT_LIVE_PORT, PROTOCOL_VERSION, QUERYSTRING_LIVE_CLIENT_ID_FIELD,
         QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
