@@ -39,12 +39,16 @@ pub struct ClientManager {
     pub client_id: String,
     /// The WebSocket where the client is connected, on which we can send() or read()
     pub websocket: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
-    pub session: Option<SessionLink>,
+
+    /// Keeping the link with the SessionBroadcaster
+    session: Option<SessionLink>,
+
+    /// Keeping a reference to the SessionsManager, when we need to ask to do changes on the global sessions list
     pub sessions_manager: Arc<SessionsManager>,
 }
 
-/// Keeping a link to the session via message passing in both directions
-pub struct SessionLink {
+/// Keeping a link to the SessionBroadcaster via message passing in both directions
+struct SessionLink {
     /// Allow to send a message from the session manager to this client
     pub client_rx: UnboundedReceiver<Event>,
     /// Keep a copy of the tx so we can pass it to SessionAction
@@ -59,6 +63,18 @@ pub struct SessionLink {
 }
 
 impl ClientManager {
+    pub fn new(
+        client_id: String,
+        websocket: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
+        sessions_manager: Arc<SessionsManager>,
+    ) -> Self {
+        Self {
+            client_id,
+            websocket,
+            session: None,
+            sessions_manager,
+        }
+    }
     pub async fn run(&mut self) {
         println!("ClientManager for new client");
         loop {

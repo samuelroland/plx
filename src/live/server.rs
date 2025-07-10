@@ -154,12 +154,7 @@ impl LiveServer {
                     let _ = websocket.close(None).await;
                     return;
                 }
-                let mut client_manager = ClientManager {
-                    client_id,
-                    websocket,
-                    session: None,
-                    sessions_manager,
-                };
+                let mut client_manager = ClientManager::new(client_id, websocket, sessions_manager);
 
                 // Let the client continue in its own separated task
                 tokio::spawn(async move {
