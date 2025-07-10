@@ -85,13 +85,13 @@ onMounted(() => {
                         <div class="flex-1">
                             <span class="mr-3">{{ (train.selectedSkillIdx + 1) + "." + (idx + 1) }}</span>{{ exo.name }}
                         </div>
-                        <span>{{ exo.state }}</span>
+                        <span class="hidden md:block">{{ exo.state }}</span>
                     </div>
                 </div>
             </div>
 
             <!-- exo preview -->
-            <div class="flex-3">
+            <div class="flex-3 hidden lg:block">
                 <CodeExo v-if="train.currentExo() != undefined && train.exosSelection" :exo="train.currentExo()">
                 </CodeExo>
             </div>
