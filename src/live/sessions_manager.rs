@@ -5,10 +5,9 @@ use tokio::sync::RwLock;
 
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::msg::LiveProtocolError;
 use super::{
     client_manager::ClientRole,
-    msg::{ClientNum, Event},
+    protocol::{ClientNum, Event, LiveProtocolError},
     session::{BroadcastAction, Session, SessionBroadcaster},
 };
 

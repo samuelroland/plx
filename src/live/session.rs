@@ -7,7 +7,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use super::{
     client_manager::ClientRole,
-    msg::{ClientNum, Event, SessionStats},
+    protocol::{ClientNum, Event, SessionStats},
 };
 
 /// A live session, this is the representation sent to clients

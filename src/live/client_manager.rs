@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
-use crate::live::msg::LiveProtocolError;
-
 // Client management on the server side of the live protocol
 use super::{
-    msg::{Action, ClientNum, Event, ForwardedFile, ForwardedResult},
+    protocol::{Action, ClientNum, Event, ForwardedFile, ForwardedResult, LiveProtocolError},
     session::BroadcastAction,
     sessions_manager::SessionsManager,
 };

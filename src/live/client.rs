@@ -13,18 +13,13 @@ use tokio_tungstenite::{tungstenite::stream::MaybeTlsStream, WebSocketStream};
 use url::Url;
 
 use super::{
-    msg::{Action, Event},
+    protocol::{Action, ClientNum, Event, ExoCheckResult, LiveProtocolError},
     server::{
         PROTOCOL_VERSION, QUERYSTRING_LIVE_CLIENT_ID_FIELD, QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
     },
-};
-
-use tokio_tungstenite::tungstenite;
-
-use super::{
-    msg::{ClientNum, ExoCheckResult, LiveProtocolError},
     session::Session,
 };
+use tokio_tungstenite::tungstenite;
 
 type Ws = WebSocketStream<MaybeTlsStream<TcpStream>>;
 pub struct LiveClient {
@@ -167,7 +162,7 @@ impl LiveClient {
                 group_id: group_id.to_string(),
             })
         } else {
-            Err(format!("{:?}", event))
+            Err(format!("{event:?}"))
         }
     }
 

@@ -10,7 +10,7 @@ use std::{
 
 use plx::live::{
     client::LiveClient,
-    msg::{Action, ClientNum, Event, ForwardedFile, LiveProtocolError, SessionStats},
+    protocol::{Action, ClientNum, Event, ForwardedFile, LiveProtocolError, SessionStats},
     server::{LiveServer, PROTOCOL_VERSION},
     session::Session,
 };

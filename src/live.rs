@@ -1,6 +1,6 @@
 pub mod client;
 pub mod config;
-pub mod msg;
+pub mod protocol;
 pub mod server;
 pub mod session;
 // This should be kept private
