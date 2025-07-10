@@ -12,7 +12,7 @@ import {
   Session,
   SessionStats,
   ExoCheckResult,
-} from "../ts/bindings";
+} from "../ts/shared";
 import { LiveClient } from "../client";
 import { useGlobalStore } from "./GlobalStore";
 import { useTrainStore } from "./TrainStore";

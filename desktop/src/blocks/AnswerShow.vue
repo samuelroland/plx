@@ -2,7 +2,7 @@
 
 import { Answer } from '../stores/LiveStore';
 import Code from './Code.vue';
-import { CheckStatus, ExoCheckResult, ForwardedFile } from '../ts/bindings';
+import { CheckStatus, ExoCheckResult, ForwardedFile } from '../ts/shared';
 import CheckResultBox from './CheckResultBox.vue';
 
 let props = defineProps<{ answer: Answer }>()
@@ -35,7 +35,7 @@ function sortCheckResults(results: Map<number, ExoCheckResult>) {
         <!-- header of the answer -->
         <div class="flex">
             <div class="flex-1"><span class="font-bold">{{ answer.client_num }}</span> at {{ lastFileTime(answer.files)
-            }}</div>
+                }}</div>
             <div v-for="(result, idx) in sortCheckResults(answer.checks_status)">
                 <CheckResultBox :check="result"></CheckResultBox>
             </div>

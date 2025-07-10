@@ -3,7 +3,7 @@ import {
   QUERYSTRING_LIVE_CLIENT_ID_FIELD,
   QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
 } from "./ts/commands";
-import { Event, Action } from "./ts/bindings.ts";
+import { Event, Action } from "./ts/shared.ts";
 import { useLiveStore } from "./stores/LiveStore.ts";
 
 QUERYSTRING_LIVE_CLIENT_ID_FIELD;
