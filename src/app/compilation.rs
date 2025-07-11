@@ -13,7 +13,7 @@ impl App {
     }
     pub(super) fn on_compilation_output(&mut self, line: String) {
         if let Some(ref mut cr) = self.current_run {
-            cr.compilation_output.push(line);
+            cr.compilation_output.push_str(&format!("{line}\n"));
             cr.compilation_running = true;
             self.send_new_exo_status();
         }

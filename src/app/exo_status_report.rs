@@ -17,7 +17,7 @@ use super::exo_check_result::ExoCheckResult;
 pub struct ExoStatusReport {
     pub(super) check_results: Vec<ExoCheckResult>,
     #[serde(serialize_with = "terminal_lines_to_html")]
-    pub(super) compilation_output: Vec<String>,
+    pub(super) compilation_output: String,
     pub(super) compilation_success: bool,
     pub(super) compilation_running: bool,
     #[serde(skip_serializing)]
@@ -28,14 +28,13 @@ pub struct ExoStatusReport {
 
 /// Serialize terminal lines as HTML, by converting ANSI codes to HTML equivalent
 /// The HTML is styled with inline CSS and doesn't need any external CSS definitions
-fn terminal_lines_to_html<S>(lines: &[String], s: S) -> Result<S::Ok, S::Error>
+fn terminal_lines_to_html<S>(lines: &str, s: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
+    // TODO: could this cause XSS ?? should this be sanitized with ammonia ?
     let converter = ansi_to_html::Converter::new();
-    let result = converter
-        .convert(&lines.join("\n"))
-        .unwrap_or_else(|e| e.to_string());
+    let result = converter.convert(lines).unwrap_or_else(|e| e.to_string());
     s.serialize_str(&result)
 }
 
@@ -46,7 +45,7 @@ impl ExoStatusReport {
 
         Self {
             check_results: checkers,
-            compilation_output: Vec::new(),
+            compilation_output: String::new(),
             compilation_success: false,
             compilation_running: false,
             elf_path,
