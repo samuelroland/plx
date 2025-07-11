@@ -29,6 +29,14 @@ input {
 li {
     @apply list-decimal
 }
+
+
+/* Make sure code inside a <pre> doesn't go outside it's box */
+pre {
+    overflow: hidden;
+    text-wrap: wrap;
+}
+
 .diff-plus {
     @apply bg-green-200
 }
