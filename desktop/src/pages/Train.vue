@@ -22,7 +22,6 @@ onMounted(() => {
 
 <template>
     <div class="h-full w-full px-5">
-        <h3>Training {{ train.in_live_session ? "in live session" : "locally" }}</h3>
         <CodeExo :exo="train.currentExo()" :exo_status="train.exo_status"></CodeExo>
     </div>
 </template>

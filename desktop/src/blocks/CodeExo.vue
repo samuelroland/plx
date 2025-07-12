@@ -3,7 +3,7 @@ import { useLiveStore } from '../stores/LiveStore';
 import { Exo, ExoCheckResult, ExoStatusReport } from '../ts/commands';
 import Markdown from './Markdown.vue';
 
-const props = defineProps<{ exo: Exo | undefined, exo_status?: ExoStatusReport | undefined }>()
+defineProps<{ exo: Exo | undefined, exo_status?: ExoStatusReport | undefined }>()
 
 // Display CLI arguments as string, use JSON.stringify in case it needs to have escapes and quotes shown
 function argsify(args: string[]): string {
@@ -48,26 +48,33 @@ function anonymizeText(given: string) {
     <div>
         <h2>Checks</h2>
         <div v-for="(check, idx) in exo?.checks">
-            <h3 class="px-1 rounded-sm" :class="bgFromCheckResult(exo_status?.compilation_success ?? false, exo_status?.check_results[idx])">
+            <h3 class="px-1 rounded-sm"
+                :class="bgFromCheckResult(exo_status?.compilation_success ?? false, exo_status?.check_results[idx])">
                 <span class="font-bold">C{{ idx + 1 }}:</span>
                 {{ check.name }}
             </h3>
             <div v-if="exo_status?.check_results[idx].state.status.type != 'Passed'">
-            <h4 v-if="check.args && check.args.length > 0">Arguments: <span class="text-lg text-gray-500 font-mono">{{ argsify(check.args ?? []) }}</span></h4>
+                <h4 v-if="check.args && check.args.length > 0">Arguments: <span
+                        class="text-lg text-gray-500 font-mono">{{
+                            argsify(check.args ?? []) }}</span></h4>
                 <h4>Expected</h4>
                 <pre class="px-2 py-1 rounded-md">{{ check.test.expected }}</pre>
+            </div>
 
+            <!-- If the exo status does exist, show the given output and the diff, except if the check has passed -->
+            <div v-if="exo_status?.check_results[idx] && exo_status?.check_results[idx].state.status.type != 'Passed'">
                 <div v-if="exo_status">
-                    <div
-                        v-if="exo_status?.check_results[idx] ">
+                    <div v-if="exo_status?.check_results[idx] && exo_status?.check_results[idx].output.length == 0">
                         <h4 class="inline">Given</h4>
-                        <pre v-if="exo_status?.check_results[idx].output.length > 0" class="px-2 py-1 rounded-md">{{ exo_status?.check_results[idx].output.join("\n") }}</pre>
-                        <span v-else class="ml-3 text-gray-800">
+                        <!-- <pre v-if="exo_status?.check_results[idx].output.length > 0" class="px-2 py-1 rounded-md">{{ -->
+                        <!--     exo_status?.check_results[idx].output.join("\n") }}</pre> -->
+                        <span class="ml-3 text-gray-800">
                             <em>empty</em>
                         </span>
                     </div>
 
-                    <div v-if="exo_status?.check_results[idx].state.status.type == 'Failed' && exo_status?.check_results[idx].output.length > 0">
+                    <div
+                        v-if="exo_status?.check_results[idx] && exo_status?.check_results[idx].state.status.type == 'Failed' && exo_status?.check_results[idx].output.length > 0">
                         <h4>Diff</h4>
 
                         <!-- <span class="diff-minus">Given</span> <span class="diff-plus">Expected</span> -->

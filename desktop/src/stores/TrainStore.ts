@@ -101,14 +101,14 @@ export const useTrainStore = defineStore("train", {
       this.exo_status = undefined;
       const exo = this.currentExo();
       if (!exo) return;
-      const result = await commands.sendUiActionToApp({
+      await commands.sendUiActionToApp({
         type: "StartExo",
         content: { exo_folder: exo.folder },
       });
     },
 
     async stopExo() {
-      const result = await commands.sendUiActionToApp({
+      await commands.sendUiActionToApp({
         type: "StopExo",
       });
     },
