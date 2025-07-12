@@ -10,9 +10,8 @@ use std::{
 
 use plx::live::{
     client::LiveClient,
-    protocol::{Action, ClientNum, Event, ForwardedFile, LiveProtocolError, SessionStats},
+    protocol::{Action, ClientNum, Event, ForwardedFile, LiveProtocolError, Session, SessionStats},
     server::{LiveServer, PROTOCOL_VERSION},
-    session::Session,
 };
 
 // Used most of the time as session name and group_id

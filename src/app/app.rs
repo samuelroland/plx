@@ -12,7 +12,7 @@ use crate::{
     },
     models::{
         check_state::CheckStatus, constants::TARGET_FILE_BASE_NAME, event::Event, exo::Exo,
-        project::Project, ui_action::UiAction, ui_state::UiState,
+        project::Project, ui_action::UiAction,
     },
 };
 use log::{error, info};
@@ -33,7 +33,6 @@ use super::{
 /// App struct
 /// Holds the state of the application
 pub struct App {
-    pub(super) ui_state: UiState,
     pub(super) project: Project,
     pub(super) work_handler: Arc<Mutex<WorkHandler>>,
     pub(super) event_rx: Receiver<Event>,
@@ -90,7 +89,6 @@ impl App {
         });
 
         let app = App {
-            ui_state: UiState::Home,
             project,
             work_handler,
             event_rx,
