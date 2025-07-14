@@ -121,7 +121,7 @@ pub enum Event {
 /// that resolved in an error that is worth sending back to the client
 #[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Debug, AsRefStr)]
 #[typeshare]
-#[serde(tag = "type", content = "content")]
+#[serde(tag = "type", content = "reason")]
 pub enum LiveProtocolError {
     FailedToStartSession(String),
     FailedToJoinSession(String),
