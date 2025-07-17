@@ -3,7 +3,7 @@
 ![logo of PLX](imgs/logo.svg)
 </center>
 
-### **P**ractice programming exos in a delightful **L**earning e**X**perience
+### **P**ractice programming exos in a deliberate **L**earning e**X**perience
 
 ###### Useful links
 [Website](https://plx.rs) -
