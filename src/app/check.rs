@@ -1,6 +1,6 @@
 use crate::{
     core::diff::diff::Diff,
-    models::{check::CheckTest, check_state::CheckStatus, course::Project, exo_state::ExoState},
+    models::{check::CheckTest, check_state::CheckStatus, course::Course, exo_state::ExoState},
 };
 
 use super::app::App;
@@ -60,7 +60,7 @@ impl App {
     fn on_new_check_update(&mut self) {
         if let Some(ref cr) = self.current_run {
             // Keep the same scroll offset if we're already checking the results
-            Project::set_exo_state(&cr.exo, ExoState::InProgress);
+            Course::set_exo_state(&cr.exo, ExoState::InProgress);
             self.send_new_exo_status();
         }
     }

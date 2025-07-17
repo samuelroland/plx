@@ -4,7 +4,7 @@ use typeshare::typeshare;
 
 use crate::{
     core::{file_utils::file_parser::ParseError, parser::object_creator::create_object_from_file},
-    models::course::Project,
+    models::course::Course,
 };
 
 pub const LIVECONFIG_FILENAME: &str = "live.toml";
@@ -18,7 +18,7 @@ pub struct LiveConfig {
 }
 
 impl LiveConfig {
-    pub fn from_course(project: &Project) -> Result<Self, ParseError> {
+    pub fn from_course(project: &Course) -> Result<Self, ParseError> {
         create_object_from_file(&project.get_folder().join(LIVECONFIG_FILENAME))
     }
 }

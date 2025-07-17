@@ -22,7 +22,7 @@ use super::{
 
 #[serde_as]
 #[derive(Serialize, Debug, PartialEq, Eq, Type)]
-pub struct Project {
+pub struct Course {
     pub name: String,
     // Fix serialization by using it as a normal Vec
     #[serde_as(as = "Vec<_>")]
@@ -36,7 +36,7 @@ pub(crate) struct ProjectInfo {
     #[serde(rename = "skills")]
     skill_folders: Vec<std::path::PathBuf>,
 }
-impl Project {
+impl Course {
     pub fn get_folder(&self) -> PathBuf {
         self.folder.clone()
     }
@@ -54,19 +54,19 @@ impl Project {
     }
     // Set exo state and store it in file
     pub fn set_exo_state(exo: &Exo, state: ExoState) {
-        let mut info = Project::read_exo_state_info(exo);
+        let mut info = Course::read_exo_state_info(exo);
         info.state = state;
-        Project::save_exo_state(exo, &info);
+        Course::save_exo_state(exo, &info);
     }
     // Set exo as favorite or not and store it in file
     pub fn set_exo_favorite(exo: &Exo, is_favorite: bool) {
-        let mut info = Project::read_exo_state_info(exo);
+        let mut info = Course::read_exo_state_info(exo);
         info.favorite = is_favorite;
-        Project::save_exo_state(exo, &info);
+        Course::save_exo_state(exo, &info);
     }
 }
 
-impl FromDir for Project {
+impl FromDir for Course {
     ///
     /// Tries to build a project from dir
     /// Returns Ok if we were able to parse the project info and at least one skill
@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn test_example_full() {
         let project_path = std::path::PathBuf::from_str("examples/full").unwrap();
-        let ret = Project::from_dir(&project_path);
+        let ret = Course::from_dir(&project_path);
 
         println!("{:#?}", ret);
         assert!(ret.is_ok());
@@ -152,8 +152,8 @@ mod tests {
     #[test]
     fn test_full_hierarchy() {
         let project_path = std::path::PathBuf::from_str("examples/mock-plx-project").unwrap();
-        let project = Project::from_dir(&project_path);
-        let expected  = Project {
+        let project = Course::from_dir(&project_path);
+        let expected  = Course {
             name: String::from("Full fictive course"),
             folder: project_path.clone(),
             skills: Arc::new(vec![

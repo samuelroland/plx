@@ -11,7 +11,7 @@ use crate::{
         work::{work::Work, work_handler::WorkHandler},
     },
     models::{
-        check_state::CheckStatus, constants::TARGET_FILE_BASE_NAME, course::Project, event::Event,
+        check_state::CheckStatus, constants::TARGET_FILE_BASE_NAME, course::Course, event::Event,
         exo::Exo, ui_action::UiAction,
     },
 };
@@ -33,7 +33,7 @@ use super::{
 /// App struct
 /// Holds the state of the application
 pub struct App {
-    pub(super) project: Project,
+    pub(super) project: Course,
     pub(super) work_handler: Arc<Mutex<WorkHandler>>,
     pub(super) event_rx: Receiver<Event>,
     exo_status_tx: Sender<ExoStatusReport>,
@@ -71,7 +71,7 @@ impl App {
         ui_action_rx: Receiver<UiAction>,
     ) -> Result<Self, CoreInitError> {
         // TODO these warnings should be accessible to the user
-        let (project, _warnings) = match Project::from_dir(folder) {
+        let (project, _warnings) = match Course::from_dir(folder) {
             Ok((project, warnings)) => (project, warnings),
             Err((err, _warnings)) => {
                 // TODO handle these warnings even in case of failure
