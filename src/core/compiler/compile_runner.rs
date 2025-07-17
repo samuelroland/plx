@@ -120,7 +120,7 @@ mod test {
     #[test]
     fn compile_valid_exo_one_file() {
         let path = PathBuf::from("examples")
-            .join("mock-plx-project")
+            .join("mock")
             .join("intro")
             .join("basic-args");
         let output_path = if cfg!(windows) {
@@ -142,7 +142,7 @@ mod test {
     #[test]
     fn compile_valid_exo_multiple_file() {
         let path = PathBuf::from("examples")
-            .join("mock-plx-project")
+            .join("mock")
             .join("datastructures")
             .join("queue");
 
@@ -167,7 +167,7 @@ mod test {
     #[test]
     fn compile_invalid_exo() {
         let path = PathBuf::from("examples")
-            .join("mock-plx-project")
+            .join("mock")
             .join("mock-skill")
             .join("doesntcompile");
         let output_path = if cfg!(windows) {

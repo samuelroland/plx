@@ -217,7 +217,7 @@ mod test {
 
     #[test]
     fn test_parse_full_intro_basic_args() {
-        let file_path = "examples/mock-plx-project/intro/basic-args";
+        let file_path = "examples/mock/intro/basic-args";
 
         let expected = Exo {
         name: String::from("Basic arguments usage"),
@@ -269,7 +269,7 @@ mod test {
     }
     #[test]
     fn test_exo_done() {
-        let file_path = "examples/mock-plx-project/mock-skill/exo-done";
+        let file_path = "examples/mock/mock-skill/exo-done";
         let (exo, _warnings) = Exo::from_dir(&(file_path.into())).unwrap();
         let expected = Exo {
             name: String::from("Exo Done"),
@@ -288,7 +288,7 @@ mod test {
     }
     #[test]
     fn test_exo_favorite() {
-        let file_path = "examples/mock-plx-project/mock-skill/exo-favorite";
+        let file_path = "examples/mock/mock-skill/exo-favorite";
         let (exo, _warnings) = Exo::from_dir(&(file_path.into())).unwrap();
         let expected = Exo {
             name: String::from("Favorite Exercise"),
@@ -308,7 +308,7 @@ mod test {
 
     #[test]
     fn test_exo_in_progress() {
-        let file_path = "examples/mock-plx-project/mock-skill/exo-in-progress";
+        let file_path = "examples/mock/mock-skill/exo-in-progress";
         let (exo, _warnings) = Exo::from_dir(&(file_path.into())).unwrap();
         let expected = Exo {
             name: String::from("In Progress"),
@@ -328,7 +328,7 @@ mod test {
 
     #[test]
     fn test_exo_multiple_sols() {
-        let file_path = "examples/mock-plx-project/mock-skill/multiple-sols";
+        let file_path = "examples/mock/mock-skill/multiple-sols";
         let sol_files = vec![
             std::path::PathBuf::from_str(file_path)
                 .unwrap()
@@ -356,7 +356,7 @@ mod test {
     }
     #[test]
     fn test_no_exo_info() {
-        let file_path = "examples/mock-plx-project/mock-skill/no-exo-info";
+        let file_path = "examples/mock/mock-skill/no-exo-info";
         let ret = Exo::from_dir(&(file_path.into()));
         assert!(ret.is_err());
 
@@ -368,7 +368,7 @@ mod test {
     }
     #[test]
     fn test_no_files() {
-        let file_path = "examples/mock-plx-project/mock-skill/no-files";
+        let file_path = "examples/mock/mock-skill/no-files";
         let ret = Exo::from_dir(&(file_path.into()));
         assert!(ret.is_err());
 
@@ -380,7 +380,7 @@ mod test {
     }
     #[test]
     fn test_no_solution() {
-        let file_path = "examples/mock-plx-project/mock-skill/no-sol";
+        let file_path = "examples/mock/mock-skill/no-sol";
         let (exo, warnings) = Exo::from_dir(&(file_path.into())).unwrap();
         let expected = Exo {
             name: String::from("No Sol"),

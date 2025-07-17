@@ -31,7 +31,7 @@ pub struct Course {
 }
 
 #[derive(Deserialize)]
-pub(crate) struct ProjectInfo {
+pub(crate) struct CourseInfo {
     name: String,
     #[serde(rename = "skills")]
     skill_folders: Vec<std::path::PathBuf>,
@@ -68,8 +68,8 @@ impl Course {
 
 impl FromDir for Course {
     ///
-    /// Tries to build a project from dir
-    /// Returns Ok if we were able to parse the project info and at least one skill
+    /// Tries to build a course from dir
+    /// Returns Ok if we were able to parse the course info and at least one skill
     /// else Error
     ///
     fn from_dir(
@@ -78,7 +78,7 @@ impl FromDir for Course {
         // Get course info by searching for the course.toml file
         // TODO magic value maybe change this
         let course_info_file = dir.join(COURSE_INFO_FILE);
-        let course_info = object_creator::create_object_from_file::<ProjectInfo>(&course_info_file)
+        let course_info = object_creator::create_object_from_file::<CourseInfo>(&course_info_file)
             .map_err(|err| (err, vec![]))?;
 
         // Using the skill folders found in the course.toml file, parse every skill
@@ -96,8 +96,7 @@ impl FromDir for Course {
                     }
                     Err(error) => {
                         warnings.push(ParseWarning::ParseSkillFail(format!(
-                            "Couldn't parse skill in {:?}: {:?}",
-                            skill_folder, error
+                            "Couldn't parse skill in {skill_folder:?}: {error:?}"
                         )));
                         None
                     }
@@ -108,8 +107,7 @@ impl FromDir for Course {
         if skills.is_empty() {
             Err((
                 ParseError::ErrorParsingSkills(format!(
-                    "Couldn't parse any skill folders in {:?}",
-                    dir
+                    "Couldn't parse any skill folders in {dir:?}"
                 )),
                 warnings,
             ))
@@ -141,39 +139,37 @@ mod tests {
 
     #[test]
     fn test_example_full() {
-        let project_path = std::path::PathBuf::from_str("examples/full").unwrap();
-        let ret = Course::from_dir(&project_path);
+        let course_path = std::path::PathBuf::from_str("examples/full").unwrap();
+        let ret = Course::from_dir(&course_path);
 
-        println!("{:#?}", ret);
+        println!("{ret:#?}");
         assert!(ret.is_ok());
-        let (_project, warnings) = ret.unwrap();
+        let (_course, warnings) = ret.unwrap();
         assert!(warnings.len() < 2);
     }
     #[test]
     fn test_full_hierarchy() {
-        let project_path = std::path::PathBuf::from_str("examples/mock-plx-project").unwrap();
-        let project = Course::from_dir(&project_path);
+        let course_path = std::path::PathBuf::from_str("examples/mock").unwrap();
+        let course = Course::from_dir(&course_path);
         let expected  = Course {
             name: String::from("Full fictive course"),
-            folder: project_path.clone(),
+            folder: course_path.clone(),
             skills: Arc::new(vec![
                 Skill {
                     name: String::from("Introduction"),
-                    path: project_path.join("intro"),
+                    path: course_path.join("intro"),
                     exos: Arc::new(vec![
                         Exo {
                             name: String::from("Basic arguments usage"),
                             instruction: Some(
                                 String::from("The 2 first program arguments are the firstname and number of legs of a dog. Print a full sentence about the dog. Make sure there is at least 2 arguments, print an error if not."),
                             ),
-                            folder: "examples/mock-plx-project/intro/basic-args".into(),
+                            folder: "examples/mock/intro/basic-args".into(),
                             state: ExoState::Todo,
                             files: vec![
-                               project_path.join("intro").join("basic-args").join("main.c"),
+                               course_path.join("intro").join("basic-args").join("main.c"),
                             ],
-                            solutions: vec![
-                                project_path.join("intro").join("basic-args").join("main.sol.c").into(),
-                            ],
+                            solutions: vec![ course_path.join("intro").join("basic-args").join("main.sol.c") ],
                             checks: vec![
                                 Check {
                                     name: String::from("Joe + 5 legs"),
@@ -200,16 +196,16 @@ mod tests {
                         },
                         Exo {
                             name: String::from("Basic output printing"),
-                            folder: "examples/mock-plx-project/intro/basic-output".into(),
+                            folder: "examples/mock/intro/basic-output".into(),
                             instruction: Some(
                                 String::from("Just print 2 lines"),
                             ),
                             state: ExoState::Todo,
                             files: vec![
-                               project_path.join("intro").join("basic-output").join("main.c"),
+                               course_path.join("intro").join("basic-output").join("main.c"),
                             ],
                             solutions: vec![
-                               project_path.join("intro").join("basic-output").join("main.sol.c"),
+                               course_path.join("intro").join("basic-output").join("main.sol.c"),
                             ],
                             checks: vec![
                                 Check {
@@ -224,7 +220,7 @@ mod tests {
                 },
             ]),
         };
-        let (actual, warnings) = project.unwrap();
+        let (actual, warnings) = course.unwrap();
         assert_eq!(expected, actual);
         assert!(matches!(warnings[0], ParseWarning::ParseSkillFail(_)));
     }

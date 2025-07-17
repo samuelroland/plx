@@ -33,7 +33,7 @@ use super::{
 /// App struct
 /// Holds the state of the application
 pub struct App {
-    pub(super) project: Course,
+    pub(super) course: Course,
     pub(super) work_handler: Arc<Mutex<WorkHandler>>,
     pub(super) event_rx: Receiver<Event>,
     exo_status_tx: Sender<ExoStatusReport>,
@@ -45,12 +45,12 @@ pub struct App {
 impl App {
     ///  Create a new App instance
     ///
-    /// This function will create a new App instance and initialize the project
-    /// It will succeed if the project is found in the current folder
+    /// This function will create a new App instance and initialize the course
+    /// It will succeed if the course is found in the current folder
     ///
     /// # Returns
-    /// A Result containing the App instance if the project is found or an   
-    /// error if the project is not found
+    /// A Result containing the App instance if the course is found or an   
+    /// error if the course is not found
     ///
     pub fn new(
         exo_status_tx: Sender<ExoStatusReport>,
@@ -71,8 +71,8 @@ impl App {
         ui_action_rx: Receiver<UiAction>,
     ) -> Result<Self, CoreInitError> {
         // TODO these warnings should be accessible to the user
-        let (project, _warnings) = match Course::from_dir(folder) {
-            Ok((project, warnings)) => (project, warnings),
+        let (course, _warnings) = match Course::from_dir(folder) {
+            Ok((course, warnings)) => (course, warnings),
             Err((err, _warnings)) => {
                 // TODO handle these warnings even in case of failure
                 return Err(CoreInitError::ProjFilesParsingError(format!("{err:?}")));
@@ -89,7 +89,7 @@ impl App {
         });
 
         let app = App {
-            project,
+            course,
             work_handler,
             event_rx,
             exo_status_tx,

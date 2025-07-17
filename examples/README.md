@@ -8,4 +8,4 @@ These are exos in various languages to run tests suites on. We can make sure the
 
 ### Testing
 
-Folder `mock-plx-project` is used for testing. **Do not modify**
+Folder `mock` is used for testing. **Do not modify**
