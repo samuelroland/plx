@@ -4,7 +4,7 @@ use plx::{
     app::{app::App, exo_status_report::ExoStatusReport},
     core::{file_utils::file_utils::list_dir_folders, parser::from_dir::FromDir},
     live::config::LiveConfig,
-    models::project::Project,
+    models::course::Course,
 };
 use std::{fs::create_dir_all, path::PathBuf, sync::mpsc, thread};
 use tauri::{ipc::Channel, AppHandle, Manager};
@@ -45,7 +45,7 @@ pub async fn get_local_courses() -> Vec<CourseInfo> {
     list_dir_folders(&base)
         .unwrap()
         .iter()
-        .filter_map(|f| Project::from_dir(f).ok())
+        .filter_map(|f| Course::from_dir(f).ok())
         .map(|(p, _)| {
             let config = LiveConfig::from_course(&p)
                 .map_err(|e| {
@@ -76,11 +76,11 @@ pub async fn load_full_course_details(
     app: AppHandle,
     course_path: PathBuf,
     exo_status_ui_channel: Channel<ExoStatusReport>,
-) -> Result<Project, String> {
+) -> Result<Course, String> {
     let state = app.state::<AppData>();
     let (exo_status_tx, exo_status_rx) = mpsc::channel();
     let (ui_action_tx, ui_action_rx) = mpsc::channel();
-    let project = Project::from_dir(&course_path)
+    let course = Course::from_dir(&course_path)
         .map_err(|(e, _)| e.to_string())?
         .0;
 
@@ -107,5 +107,5 @@ pub async fn load_full_course_details(
         }
     });
 
-    Ok(project)
+    Ok(course)
 }

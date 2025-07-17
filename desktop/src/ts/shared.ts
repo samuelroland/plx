@@ -138,12 +138,12 @@ export type Event =
  * that resolved in an error that is worth sending back to the client
  */
 export type LiveProtocolError = 
-	| { type: "FailedToStartSession", content: string }
-	| { type: "FailedToJoinSession", content: string }
-	| { type: "FailedSendingWithoutSession", content?: undefined }
-	| { type: "FailedToLeaveSession", content?: undefined }
-	| { type: "SessionNotFound", content?: undefined }
-	| { type: "CannotJoinOtherSession", content?: undefined }
-	| { type: "ForbiddenSessionStop", content?: undefined }
-	| { type: "ActionOnlyForLeader", content: string };
+	| { type: "FailedToStartSession", reason: string }
+	| { type: "FailedToJoinSession", reason: string }
+	| { type: "FailedSendingWithoutSession", reason?: undefined }
+	| { type: "FailedToLeaveSession", reason?: undefined }
+	| { type: "SessionNotFound", reason?: undefined }
+	| { type: "CannotJoinOtherSession", reason?: undefined }
+	| { type: "ForbiddenSessionStop", reason?: undefined }
+	| { type: "ActionOnlyForLeader", reason: string };
 

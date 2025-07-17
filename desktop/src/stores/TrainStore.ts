@@ -1,7 +1,7 @@
 // This a global Pinia store to manage the state of everything related to training on code exos
 
 import { defineStore } from "pinia";
-import { commands, Exo, ExoStatusReport, Project, Skill } from "../ts/commands";
+import { commands, Exo, ExoStatusReport, Course, Skill } from "../ts/commands";
 import { useGlobalStore } from "./GlobalStore";
 import { Channel } from "@tauri-apps/api/core";
 import { useLiveStore } from "./LiveStore";
@@ -9,7 +9,7 @@ import { useLiveStore } from "./LiveStore";
 export const useTrainStore = defineStore("train", {
   state: () => ({
     // The complete course details -> course + skills details + exos details
-    course: null as Project | null,
+    course: null as Course | null,
 
     exo_status: undefined as ExoStatusReport | undefined,
 

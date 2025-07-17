@@ -32,7 +32,7 @@ export const commands = {
   async loadFullCourseDetails(
     coursePath: string,
     exoStatusUiChannel: TAURI_CHANNEL<ExoStatusReport>,
-  ): Promise<Result<Project, string>> {
+  ): Promise<Result<Course, string>> {
     try {
       return {
         status: "ok",
@@ -70,11 +70,11 @@ export const commands = {
 
 /** user-defined constants **/
 
-export const DEFAULT_LIVE_PORT = 9120 as const;
 export const PROTOCOL_VERSION = "0.1.0" as const;
+export const DEFAULT_LIVE_PORT = 9120 as const;
+export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
 export const QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD =
   "live_protocol_version" as const;
-export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
 
 /** user-defined types **/
 
@@ -103,6 +103,7 @@ export type CheckStatus =
  * Represents the actual check type
  */
 export type CheckTest = { type: "Output"; expected: string };
+export type Course = { name: string; skills: Skill[]; folder: string };
 export type CourseInfo = {
   name: string;
   folder: string;
@@ -145,7 +146,6 @@ export type ExoStatusReport = {
   compilation_running: boolean;
 };
 export type LiveConfig = { domain: string; port: number; group_id: string };
-export type Project = { name: string; skills: Skill[]; folder: string };
 export type Skill = { name: string; path: string; exos: Exo[] };
 /**
  * An action requested by the UI
