@@ -140,7 +140,7 @@ export type ExoState = "Todo" | "InProgress" | "Done";
  */
 export type ExoStatusReport = {
   check_results: ExoCheckResult[];
-  compilation_output: string[];
+  compilation_output: string;
   compilation_success: boolean;
   compilation_running: boolean;
 };

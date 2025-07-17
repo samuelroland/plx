@@ -96,6 +96,7 @@ export type Action =
 	check_result: ExoCheckResult;
 }};
 
+/** The role of a client attributed when has joined a session */
 export enum ClientRole {
 	/** Default role, for anyone following a session */
 	Follower = "Follower",
