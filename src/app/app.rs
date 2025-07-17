@@ -11,8 +11,8 @@ use crate::{
         work::{work::Work, work_handler::WorkHandler},
     },
     models::{
-        check_state::CheckStatus, constants::TARGET_FILE_BASE_NAME, event::Event, exo::Exo,
-        project::Project, ui_action::UiAction,
+        check_state::CheckStatus, constants::TARGET_FILE_BASE_NAME, course::Project, event::Event,
+        exo::Exo, ui_action::UiAction,
     },
 };
 use log::{error, info};

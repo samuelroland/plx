@@ -4,7 +4,7 @@ use typeshare::typeshare;
 
 use crate::{
     core::{file_utils::file_parser::ParseError, parser::object_creator::create_object_from_file},
-    models::project::Project,
+    models::course::Project,
 };
 
 pub const LIVECONFIG_FILENAME: &str = "live.toml";

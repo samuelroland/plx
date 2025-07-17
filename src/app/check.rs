@@ -1,6 +1,6 @@
 use crate::{
     core::diff::diff::Diff,
-    models::{check::CheckTest, check_state::CheckStatus, exo_state::ExoState, project::Project},
+    models::{check::CheckTest, check_state::CheckStatus, course::Project, exo_state::ExoState},
 };
 
 use super::app::App;

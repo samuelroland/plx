@@ -1,9 +1,9 @@
 pub mod check;
 pub mod check_state;
 pub mod constants;
+pub mod course;
 pub mod event;
 pub mod exo;
 pub mod exo_state;
-pub mod project;
 pub mod skill;
 pub mod ui_action;
