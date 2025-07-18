@@ -28,7 +28,6 @@ use super::{
 #[typeshare::typeshare]
 pub struct Course {
     pub name: String,
-    pub instruction: String,
     pub code: String,
     pub goal: String,
     // Fix serialization by using it as a normal Vec
@@ -100,7 +99,6 @@ impl FromDir for Course {
             .ok_or(MajorParserIssue::FileNotFound(SKILL_INFO_FILE.to_string()))?;
         let mut course = Course {
             name: dy_course.name.clone(),
-            instruction: dy_course.instruction.clone(),
             code: dy_course.code.clone(),
             goal: dy_course.goal.clone(),
             skills: Arc::new(vec![]),
@@ -134,12 +132,10 @@ impl FromDir for Course {
                 .iter()
                 .map(|dy_skill| {
                     let skill_folder = PathBuf::from(&dy_skill.directory);
-                    eprintln!("{skill_folder:?}");
                     let exos = list_dir_folders(&dir.join(&skill_folder))
                         .unwrap_or_default()
                         .iter()
                         .filter_map(|f| {
-                            eprintln!("{f:?}");
                             if let Ok((exo_errors, exo)) = Exo::from_dir(f, true) {
                                 errors.extend(exo_errors);
                                 Some(exo)
@@ -185,7 +181,6 @@ mod tests {
         assert_eq!(course,
         Course {
             name: "PLX demo course".to_string(),
-            instruction: "".to_string(),
             code: "DEMO".to_string(),
             goal: "This demo course has been created to show the features of PLX.\n".to_string(),
             skills: Arc::new(vec![
