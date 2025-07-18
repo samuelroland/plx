@@ -60,7 +60,10 @@ impl FromDir for Exo {
 
         let exo_file_content = read_file(&exo_info_file)
             .map_err(|err| MajorParserIssue::ReadFileError(err.to_string()))?;
-        let dy_exos_result = parse_exos(&exo_file_content);
+        let dy_exos_result = parse_exos(
+            &Some(exo_info_file.to_str().unwrap_or_default().to_string()),
+            &exo_file_content,
+        );
         let dy_exo = dy_exos_result
             .items
             .first()

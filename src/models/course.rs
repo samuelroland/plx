@@ -90,7 +90,10 @@ impl FromDir for Course {
 
         let course_file_content = read_file(&course_info_file)
             .map_err(|err| MajorParserIssue::ReadFileError(COURSE_INFO_FILE.to_string()))?;
-        let dy_course_result = parse_course(&course_file_content);
+        let dy_course_result = parse_course(
+            &Some(course_info_file.to_str().unwrap_or_default().to_string()),
+            &course_file_content,
+        );
         let dy_course = dy_course_result
             .items
             .first()
@@ -111,9 +114,13 @@ impl FromDir for Course {
         }
 
         // Parse the skills list (DYSkill), without the exos
-        let skills_file_content = read_file(&dir.join(SKILL_INFO_FILE))
+        let skills_file_info = &dir.join(SKILL_INFO_FILE);
+        let skills_file_content = read_file(skills_file_info)
             .map_err(|err| MajorParserIssue::ReadFileError(err.to_string()))?;
-        let dy_skills_result = parse_skills(&skills_file_content);
+        let dy_skills_result = parse_skills(
+            &Some(skills_file_info.to_str().unwrap_or_default().to_string()),
+            &skills_file_content,
+        );
 
         if dy_skills_result.items.is_empty() {
             Err(MajorParserIssue::ErrorParsingSkills(format!(
