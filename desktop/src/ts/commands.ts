@@ -3,7 +3,7 @@
 /** user-defined commands **/
 
 export const commands = {
-  async getLocalCourses(): Promise<CourseInfo[]> {
+  async getLocalCourses(): Promise<CourseWithConfig[]> {
     return await TAURI_INVOKE("get_local_courses");
   },
   async cloneCourse(repos: string): Promise<boolean> {
@@ -29,23 +29,6 @@ export const commands = {
   async loadDefaultThemeCss(): Promise<string> {
     return await TAURI_INVOKE("load_default_theme_css");
   },
-  async loadFullCourseDetails(
-    coursePath: string,
-    exoStatusUiChannel: TAURI_CHANNEL<ExoStatusReport>,
-  ): Promise<Result<Course, string>> {
-    try {
-      return {
-        status: "ok",
-        data: await TAURI_INVOKE("load_full_course_details", {
-          coursePath,
-          exoStatusUiChannel,
-        }),
-      };
-    } catch (e) {
-      if (e instanceof Error) throw e;
-      else return { status: "error", error: e as any };
-    }
-  },
   async renderMarkdownWithHighlighting(
     content: string,
   ): Promise<Result<string, string>> {
@@ -64,6 +47,9 @@ export const commands = {
   async sendUiActionToApp(action: UiAction): Promise<void> {
     await TAURI_INVOKE("send_ui_action_to_app", { action });
   },
+  async gitPullAllCourses(): Promise<void> {
+    await TAURI_INVOKE("git_pull_all_courses");
+  },
 };
 
 /** user-defined events **/
@@ -71,8 +57,8 @@ export const commands = {
 /** user-defined constants **/
 
 export const PROTOCOL_VERSION = "0.1.0" as const;
-export const DEFAULT_LIVE_PORT = 9120 as const;
 export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
+export const DEFAULT_LIVE_PORT = 9120 as const;
 export const QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD =
   "live_protocol_version" as const;
 
@@ -83,32 +69,18 @@ export const QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD =
  */
 export type Check = { name: string; args?: string[]; test: CheckTest };
 /**
- * Handles the check and it's current status
- */
-export type CheckState = { status: CheckStatus };
-/**
- * Represents the status of a check
- */
-export type CheckStatus =
-  | { type: "Passed" }
-  | {
-      type: "Failed";
-      content: { expected: string; given: string; diff: string };
-    }
-  | { type: "Checking" }
-  | { type: "Running" }
-  | { type: "RunFail"; content: string }
-  | { type: "Pending" };
-/**
  * Represents the actual check type
  */
 export type CheckTest = { type: "Output"; expected: string };
-export type Course = { name: string; skills: Skill[]; folder: string };
-export type CourseInfo = {
+export type Course = {
   name: string;
+  instruction: string;
+  code: string;
+  goal: string;
+  skills: Skill[];
   folder: string;
-  config: LiveConfig | null;
 };
+export type CourseWithConfig = { course: Course; config: LiveConfig | null };
 /**
  * Represents a Plx Exo
  */
@@ -122,29 +94,7 @@ export type Exo = {
   favorite: boolean;
   folder: string;
 };
-/**
- * ExoCheckResult
- *
- * This struct is used to store the result of a run + check
- * Each exo run will have as many ExoCheckResults as the number of checks the exo has
- * This helps us keep the output of the run and the check state together
- */
-export type ExoCheckResult = { state: CheckState; output: string[] };
 export type ExoState = "Todo" | "InProgress" | "Done";
-/**
- * ExoStatusReport
- *
- * This struct is used to store the result of a run + check
- * It keeps the information of an exo run, including the check results,
- * the compilation output and the path to the elf file
- * See `ExoCheckResult` for more information about the check results
- */
-export type ExoStatusReport = {
-  check_results: ExoCheckResult[];
-  compilation_output: string;
-  compilation_success: boolean;
-  compilation_running: boolean;
-};
 export type LiveConfig = { domain: string; port: number; group_id: string };
 export type Skill = { name: string; path: string; exos: Exo[] };
 /**

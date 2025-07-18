@@ -35,7 +35,6 @@ pub fn run() {
             clone_course,
             highlight_code_with_tree_sitter,
             load_default_theme_css,
-            load_full_course_details,
             render_markdown_with_highlighting,
             send_ui_action_to_app
         ])

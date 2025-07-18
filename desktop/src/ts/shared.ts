@@ -13,6 +13,20 @@
  */
 export type ClientNum = number;
 
+export interface Course {
+	name: string;
+	instruction: string;
+	code: string;
+	goal: string;
+	skills: Skill[];
+	folder: PathBuf;
+}
+
+export interface CourseWithErrors {
+	course: Course;
+	errors: ParseError[];
+}
+
 export type CheckStatus = 
 	| { type: "Passed", content?: undefined }
 	| { type: "CheckFailed", content: string }
@@ -22,6 +36,23 @@ export type CheckStatus =
 export interface ExoCheckResult {
 	index: number;
 	state: CheckStatus;
+}
+
+/**
+ * ExoStatusReport
+ * 
+ * This struct is used to store the result of a run + check
+ * It keeps the information of an exo run, including the check results,
+ * the compilation output and the path to the elf file
+ * See `ExoCheckResult` for more information about the check results
+ */
+export interface ExoStatusReport {
+	check_results: ExoCheckResult[];
+	compilation_output: string;
+	compilation_success: boolean;
+	compilation_running: boolean;
+	elf_path: PathBuf;
+	exo: Exo;
 }
 
 export interface ForwardedFile {
