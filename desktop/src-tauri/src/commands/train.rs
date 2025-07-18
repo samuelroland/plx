@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use plx::models::ui_action::UiAction;
+use plx_core::models::ui_action::UiAction;
 use tauri::{AppHandle, Manager};
 
 use crate::AppData;

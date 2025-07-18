@@ -9,7 +9,7 @@ use commands::{
     train::send_ui_action_to_app,
 };
 
-use plx::{
+use plx_core::{
     live::server::{
         DEFAULT_LIVE_PORT, PROTOCOL_VERSION, QUERYSTRING_LIVE_CLIENT_ID_FIELD,
         QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,

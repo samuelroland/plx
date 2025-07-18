@@ -1,5 +1,5 @@
 [package]
-name = "plx"
+name = "plx_core"
 description = "Practice programming exos in a delightful Learning eXperience"
 homepage = "https://github.com/plx-pdg/plx"
 repository = "https://github.com/plx-pdg/plx"
@@ -10,7 +10,7 @@ edition = "2021"
 exclude = ["examples"]
 
 [lib]
-name = "plx"
+name = "plx_core"
 
 [dependencies]
 console = "0.16.*"
@@ -26,7 +26,6 @@ dunce = "1.0.5"
 notify = "6.1.1"
 notify-debouncer-mini = "0.4.0"
 log = "0.4.*"
-simplelog = "0.12.*"
 tokio = { version = "1", features = ["rt", "net", "macros"] }
 tokio-tungstenite = "0.27.0"
 tokio-stream = "0.1.17"

@@ -1,4 +1,4 @@
-/target
+target
 examples/*/build
 debug.log
 *.exo-state.toml

@@ -1,7 +1,7 @@
 use core::error;
 use dme_core::util::git::GitRepos;
 use log::{error, info, warn};
-use plx::{
+use plx_core::{
     app::{app::App, exo_status_report::ExoStatusReport},
     core::{file_utils::file_utils::list_dir_folders, parser::from_dir::FromDir},
     dy::error::ParseError,

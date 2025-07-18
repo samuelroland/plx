@@ -1,10 +1,6 @@
-use live::server::{LiveServer, DEFAULT_LIVE_PORT};
+use plx_core::live::server::{DEFAULT_LIVE_PORT, LiveServer};
 use simplelog::*;
 use std::{env::args, fs::File};
-pub mod app;
-pub mod core;
-pub mod live;
-pub mod models;
 
 fn main() {
     WriteLogger::init(

@@ -675,6 +675,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
+name = "colored"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fde0e0ec90c9dfb3b4b1a0891a7dcd0e2bffde2f7efed5fe7c9bb00e5bfb915e"
+dependencies = [
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "combine"
 version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1096,6 +1105,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
+name = "dy"
+version = "0.0.1"
+dependencies = [
+ "colored",
+ "lsp-types",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "thiserror 2.0.12",
+ "typeshare",
+]
+
+[[package]]
 name = "dyn-clone"
 version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1284,6 +1306,15 @@ checksum = "4a3d7db9596fecd151c5f638c0ee5d5bd487b6e0ea232e5dc96d5250f6f94b1d"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
+]
+
+[[package]]
+name = "fluent-uri"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17c704e9dbe1ddd863da1e6ff3567795087b1eb201ce80d8fa81162e1516500d"
+dependencies = [
+ "bitflags 1.3.2",
 ]
 
 [[package]]
@@ -2379,6 +2410,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
+name = "lsp-types"
+version = "0.97.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53353550a17c04ac46c585feb189c2db82154fc84b79c7a66c96c2c644f66071"
+dependencies = [
+ "bitflags 1.3.2",
+ "fluent-uri",
+ "serde",
+ "serde_json",
+ "serde_repr",
+]
+
+[[package]]
 name = "mac"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3198,7 +3242,34 @@ dependencies = [
 ]
 
 [[package]]
-name = "plx"
+name = "plx-desktop"
+version = "0.1.0"
+dependencies = [
+ "dme-core",
+ "etcetera 0.10.0",
+ "log",
+ "plx_core",
+ "serde",
+ "serde_json",
+ "simplelog",
+ "specta",
+ "specta-typescript",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-opener",
+ "tauri-specta",
+ "typeshare",
+]
+
+[[package]]
+name = "plx-dy"
+version = "0.0.1"
+dependencies = [
+ "dy",
+]
+
+[[package]]
+name = "plx_core"
 version = "0.2.0"
 dependencies = [
  "ansi-to-html",
@@ -3206,15 +3277,16 @@ dependencies = [
  "console",
  "ctrlc",
  "dunce",
+ "dy",
  "futures-util",
  "log",
  "notify",
  "notify-debouncer-mini",
+ "plx-dy",
  "serde",
  "serde_json",
  "serde_with",
  "similar",
- "simplelog",
  "specta",
  "specta-macros",
  "specta-typescript",
@@ -3226,26 +3298,6 @@ dependencies = [
  "toml",
  "typeshare",
  "url",
-]
-
-[[package]]
-name = "plx-desktop"
-version = "0.1.0"
-dependencies = [
- "dme-core",
- "etcetera 0.10.0",
- "log",
- "plx",
- "serde",
- "serde_json",
- "simplelog",
- "specta",
- "specta-typescript",
- "tauri",
- "tauri-build",
- "tauri-plugin-opener",
- "tauri-specta",
- "typeshare",
 ]
 
 [[package]]
