@@ -1,23 +1,23 @@
 <script setup lang="ts">
 import { onMounted, Ref, ref } from 'vue';
-import { commands, CourseInfo } from "../ts/commands.ts";
+import { commands, CourseWithConfig } from "../ts/commands.ts";
 import { useLiveStore } from '../stores/LiveStore.ts';
 import { useTrainStore } from '../stores/TrainStore.ts';
 
-let courses: Ref<CourseInfo[]> = ref([])
+let courses: Ref<CourseWithConfig[]> = ref([])
 
 let selectedCoursePath: Ref<string | null> = ref(null)
 
 const live = useLiveStore()
 
-async function loadProjects() {
+async function loadCourses() {
     courses.value = await commands.getLocalCourses()
     console.log(courses.value)
 }
 
 onMounted(async () => {
     try {
-        loadProjects()
+        loadCourses()
     } catch (error) {
         alert(error)
     }
@@ -36,7 +36,7 @@ async function cloneCourse() {
 async function openCourse(path: string) {
     live.available_sessions = []; // reset so we don't see some sessions for the previously selected course
     selectedCoursePath.value = path
-    let course = courses.value.find(c => c.folder == path)
+    let course = courses.value.find(c => c.course.folder == path)
     if (course) {
         live.course = course
     } else {

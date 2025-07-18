@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useTrainStore } from '../stores/TrainStore';
-import { Exo, Skill } from '../ts/commands';
+import { commands, Exo, Skill } from '../ts/commands';
 import { onKeyStroke } from "@vueuse/core"
 import CodeExo from '../blocks/CodeExo.vue';
 import { useGlobalStore } from '../stores/GlobalStore';
+import { loadCourses } from './Home.vue';
 
 // Overview of a course, its skills and exos
 
@@ -50,12 +51,15 @@ onMounted(() => {
         }
     })
     onKeyStroke(['Enter'], (_) => {
-        if (train.exosSelection) {
-            global.page = "train"
-        }
+        startExo()
     })
 })
 
+function startExo() {
+    if (train.exosSelection) {
+        global.page = "train"
+    }
+}
 
 // TODO: fix that to only pull the current course !
 async function gitPullAllCourses() {
@@ -70,7 +74,10 @@ async function gitPullAllCourses() {
     <div v-if="train.course" class="h-full w-full px-5">
         <div class="flex items-center">
             <h1 class="flex-1">{{ train.course.name }}</h1>
+
             <button @click="gitPullAllCourses">Pull all</button>
+            <button @click="global.page = 'debug'">Debug <span v-if="train.errors.length > 0">({{ train.errors.length }}
+                    errors)</span></button>
         </div>
 
         <div class="flex space-x-3">
@@ -91,7 +98,8 @@ async function gitPullAllCourses() {
                 <div v-for="(exo, idx) in train.currentSkill()?.exos"
                     :class="train.exosSelection && train.selectedExoIdx == idx ? 'bg-blue-200' : ''"
                     class="px-2 text-2xl cursor-pointer hover:bg-blue-100"
-                    @click="train.selectedExoIdx = idx; train.exosSelection = true">
+                    @click="train.selectedExoIdx = idx; train.exosSelection = true" @dblclick="startExo">
+
                     <div class="flex">
                         <div class="flex-1">
                             <span class="mr-3">{{ (train.selectedSkillIdx + 1) + "." + (idx + 1) }}</span>{{ exo.name }}
