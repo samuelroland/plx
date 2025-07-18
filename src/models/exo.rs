@@ -3,6 +3,8 @@ use super::{
     constants::{EXO_INFO_FILE, EXO_STATE_FILE},
     exo_state::ExoState,
 };
+use crate::core::file_utils::file_parser::ParseError as MajorParserIssue;
+use plx_dy::{exo::TermAction, parse_exos};
 use serde::{Deserialize, Serialize};
 use specta_macros::Type;
 
@@ -10,7 +12,7 @@ use crate::core::{
     compiler::compiler::Compiler,
     file_utils::{
         file_parser::{ParseError, ParseWarning},
-        file_utils::list_dir_files,
+        file_utils::{list_dir_files, read_file},
     },
     parser::{self, from_dir::FromDir},
 };
@@ -49,13 +51,52 @@ impl FromDir for Exo {
     /// else Error
     fn from_dir(
         dir: &std::path::PathBuf,
-    ) -> Result<(Self, Vec<ParseWarning>), (ParseError, Vec<ParseWarning>)> {
+        _: bool,
+    ) -> Result<(Vec<dy::error::ParseError>, Self), MajorParserIssue> {
         // Get the exo info and the state if it exists.
         let mut warnings = Vec::new();
         let exo_info_file = dir.join(EXO_INFO_FILE);
         let exo_state_file = dir.join(EXO_STATE_FILE);
-        let exo_info = parser::object_creator::create_object_from_file::<ExoInfo>(&exo_info_file)
-            .map_err(|err| (err, vec![]))?;
+
+        let exo_file_content = read_file(&exo_info_file)
+            .map_err(|err| MajorParserIssue::ReadFileError(err.to_string()))?;
+        let dy_exos_result = parse_exos(&exo_file_content);
+        let dy_exo = dy_exos_result
+            .items
+            .first()
+            .ok_or(MajorParserIssue::ParseError(
+                "The file doesn't contain any exo".to_string(),
+            ))?;
+
+        let errors = dy_exos_result.errors.clone();
+
+        // TODO: temporary code to map a single See action old CheckTest Output style
+        // TODO: refactor this when type/see system is in place
+        let adapted_checks: Vec<Check> = dy_exo
+            .checks
+            .iter()
+            .map(|c| {
+                let mut expected = "??".to_string();
+                c.sequence.iter().find(|ta| {
+                    if let TermAction::See(text) = ta {
+                        expected = text.clone();
+                        true
+                    } else {
+                        false
+                    }
+                });
+                Check {
+                    name: c.name.clone(),
+                    args: c.args.clone(),
+                    test: super::check::CheckTest::Output { expected },
+                }
+            })
+            .collect();
+        let exo_info = ExoInfo {
+            name: dy_exo.name.clone(),
+            instruction: Some(dy_exo.instruction.clone()),
+            checks: adapted_checks,
+        };
 
         // If the exo hasn't been started, the state file won't exist
         let exo_state =
@@ -63,23 +104,23 @@ impl FromDir for Exo {
                 .unwrap_or_default();
 
         // Get all the dir files and find the exo and solution files
-        let files = list_dir_files(&dir)
-            .map_err(|err| (ParseError::FileDiscoveryFailed(err.to_string()), vec![]))?;
+        let files =
+            list_dir_files(dir).map_err(|err| ParseError::FileDiscoveryFailed(err.to_string()))?;
         let (exo_files, solution_files) = Exo::find_exo_and_solution_files(files);
 
         if exo_files.is_empty() {
-            return Err((ParseError::NoExoFilesFound(dir.to_path_buf()), vec![]));
+            return Err(ParseError::NoExoFilesFound(dir.to_path_buf()));
         }
         if solution_files.is_empty() {
             warnings.push(ParseWarning::NoSolutionFile(format!(
-                "No solution found in {:?}",
-                dir
+                "No solution found in {dir:?}"
             )));
         }
 
         Exo::check_exo_solutions(&exo_files, &solution_files, &mut warnings);
 
         Ok((
+            errors,
             Self {
                 name: exo_info.name,
                 instruction: exo_info.instruction,
@@ -90,7 +131,6 @@ impl FromDir for Exo {
                 solutions: solution_files,
                 folder: dir.to_path_buf(),
             },
-            warnings,
         ))
     }
 }
@@ -143,33 +183,26 @@ impl Exo {
                             // This essentially removes the .sol part
                             let exo_target_name =
                                 format!("{}.{}", file_name.replace(".sol", ""), extension);
-                            let exo_exists = exo_files
-                                .iter()
-                                .find(|exo_file| {
-                                    if let Some(exo_file_name) = exo_file.file_name() {
-                                        *exo_file_name == *exo_target_name
-                                    } else {
-                                        false
-                                    }
-                                })
-                                .is_some();
+                            let exo_exists = exo_files.iter().any(|exo_file| {
+                                if let Some(exo_file_name) = exo_file.file_name() {
+                                    *exo_file_name == *exo_target_name
+                                } else {
+                                    false
+                                }
+                            });
 
                             if !exo_exists {
                                 warnings.push(ParseWarning::ExoFileNotFound(format!(
-                                    "Solution file {:?} doesn't have an exo associated with it (expected exo file {:?})",
-                                    solution_file, exo_target_name)))
+                                    "Solution file {solution_file:?} doesn't have an exo associated with it (expected exo file {exo_target_name:?})")))
                             }
                         }
-                        (_, _) => warnings.push(ParseWarning::InvalidFileName(format!(
-                            "{:?}",
-                            solution_file
-                        ))),
+                        (_, _) => warnings
+                            .push(ParseWarning::InvalidFileName(format!("{solution_file:?}"))),
                     }
                 }
-                (_, _) => warnings.push(ParseWarning::InvalidFileName(format!(
-                    "{:?}",
-                    solution_file
-                ))),
+                (_, _) => {
+                    warnings.push(ParseWarning::InvalidFileName(format!("{solution_file:?}")))
+                }
             }
         }
     }
@@ -180,7 +213,7 @@ impl Exo {
             if let Some(file_name) = file.file_stem() {
                 return file_name == "main";
             }
-            return false;
+            false
         }) {
             Some(file) => Some(file),
             None => self.files.first(),

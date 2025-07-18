@@ -54,6 +54,8 @@ specta-typescript = "0.0.9"
 ansi-to-html = "0.2.2"
 serde_with = "3.14.0"
 
+dy = { git = "https://github.com/samuelroland/dy" }
+plx-dy = { git = "https://github.com/samuelroland/dy" }
 [dev-dependencies]
 ntest = "0.9.3"
 pretty_assertions = "1.4.1"
