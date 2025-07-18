@@ -57,6 +57,12 @@ function trainLocally(course_path: string) {
     train.loadCourse(course_path)
 }
 
+async function gitPullAllCourses() {
+    await commands.gitPullAllCourses()
+    loadCourses()
+    alert("Should be pulled now")
+}
+
 </script>
 
 <template>
@@ -67,16 +73,21 @@ function trainLocally(course_path: string) {
         <!-- </div> -->
         <!-- <h1 class="text-xl md:text-4xl my-5 nice-gradient">Practice programming in a deliberate Learning eXperience </h1> -->
 
-        <div class="flex items-center">
-            <h2>Available courses</h2>
-            <div class="mt-4"><button @click="cloneCourse">Add course</button></div>
+        <div class="flex items-center w-full">
+            <div class="my-6 text-gray-600 flex-1">Select a course to train</div>
+            <button @click="gitPullAllCourses">Pull course updates</button>
         </div>
-        <div class="flex">
-            <div @click="() => openCourse(project.folder)" class="cursor-pointer p-2"
-                :class="selectedCoursePath == project.folder ? 'bg-orange-200' : ''" v-for="project in courses">
-                {{ project.name }}
+        <div class="flex space-x-3">
+            <div @click="() => openCourse(pack.course.folder)"
+                class="cursor-pointer p-2 border border-orange-500 rounded-md"
+                :class="selectedCoursePath == pack.course.folder ? 'bg-orange-200' : ''" v-for="pack in courses">
+                <h3>{{ pack.course.code }}</h3>
+                <div>{{ pack.course.name }}</div>
             </div>
+            <div v-if="courses.length == 0" class="italic text-gray-600">No course cloned at the moment</div>
         </div>
+
+        <div class="mt-4"><button @click="cloneCourse">Add course</button></div>
         <div class="text-gray-700 italic" v-if="courses.length == 0">No course found...</div>
         <div v-if="selectedCoursePath">
             <div class="flex">

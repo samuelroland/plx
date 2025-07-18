@@ -122,3 +122,24 @@ pub async fn load_full_course_details(
 
     Ok(CourseWithErrors { course, errors })
 }
+
+#[tauri::command]
+#[specta::specta]
+pub async fn git_pull_all_courses() {
+    let base = get_base_directory();
+    match list_dir_folders(&base) {
+        Ok(folders) => {
+            folders.iter().for_each(|r| {
+                match GitRepos::from_existing_folder(&base.join(r)) {
+                    Ok(repos) => {
+                        if let Err(e) = repos.pull() {
+                            warn!("Could not pull from repository {r:?}: {e:?}");
+                        }
+                    }
+                    Err(e) => warn!("Folder {r:?} is not a Git repository: {e:?}"),
+                };
+            });
+        }
+        Err(e) => error!("Could not get the list of folders in base directory: {e}"),
+    }
+}

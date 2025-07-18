@@ -56,11 +56,22 @@ onMounted(() => {
     })
 })
 
+
+// TODO: fix that to only pull the current course !
+async function gitPullAllCourses() {
+    await commands.gitPullAllCourses()
+    train.loadCourse(train.course?.folder ?? "")
+    alert("Should be pulled now")
+}
+
 </script>
 
 <template>
     <div v-if="train.course" class="h-full w-full px-5">
-        <h1>{{ train.course.name }}</h1>
+        <div class="flex items-center">
+            <h1 class="flex-1">{{ train.course.name }}</h1>
+            <button @click="gitPullAllCourses">Pull all</button>
+        </div>
 
         <div class="flex space-x-3">
             <!-- skills -->

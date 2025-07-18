@@ -2,7 +2,7 @@ mod commands;
 use std::sync::{mpsc::Sender, Mutex};
 
 use commands::{
-    courses::{clone_course, get_local_courses, load_full_course_details},
+    courses::{clone_course, get_local_courses, git_pull_all_courses, load_full_course_details},
     render::{
         highlight_code_with_tree_sitter, load_default_theme_css, render_markdown_with_highlighting,
     },
@@ -36,7 +36,8 @@ pub fn run() {
             highlight_code_with_tree_sitter,
             load_default_theme_css,
             render_markdown_with_highlighting,
-            send_ui_action_to_app
+            send_ui_action_to_app,
+            git_pull_all_courses
         ])
         .constant("PROTOCOL_VERSION", PROTOCOL_VERSION)
         .constant("DEFAULT_LIVE_PORT", DEFAULT_LIVE_PORT)
@@ -63,7 +64,8 @@ pub fn run() {
             load_default_theme_css,
             load_full_course_details,
             render_markdown_with_highlighting,
-            send_ui_action_to_app
+            send_ui_action_to_app,
+            git_pull_all_courses
         ])
         .setup(|app| {
             app.manage(AppData {
