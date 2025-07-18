@@ -14,11 +14,15 @@ use plx_dy::{COURSE_FILE, SKILLS_FILE, parse_course, parse_exos, parse_skills};
 use serde::Serialize;
 
 /// The "parse" subcommand implementation
-pub fn parse_command(path: PathBuf) -> Result<(), std::io::Error> {
+pub fn parse_command(path: PathBuf, full: bool) -> Result<(), std::io::Error> {
     if path.is_dir() {
         let course_file_info = path.join(COURSE_FILE);
         if course_file_info.exists() {
-            parse_course_file(&course_file_info)?;
+            if full {
+                parse_and_show_full_plx_course(&path)?;
+            } else {
+                parse_and_show_course_file(&course_file_info)?;
+            }
         } else {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -31,17 +35,17 @@ pub fn parse_command(path: PathBuf) -> Result<(), std::io::Error> {
     } else {
         let filename = path.file_name();
         if filename == Some(&OsString::from(COURSE_FILE)) {
-            parse_course_file(&path)?;
+            parse_and_show_course_file(&path)?;
         } else if filename == Some(&OsString::from(SKILLS_FILE)) {
-            parse_skills_file(&path)?;
+            parse_and_show_skills_file(&path)?;
         } else {
-            parse_exo_file(&path)?;
+            parse_and_show_exo_file(&path)?;
         }
     }
     Ok(())
 }
 
-fn parse_course_file(course_file_path: &Path) -> Result<(), std::io::Error> {
+fn parse_and_show_course_file(course_file_path: &Path) -> Result<(), std::io::Error> {
     let course_file_content = read_to_string(course_file_path)?;
     let dy_result = parse_course(
         &Some(course_file_path.to_str().unwrap_or_default().to_string()),
@@ -50,7 +54,27 @@ fn parse_course_file(course_file_path: &Path) -> Result<(), std::io::Error> {
     print_result(dy_result, true)
 }
 
-fn parse_skills_file(skills_file_path: &Path) -> Result<(), std::io::Error> {
+fn parse_and_show_full_plx_course(path: &PathBuf) -> Result<(), std::io::Error> {
+    match Course::from_dir(path, true) {
+        Ok((errors, course)) => {
+            if errors.is_empty() {
+                println!("{}", serde_json::to_string_pretty(&course)?);
+            } else {
+                eprintln!("Not better errors output for now sorry...");
+                dbg!(errors); // TODO: better output when ParseResult available from FromDir ??
+                eprintln!("Parsed full course");
+                println!("{}", serde_json::to_string_pretty(&course)?);
+            }
+        }
+        Err(e) => {
+            eprintln!("{e}");
+            exit(1);
+        }
+    }
+    Ok(())
+}
+
+fn parse_and_show_skills_file(skills_file_path: &Path) -> Result<(), std::io::Error> {
     let file_content = read_to_string(skills_file_path)?;
     let dy_result = parse_skills(
         &Some(skills_file_path.to_str().unwrap_or_default().to_string()),
@@ -59,7 +83,7 @@ fn parse_skills_file(skills_file_path: &Path) -> Result<(), std::io::Error> {
     print_result(dy_result, false)
 }
 
-fn parse_exo_file(exo_file_path: &Path) -> Result<(), std::io::Error> {
+fn parse_and_show_exo_file(exo_file_path: &Path) -> Result<(), std::io::Error> {
     let file_path = exo_file_path;
     let file_content = read_to_string(file_path)?;
 
@@ -68,11 +92,6 @@ fn parse_exo_file(exo_file_path: &Path) -> Result<(), std::io::Error> {
         &file_content,
     );
     print_result(dy_result, true)
-}
-
-// TODO use it
-fn parse_entire_course(dir: &PathBuf) -> Result<(Vec<error::ParseError>, Course), ParseError> {
-    Course::from_dir(dir, true)
 }
 
 fn print_result<T>(dy_result: ParseResult<T>, single_element: bool) -> Result<(), std::io::Error>

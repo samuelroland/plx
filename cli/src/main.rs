@@ -17,11 +17,15 @@ struct Cli {
 enum Commands {
     /// Starts the live server
     Server,
-    /// Parse the given file or folder or the entire course with the PLX DY spec format
+    /// Parse the given DY file or parse the course.dy inside given folder
     Parse {
         #[arg(value_name = "PATH")]
         /// A PLX file with a .dy extension, or a folder with a course.dy
         path: PathBuf,
+        #[arg(long, default_value_t = false)]
+        /// Enable the full course parsing in PLX's format.
+        /// Only valid with a folder
+        full: bool,
     },
 }
 
@@ -43,7 +47,7 @@ fn main() {
             server.start(DEFAULT_LIVE_PORT, true); // this is blocking indefinitly
             Ok(())
         }
-        Commands::Parse { path } => parse_command(path),
+        Commands::Parse { path, full } => parse_command(path, full),
     };
 
     if let Err(e) = result {
