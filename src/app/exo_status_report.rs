@@ -14,6 +14,7 @@ use super::exo_check_result::ExoCheckResult;
 /// the compilation output and the path to the elf file
 /// See `ExoCheckResult` for more information about the check results
 #[derive(Serialize, Clone, Type)]
+#[typeshare::typeshare]
 pub struct ExoStatusReport {
     pub(super) check_results: Vec<ExoCheckResult>,
     #[serde(serialize_with = "terminal_lines_to_html")]

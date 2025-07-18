@@ -18,7 +18,7 @@ pub struct LiveConfig {
 }
 
 impl LiveConfig {
-    pub fn from_course(project: &Course) -> Result<Self, ParseError> {
-        create_object_from_file(&project.get_folder().join(LIVECONFIG_FILENAME))
+    pub fn from_course(course: &Course) -> Result<Self, ParseError> {
+        create_object_from_file(&course.get_folder().join(LIVECONFIG_FILENAME))
     }
 }

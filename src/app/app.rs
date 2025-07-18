@@ -70,14 +70,10 @@ impl App {
         exo_status_tx: Sender<ExoStatusReport>,
         ui_action_rx: Receiver<UiAction>,
     ) -> Result<Self, CoreInitError> {
-        // TODO these warnings should be accessible to the user
-        let (course, _warnings) = match Course::from_dir(folder) {
-            Ok((course, warnings)) => (course, warnings),
-            Err((err, _warnings)) => {
-                // TODO handle these warnings even in case of failure
-                return Err(CoreInitError::ProjFilesParsingError(format!("{err:?}")));
-            }
-        };
+        // We completely ignore the errors here, if the exo
+        let (_, course) = Course::from_dir(folder, true)
+            .map_err(|err| CoreInitError::ProjFilesParsingError(format!("{err:?}")))?;
+
         let (event_tx, event_rx) = mpsc::channel();
         let work_handler = WorkHandler::new(event_tx.clone());
 

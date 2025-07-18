@@ -20,15 +20,16 @@ impl App {
     }
 
     pub(super) fn start_exo_request(&mut self, exo_folder: PathBuf) {
-        let exo = Exo::from_dir(&exo_folder).unwrap().0; // todo fix unwrap
-        match App::start_exo(&self.work_handler, &exo) {
-            Ok(cr) => {
-                self.current_run = Some(cr);
-            }
-            Err(err) =>
-            //TODO send this to the ui
-            {
-                error!("Could not launch exo {}", err);
+        if let Ok((_, exo)) = Exo::from_dir(&exo_folder, true) {
+            match App::start_exo(&self.work_handler, &exo) {
+                Ok(cr) => {
+                    self.current_run = Some(cr);
+                }
+                Err(err) =>
+                //TODO send this to the ui
+                {
+                    error!("Could not launch exo {}", err);
+                }
             }
         }
     }

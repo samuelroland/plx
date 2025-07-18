@@ -83,12 +83,12 @@ mod test {
 
     use super::*;
     fn build_exo(path: &std::path::PathBuf) -> Exo {
-        Exo::from_dir(path)
+        Exo::from_dir(path, true)
             .expect(&format!(
                 "Couldn't build exo from {}",
                 path.to_str().unwrap()
             ))
-            .0
+            .1
     }
     fn create_compiler(
         compiler: &Compiler,
