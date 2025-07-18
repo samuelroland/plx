@@ -1,0 +1,10 @@
+exo Salue-moi
+Un petit programme qui te salue avec ton nom complet.
+
+check Il est possible d'être salué avec son nom complet
+see Quel est ton prénom ?
+type John
+see Salut John, qu'est est ton nom de famille ?
+type Joe
+see Passe une belle journée John Doe !
+exit 0

@@ -1,0 +1,26 @@
+exo Participants à la réunion
+A chaque réunion d'une association, on prend les présences pour les intégrer au procès verbal. Ce programme permet de rentrer un nombre total de membre, de rentrer les prénoms de chacun et d'afficher la liste à la fin. Pour stocker les personnes intermédiaires, il est nécessaire d'utiliser **des structures**.
+
+check Petite réunion
+see nombre de personnes dans l'association ?
+type 5
+see nombre de personnes présentes ?
+type 3
+see prénom de la personne 1 ?
+type Alice
+see nom de la personne 1 ?
+type Mello
+see prénom de la personne 2 ?
+type Mégane
+see nom de la personne 2 ?
+type Teyon
+see prénom de la personne 3 ?
+type Julien
+see nom de la personne 3 ?
+type Marco
+see 3/5 personnes sont présentes aujourd'hui, ce qui fait 2 membres absent.es.
+Voici la liste des membres rentrés:
+1. Alice Mello
+2. Mégane Teyon
+3. Julien Marco
+
