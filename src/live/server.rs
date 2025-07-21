@@ -12,7 +12,7 @@ use tokio::select;
 use tokio_tungstenite::tungstenite::{handshake, http::Response};
 use url::Url;
 
-use super::{client_manager::ClientManager, sessions_manager::SessionsManager};
+use super::{client_manager::ClientManager, sessions_management::SessionsManagement};
 
 /// Version of the protocol, defined its specification
 pub const PROTOCOL_VERSION: &str = "0.1.0";
@@ -27,7 +27,7 @@ pub const QUERYSTRING_LIVE_CLIENT_ID_FIELD: &str = "live_client_id";
 /// with the Tokio runtime
 pub struct LiveServer {
     runtime: Runtime,
-    sessions_manager: Arc<SessionsManager>,
+    sessions_management: Arc<SessionsManagement>,
 }
 
 impl LiveServer {
@@ -36,10 +36,10 @@ impl LiveServer {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_io()
             .build()?;
-        let sessions_manager = Arc::new(SessionsManager::new());
+        let sessions_management = Arc::new(SessionsManagement::new());
         Ok(LiveServer {
             runtime,
-            sessions_manager,
+            sessions_management,
         })
     }
 
@@ -75,13 +75,13 @@ impl LiveServer {
                         if let Ok((stream, _)) = new_client {
                             tokio::spawn(Self::process_client(
                                 stream,
-                                Arc::clone(&self.sessions_manager),
+                                Arc::clone(&self.sessions_management),
                             ));
                         }
                     }
                     _ = shutdown_rx.recv() => {
                         println!("SessionsManager call of shutdown process");
-                        self.sessions_manager.shutdown().await;
+                        self.sessions_management.shutdown().await;
                         println!("SessionsManager is done");
                         break; // so the final shutdown of the runtime can be done
                     }
@@ -94,7 +94,7 @@ impl LiveServer {
     }
 
     /// Once a TcpSocket has been accepted into a TcpStream, we can start the websocket connection
-    async fn process_client(stream: TcpStream, sessions_manager: Arc<SessionsManager>) {
+    async fn process_client(stream: TcpStream, sessions_manager: Arc<SessionsManagement>) {
         let mut client_id = String::default(); // this is filled during check_handshake_callback
 
         let error_reponse = |body: String| {

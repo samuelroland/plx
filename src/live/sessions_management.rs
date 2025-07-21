@@ -23,14 +23,14 @@ struct SessionState {
 // The first key is the group_id, the second is the session name, the u32 is the last client_num used
 type Session2DMap = HashMap<String, HashMap<String, SessionState>>;
 
-pub struct SessionsManager {
+pub struct SessionsManagement {
     /// Keep a 2 dimensionnal hashmap of all sessions, indexed by session's group id, then session's name, to finally access a SessionState
     sessions_by_group_and_name: RwLock<Session2DMap>,
     /// Also store the mapping between leader client_id and a copy of Session to easily find the SessionState in self.sessions
     sessions_info_by_leaders_id: RwLock<HashMap<String, Session>>,
 }
 
-impl SessionsManager {
+impl SessionsManagement {
     pub fn new() -> Self {
         Self {
             sessions_by_group_and_name: RwLock::new(Session2DMap::new()),

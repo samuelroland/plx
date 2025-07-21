@@ -6,7 +6,7 @@ use super::{
         Action, ClientNum, ClientRole, Event, ForwardedFile, ForwardedResult, LiveProtocolError,
     },
     session::BroadcastAction,
-    sessions_manager::SessionsManager,
+    sessions_management::SessionsManagement,
 };
 use chrono::Utc;
 use futures_util::{stream::FusedStream, SinkExt};
@@ -33,7 +33,7 @@ pub struct ClientManager {
     session: Option<SessionLink>,
 
     /// Keeping a reference to the SessionsManager, when we need to ask to do changes on the global sessions list
-    pub sessions_manager: Arc<SessionsManager>,
+    pub sessions_manager: Arc<SessionsManagement>,
 }
 
 /// Keeping a link to the SessionBroadcaster via message passing in both directions
@@ -55,7 +55,7 @@ impl ClientManager {
     pub fn new(
         client_id: String,
         websocket: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
-        sessions_manager: Arc<SessionsManager>,
+        sessions_manager: Arc<SessionsManagement>,
     ) -> Self {
         Self {
             client_id,
