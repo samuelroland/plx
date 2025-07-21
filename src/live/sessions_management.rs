@@ -20,7 +20,7 @@ struct SessionState {
     /// A copy of the sender to give to new clients when joining
     tx: UnboundedSender<BroadcastAction>,
 }
-// The first key is the group_id, the second is the session name, the u32 is the last client_num used
+// The first key is the group_id, the second is the session name
 type Session2DMap = HashMap<String, HashMap<String, SessionState>>;
 
 pub struct SessionsManagement {
