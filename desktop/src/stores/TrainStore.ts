@@ -1,15 +1,18 @@
 // This a global Pinia store to manage the state of everything related to training on code exos
 
 import { defineStore } from "pinia";
-import { commands, Exo, ExoStatusReport, Course, Skill } from "../ts/commands";
+import { commands, Exo, Course, Skill } from "../ts/commands";
 import { useGlobalStore } from "./GlobalStore";
 import { Channel } from "@tauri-apps/api/core";
 import { useLiveStore } from "./LiveStore";
+import { complement } from "../ts/complement";
+import { ExoStatusReport } from "../ts/shared";
 
 export const useTrainStore = defineStore("train", {
   state: () => ({
     // The complete course details -> course + skills details + exos details
     course: null as Course | null,
+    errors: [] as ParseError[],
 
     exo_status: undefined as ExoStatusReport | undefined,
 
@@ -79,9 +82,14 @@ export const useTrainStore = defineStore("train", {
       const global = useGlobalStore();
       const channel = new Channel<ExoStatusReport>();
       channel.onmessage = this.onExoStatusChange;
-      const result = await commands.loadFullCourseDetails(course_path, channel);
+      const result = await complement.loadFullCourseDetails(
+        course_path,
+        channel,
+      );
+      console.log(result);
       if (result.status == "ok") {
-        this.course = result.data;
+        this.course = result.data.course;
+        this.errors = result.data.errors;
         global.page = "course";
       } else {
         alert(result.error);

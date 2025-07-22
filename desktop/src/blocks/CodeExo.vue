@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useLiveStore } from '../stores/LiveStore';
-import { Exo, ExoCheckResult, ExoStatusReport } from '../ts/commands';
+import { Exo } from '../ts/commands';
+import { ExoCheckResult, ExoStatusReport } from '../ts/shared';
 import Markdown from './Markdown.vue';
 
 defineProps<{ exo: Exo | undefined, exo_status?: ExoStatusReport | undefined }>()

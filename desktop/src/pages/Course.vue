@@ -5,7 +5,6 @@ import { commands, Exo, Skill } from '../ts/commands';
 import { onKeyStroke } from "@vueuse/core"
 import CodeExo from '../blocks/CodeExo.vue';
 import { useGlobalStore } from '../stores/GlobalStore';
-import { loadCourses } from './Home.vue';
 
 // Overview of a course, its skills and exos
 
@@ -14,25 +13,25 @@ const global = useGlobalStore()
 
 onMounted(() => {
     // Define up and down actions on selection
-    onKeyStroke(['j', 'ArrowDown'], (e) => {
+    onKeyStroke(['j', 'ArrowDown'], (_) => {
         if (train.exosSelection) {
             train.switchExo(1)
         } else {
             train.switchSkill(1)
         }
     })
-    onKeyStroke(['k', 'ArrowUp'], (e) => {
+    onKeyStroke(['k', 'ArrowUp'], (_) => {
         if (train.exosSelection) {
             train.switchExo(-1)
         } else {
             train.switchSkill(-1)
         }
     })
-    onKeyStroke(['l', 'ArrowRight'], (e) => {
+    onKeyStroke(['l', 'ArrowRight'], (_) => {
         train.exosSelection = true
         train.selectedExoIdx = 0
     })
-    onKeyStroke(['h', 'ArrowLeft'], (e) => {
+    onKeyStroke(['h', 'ArrowLeft'], (_) => {
         train.exosSelection = false
     })
     // TODO: make that a gg not a single g

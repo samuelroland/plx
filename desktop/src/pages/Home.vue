@@ -27,9 +27,7 @@ async function cloneCourse() {
     const git_url = prompt("Enter a course Git URL")
     if (git_url) {
         const success = await commands.cloneCourse(git_url)
-        if (success) {
-            live.get_sessions()
-        }
+        loadCourses()
     }
 }
 
