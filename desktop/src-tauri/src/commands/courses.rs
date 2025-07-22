@@ -1,4 +1,3 @@
-use core::error;
 use dme_core::util::git::GitRepos;
 use log::{error, info, warn};
 use plx_core::{
