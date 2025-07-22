@@ -3,6 +3,8 @@
  You can see how it works in desktop/src-tauri/build.rs where the typeshare CLI is being run.
  List of replacements:
  DateTime<Utc> -> number
+ PathBuf -> string
+ ParseError -> string
 
  After generation by typeshare 1.13.3
 */
@@ -15,16 +17,15 @@ export type ClientNum = number;
 
 export interface Course {
 	name: string;
-	instruction: string;
 	code: string;
 	goal: string;
 	skills: Skill[];
-	folder: PathBuf;
+	folder: string;
 }
 
 export interface CourseWithErrors {
 	course: Course;
-	errors: ParseError[];
+	errors: string[];
 }
 
 export type CheckStatus = 
@@ -51,7 +52,7 @@ export interface ExoStatusReport {
 	compilation_output: string;
 	compilation_success: boolean;
 	compilation_running: boolean;
-	elf_path: PathBuf;
+	elf_path: string;
 	exo: Exo;
 }
 

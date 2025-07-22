@@ -57,10 +57,10 @@ export const commands = {
 /** user-defined constants **/
 
 export const PROTOCOL_VERSION = "0.1.0" as const;
-export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
-export const DEFAULT_LIVE_PORT = 9120 as const;
 export const QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD =
   "live_protocol_version" as const;
+export const QUERYSTRING_LIVE_CLIENT_ID_FIELD = "live_client_id" as const;
+export const DEFAULT_LIVE_PORT = 9120 as const;
 
 /** user-defined types **/
 
@@ -74,7 +74,6 @@ export type Check = { name: string; args?: string[]; test: CheckTest };
 export type CheckTest = { type: "Output"; expected: string };
 export type Course = {
   name: string;
-  instruction: string;
   code: string;
   goal: string;
   skills: Skill[];
@@ -87,12 +86,11 @@ export type CourseWithConfig = { course: Course; config: LiveConfig | null };
 export type Exo = {
   name: string;
   instruction: string | null;
+  checks: Check[];
+  folder: string;
   state: ExoState;
   files: string[];
   solutions: string[];
-  checks: Check[];
-  favorite: boolean;
-  folder: string;
 };
 export type ExoState = "Todo" | "InProgress" | "Done";
 export type LiveConfig = { domain: string; port: number; group_id: string };
