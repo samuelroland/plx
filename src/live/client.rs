@@ -1,5 +1,7 @@
 use std::future::IntoFuture;
 /// Client implementation of the live protocol
+/// WARNING: this is only used in testing (tests/live.rs), not in the PLX desktop app,
+/// a TypeScript client has been developed to connect to the server
 use std::{fmt::Display, sync::mpsc::Sender, thread, time::Duration};
 
 use std::net::TcpStream;

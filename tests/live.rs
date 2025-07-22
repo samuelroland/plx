@@ -8,7 +8,7 @@ use std::{
     vec,
 };
 
-use plx::live::{
+use plx_core::live::{
     client::LiveClient,
     protocol::{Action, ClientNum, Event, ForwardedFile, LiveProtocolError, Session, SessionStats},
     server::{LiveServer, PROTOCOL_VERSION},
@@ -179,7 +179,7 @@ fn can_join_session_and_get_correct_events_back() {
 #[test]
 #[ntest::timeout(4000)]
 fn cannot_create_same_session_twice() {
-    let c = &mut spawn_server_and_n_clients(3);
+    let c = &mut spawn_server_and_n_clients(2);
     c[0].send_msg(Action::StartSession {
         name: NAME.to_string(),
         group_id: GROUP_ID.to_string(),
@@ -188,12 +188,12 @@ fn cannot_create_same_session_twice() {
         c[0].wait_on_next_event().unwrap(),
         Event::SessionJoined(ClientNum(0))
     );
-    c[0].send_msg(Action::StartSession {
+    c[1].send_msg(Action::StartSession {
         name: NAME.to_string(),
         group_id: GROUP_ID.to_string(),
     });
     assert_eq!(
-        c[0].wait_on_next_event().unwrap(),
+        c[1].wait_on_next_event().unwrap(),
         Event::Error(LiveProtocolError::FailedToStartSession(
             "There is already a session with the same group id and name combination.".to_string()
         ))

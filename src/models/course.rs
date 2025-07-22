@@ -88,7 +88,7 @@ impl FromDir for Course {
         let mut errors = Vec::new();
 
         let course_file_content = read_file(&course_info_file)
-            .map_err(|err| MajorParserIssue::ReadFileError(COURSE_INFO_FILE.to_string()))?;
+            .map_err(|_| MajorParserIssue::FileNotFound(COURSE_INFO_FILE.to_string()))?;
         let dy_course_result = parse_course(
             &Some(course_info_file.to_str().unwrap_or_default().to_string()),
             &course_file_content,
@@ -96,7 +96,9 @@ impl FromDir for Course {
         let dy_course = dy_course_result
             .items
             .first()
-            .ok_or(MajorParserIssue::FileNotFound(SKILL_INFO_FILE.to_string()))?;
+            .ok_or(MajorParserIssue::ParseError(format!(
+                "No course has been found into {COURSE_INFO_FILE}"
+            )))?;
         let mut course = Course {
             name: dy_course.name.clone(),
             code: dy_course.code.clone(),

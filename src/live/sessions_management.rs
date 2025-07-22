@@ -23,6 +23,7 @@ struct SessionState {
 // The first key is the group_id, the second is the session name
 type Session2DMap = HashMap<String, HashMap<String, SessionState>>;
 
+/// The shared states of sessions running on the live server
 pub struct SessionsManagement {
     /// Keep a 2 dimensionnal hashmap of all sessions, indexed by session's group id, then session's name, to finally access a SessionState
     sessions_by_group_and_name: RwLock<Session2DMap>,
