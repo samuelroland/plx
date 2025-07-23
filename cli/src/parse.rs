@@ -5,11 +5,7 @@ use std::{
     process::exit,
 };
 
-use plx_core::{
-    core::{file_utils::file_parser::ParseError, parser::from_dir::FromDir},
-    dy::{ParseResult, error},
-    models::course::Course,
-};
+use plx_core::{core::parser::from_dir::FromDir, dy::ParseResult, models::course::Course};
 use plx_dy::{COURSE_FILE, SKILLS_FILE, parse_course, parse_exos, parse_skills};
 use serde::Serialize;
 

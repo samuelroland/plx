@@ -412,7 +412,7 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 [[package]]
 name = "dy"
 version = "0.0.1"
-source = "git+https://github.com/samuelroland/dy#bcf84a0b5cd49addf745163af9b14c9e4cff73ea"
+source = "git+https://github.com/samuelroland/dy#7aae6a0c22441d4761440e2f853435270063a02e"
 dependencies = [
  "colored",
  "lsp-types",
@@ -1031,7 +1031,7 @@ dependencies = [
 [[package]]
 name = "plx-dy"
 version = "0.0.1"
-source = "git+https://github.com/samuelroland/dy#bcf84a0b5cd49addf745163af9b14c9e4cff73ea"
+source = "git+https://github.com/samuelroland/dy#7aae6a0c22441d4761440e2f853435270063a02e"
 dependencies = [
  "dy",
  "serde",
@@ -1046,7 +1046,6 @@ dependencies = [
  "console",
  "ctrlc",
  "dunce",
- "dy",
  "futures-util",
  "log",
  "notify",

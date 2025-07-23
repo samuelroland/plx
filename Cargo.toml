@@ -53,10 +53,8 @@ specta-typescript = "0.0.9"
 ansi-to-html = "0.2.2"
 serde_with = "3.14.0"
 
-dy = { git = "https://github.com/samuelroland/dy" }
 plx-dy = { git = "https://github.com/samuelroland/dy" }
 # Switch to local inclusion when developing locally
-# dy = { path = "../dy-lib/crates/dy" }
 # plx-dy = { path = "../dy-lib/crates/plx/" }
 
 [dev-dependencies]

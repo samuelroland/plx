@@ -52,7 +52,7 @@ impl FromDir for Exo {
     fn from_dir(
         dir: &std::path::PathBuf,
         _: bool,
-    ) -> Result<(Vec<dy::error::ParseError>, Self), MajorParserIssue> {
+    ) -> Result<(Vec<plx_dy::dy::error::ParseError>, Self), MajorParserIssue> {
         // Get the exo info and the state if it exists.
         let mut warnings = Vec::new();
         let exo_info_file = dir.join(EXO_INFO_FILE);

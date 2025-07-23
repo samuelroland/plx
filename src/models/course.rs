@@ -81,7 +81,7 @@ impl FromDir for Course {
     fn from_dir(
         dir: &std::path::PathBuf,
         deep: bool,
-    ) -> Result<(Vec<dy::error::ParseError>, Self), MajorParserIssue> {
+    ) -> Result<(Vec<plx_dy::dy::error::ParseError>, Self), MajorParserIssue> {
         // Get course info by searching for the course.toml file
         // TODO magic value maybe change this
         let course_info_file = dir.join(COURSE_INFO_FILE);

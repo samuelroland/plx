@@ -6,7 +6,7 @@ pub trait FromDir {
     fn from_dir(
         dir: &std::path::PathBuf,
         deep: bool, // whether the element must be deeply extracted
-    ) -> Result<(Vec<dy::error::ParseError>, Self), MajorParserIssue>
+    ) -> Result<(Vec<plx_dy::dy::error::ParseError>, Self), MajorParserIssue>
     where
         Self: Sized;
 }
