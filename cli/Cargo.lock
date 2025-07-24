@@ -255,7 +255,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fde0e0ec90c9dfb3b4b1a0891a7dcd0e2bffde2f7efed5fe7c9bb00e5bfb915e"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -412,7 +412,7 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 [[package]]
 name = "dy"
 version = "0.0.1"
-source = "git+https://github.com/samuelroland/dy#7aae6a0c22441d4761440e2f853435270063a02e"
+source = "git+https://github.com/samuelroland/dy#0149a3a8e7701fc7e353dc4dd0f11bf74f06d60f"
 dependencies = [
  "colored",
  "lsp-types",
@@ -1031,7 +1031,7 @@ dependencies = [
 [[package]]
 name = "plx-dy"
 version = "0.0.1"
-source = "git+https://github.com/samuelroland/dy#7aae6a0c22441d4761440e2f853435270063a02e"
+source = "git+https://github.com/samuelroland/dy#0149a3a8e7701fc7e353dc4dd0f11bf74f06d60f"
 dependencies = [
  "dy",
  "serde",
@@ -1856,7 +1856,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

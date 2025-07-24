@@ -6,7 +6,7 @@ use std::{
 };
 
 use plx_core::{core::parser::from_dir::FromDir, dy::ParseResult, models::course::Course};
-use plx_dy::{COURSE_FILE, SKILLS_FILE, parse_course, parse_exos, parse_skills};
+use plx_dy::{COURSE_FILE, EXO_FILE, SKILLS_FILE, parse_course, parse_exo, parse_skills};
 use serde::Serialize;
 
 /// The "parse" subcommand implementation
@@ -34,8 +34,13 @@ pub fn parse_command(path: PathBuf, full: bool) -> Result<(), std::io::Error> {
             parse_and_show_course_file(&path)?;
         } else if filename == Some(&OsString::from(SKILLS_FILE)) {
             parse_and_show_skills_file(&path)?;
-        } else {
+        } else if filename == Some(&OsString::from(EXO_FILE)) {
             parse_and_show_exo_file(&path)?;
+        } else {
+            eprintln!(
+                "Invalid file given, only {COURSE_FILE}, {SKILLS_FILE} or {EXO_FILE} can be parsed."
+            );
+            exit(1);
         }
     }
     Ok(())
@@ -83,7 +88,7 @@ fn parse_and_show_exo_file(exo_file_path: &Path) -> Result<(), std::io::Error> {
     let file_path = exo_file_path;
     let file_content = read_to_string(file_path)?;
 
-    let dy_result = parse_exos(
+    let dy_result = parse_exo(
         &Some(file_path.to_str().unwrap_or_default().to_string()),
         &file_content,
     );
