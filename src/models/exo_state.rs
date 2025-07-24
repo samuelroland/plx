@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use specta_macros::Type;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
 pub enum ExoState {
     Todo,       // all checks are failing
     InProgress, // at least one successful check but not all of them

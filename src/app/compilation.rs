@@ -7,36 +7,28 @@ impl App {
     pub(super) fn on_compilation_start(&mut self) {
         if let Some(ref mut cr) = self.current_run {
             cr.compilation_output.clear();
+            cr.compilation_running = true;
+            self.send_new_exo_status();
         }
-        self.go_to_compiling();
     }
     pub(super) fn on_compilation_output(&mut self, line: String) {
         if let Some(ref mut cr) = self.current_run {
-            cr.compilation_output.push(line);
+            cr.compilation_output.push_str(&format!("{line}\n"));
+            cr.compilation_running = true;
+            self.send_new_exo_status();
         }
     }
 
     /// Compilation finished event handler
     /// Gets called when the target binary compilation ends
     pub(super) fn on_compilation_end(&mut self, success: bool) {
-        if success {
-            self.start_runners();
-            if let Some(ref cr) = self.current_run {
-                self.go_to_check_results(
-                    0,
-                    cr.check_results
-                        .iter()
-                        .map(|result| result.state.clone())
-                        .collect(),
-                );
+        if let Some(ref mut cr) = self.current_run {
+            cr.compilation_running = false;
+            cr.compilation_success = success;
+            if success {
+                self.start_runners();
             }
-        } else {
-            let output = if let Some(ref cr) = self.current_run {
-                cr.compilation_output.join("\n")
-            } else {
-                String::from("")
-            };
-            self.go_to_compilation_error(0, output)
         }
+        self.send_new_exo_status();
     }
 }

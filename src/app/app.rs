@@ -8,13 +8,12 @@ use crate::{
         launcher::launcher::Launcher,
         parser::from_dir::FromDir,
         watcher::watcher::FileWatcher,
-        work::{work::Work, work_handler::WorkHandler, work_type::WorkType},
+        work::{work::Work, work_handler::WorkHandler},
     },
     models::{
-        check_state::CheckStatus, constants::TARGET_FILE_BASE_NAME, event::Event, exo::Exo,
-        project::Project, ui_state::UiState,
+        check_state::CheckStatus, constants::TARGET_FILE_BASE_NAME, course::Course, event::Event,
+        exo::Exo, ui_action::UiAction,
     },
-    ui::ui::Ui,
 };
 use log::{error, info};
 use std::{
@@ -23,6 +22,7 @@ use std::{
         mpsc::{self, Receiver, Sender},
         Arc, Mutex,
     },
+    thread,
 };
 
 use super::{
@@ -33,11 +33,11 @@ use super::{
 /// App struct
 /// Holds the state of the application
 pub struct App {
-    pub(super) ui_state: UiState,
-    pub(super) project: Project,
+    pub(super) course: Course,
     pub(super) work_handler: Arc<Mutex<WorkHandler>>,
     pub(super) event_rx: Receiver<Event>,
-    pub(super) ui_state_tx: Sender<UiState>,
+    exo_status_tx: Sender<ExoStatusReport>,
+    // ui_action_rx: Receiver<UiAction>,
     pub(super) run: bool,
     pub(super) current_run: Option<ExoStatusReport>,
 }
@@ -45,83 +45,72 @@ pub struct App {
 impl App {
     ///  Create a new App instance
     ///
-    /// This function will create a new App instance and initialize the project
-    /// It will succeed if the project is found in the current folder
+    /// This function will create a new App instance and initialize the course
+    /// It will succeed if the course is found in the current folder
     ///
     /// # Returns
-    /// A Result containing the App instance if the project is found or an   
-    /// error if the project is not found
+    /// A Result containing the App instance if the course is found or an   
+    /// error if the course is not found
     ///
-    pub fn new() -> Result<Self, CoreInitError> {
+    pub fn new(
+        exo_status_tx: Sender<ExoStatusReport>,
+        ui_action_rx: Receiver<UiAction>,
+    ) -> Result<Self, CoreInitError> {
         let current_folder = match current_folder() {
             Ok(folder) => folder,
             Err(_err) => return Err(CoreInitError::PlxProjNotFound), // TODO maybe be more specific
                                                                      // here by adding the error detail
         };
-        // TODO these warnings should be accessible to the user
-        let (project, _warnings) = match Project::from_dir(&current_folder) {
-            Ok((project, warnings)) => (project, warnings),
-            Err((err, _warnings)) => {
-                // TODO handle these warnings even in case of failure
-                return Err(CoreInitError::ProjFilesParsingError(format!("{:?}", err)));
-            }
-        };
+
+        Self::new_in_folder(&current_folder, exo_status_tx, ui_action_rx)
+    }
+
+    pub fn new_in_folder(
+        folder: &PathBuf,
+        exo_status_tx: Sender<ExoStatusReport>,
+        ui_action_rx: Receiver<UiAction>,
+    ) -> Result<Self, CoreInitError> {
+        // We completely ignore the errors here, if the exo
+        let (_, course) = Course::from_dir(folder, true)
+            .map_err(|err| CoreInitError::ProjFilesParsingError(format!("{err:?}")))?;
+
         let (event_tx, event_rx) = mpsc::channel();
-        let (ui_state_tx, ui_state_rx) = mpsc::channel();
         let work_handler = WorkHandler::new(event_tx.clone());
 
-        let mut app = App {
-            ui_state: UiState::Home,
-            project,
+        // TODO: quick and dirty thread, refactor to worker ??
+        thread::spawn(move || {
+            while let Ok(action) = ui_action_rx.recv() {
+                event_tx.send(Event::RequestedAction(action)).unwrap();
+            }
+        });
+
+        let app = App {
+            course,
             work_handler,
             event_rx,
-            ui_state_tx,
+            exo_status_tx,
             run: true,
             current_run: None,
         };
-        app.start_ui(ui_state_rx);
         Ok(app)
     }
 
-    /// Sets a new UiState
-    /// It's important to set the ui_state using this functions as it will also notify the UI of the change
-    pub(super) fn set_ui_state(&mut self, new_state: UiState) {
-        //TODO maybe restart the ui if the channel is closed ?
-        let _ = self.ui_state_tx.send(new_state.clone());
-        self.ui_state = new_state;
-    }
-
-    /// Tries to resume the last exo that was being worked on the last time the app was closed  
-    ///  
-    /// If the last exo is found, it will try to resume it, otherwise it will go to the skill selection screen
-    ///
-    ///
-    pub(super) fn resume_last_exo(&mut self) {
-        if let Some(exo) = &self.project.resume() {
-            //TODO refactor this code (duplicate)
-            match App::start_exo(&self.work_handler, exo) {
-                Ok(cr) => {
-                    self.current_run = Some(cr);
-                    self.go_to_compiling();
-                }
-                Err(err) => {
-                    error!("Couldn't start exo {}", err);
-                    self.go_to_skill_selection();
-                }
-            }
-        } else {
-            self.go_to_skill_selection();
+    /// Send a the updated ExoStatusReport to the UI
+    pub(super) fn send_new_exo_status(&mut self) {
+        if let Some(status) = &self.current_run {
+            let _ = self.exo_status_tx.send(status.clone());
         }
     }
+
     /// Main thread
     ///
     /// Main application loop
     pub fn run_forever(mut self) {
         while self.run {
             if let Ok(event) = self.event_rx.recv() {
-                info!("{:?}", event);
+                info!("{event:?}");
                 match event {
-                    Event::KeyPressed(key) => self.on_key_press(key),
+                    Event::RequestedAction(action) => self.on_ui_action(action),
                     Event::EditorOpened => {}
                     Event::CouldNotOpenEditor => {} //TODO warn the user ?
                     Event::OutputCheckPassed(check_index) => self.on_check_passed(check_index),
@@ -151,23 +140,6 @@ impl App {
             return Some(wh.spawn_worker(work));
         }
         None
-    }
-    /// Starts the UI
-    ///
-    /// The UI will be launched as a separate worker so this function will not block
-    ///
-    fn start_ui(&mut self, ui_state_rx: Receiver<UiState>) {
-        let ui = Ui::new(ui_state_rx);
-        self.go_to_home();
-        App::start_work(&self.work_handler, Box::new(ui));
-    }
-    /// Stops the UI
-    /// Useful if we want to restart the UI
-    ///
-    fn _stop_ui(&mut self) {
-        if let Ok(mut work_handler) = self.work_handler.lock() {
-            work_handler.stop_workers(WorkType::Ui);
-        }
     }
 
     /// Opens a new editor using a worker
@@ -199,15 +171,15 @@ impl App {
         let compiler = exo
             .compiler()
             .ok_or(CompilationStartError::CompilerNotSupported)?;
-        info!("Compiler: {:#?}", compiler);
+        info!("Compiler: {compiler:#?}");
 
         let folder = generate_build_folder(exo).map_err(|err| {
-            error!("Error generation build folder ({})", err);
+            error!("Error generation build folder ({err})");
             CompilationStartError::BuildFolderGenerationFailed
         })?;
-        info!("Folder: {:#?}", folder);
+        info!("Folder: {folder:#?}");
         let output_path = if cfg!(windows) {
-            folder.join(format!("{}.exe", TARGET_FILE_BASE_NAME))
+            folder.join(format!("{TARGET_FILE_BASE_NAME}.exe"))
         } else {
             folder.join(TARGET_FILE_BASE_NAME)
         };
@@ -216,7 +188,7 @@ impl App {
         info!("Command: {:#?}", runner.get_full_command());
         App::start_work(wh, Box::new(runner))
             .ok_or(CompilationStartError::ErrorStartingCompileProcess)?;
-        return Ok(output_path);
+        Ok(output_path)
     }
 
     /// Cleans the previous run by stopping and waiting for every non UI worker to finish
@@ -237,6 +209,7 @@ impl App {
     /// - Open the editor. See `open_editor` for more details
     /// - Compile. See `compile` for more details
     /// - Setup this exercise file watchers. See `start_watcher` for more details
+    ///
     /// Every step but the first is done using a separate worker
     /// so this function doesn't block
     /// Returns a `ExoStatusReport` if the exo was successfully started
@@ -250,8 +223,7 @@ impl App {
         // TODO warn user if we couldn't open editor but ignore error for now so it doesn't stop us
         // from launching
         let _ = App::open_editor(wh, exo); // Ignore Error while opening editor for now
-        let output_path =
-            App::compile(wh, exo).map_err(|err| StartExoFail::CouldNotStartCompilation(err))?;
+        let output_path = App::compile(wh, exo).map_err(StartExoFail::CouldNotStartCompilation)?;
         App::start_watcher(wh, exo);
 
         Ok(ExoStatusReport::new(exo, output_path))
@@ -290,7 +262,7 @@ impl App {
                     Arc::clone(&cr.check_results[id].state.check),
                     cr.check_results[id].output.join("\n"),
                 );
-                return Some(App::start_work(&self.work_handler, Box::new(checker))?);
+                return App::start_work(&self.work_handler, Box::new(checker));
             }
         }
         None

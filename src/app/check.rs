@@ -1,9 +1,6 @@
 use crate::{
     core::diff::diff::Diff,
-    models::{
-        check::CheckTest, check_state::CheckStatus, exo_state::ExoState, project::Project,
-        ui_state::UiState,
-    },
+    models::{check::CheckTest, check_state::CheckStatus, course::Course, exo_state::ExoState},
 };
 
 use super::app::App;
@@ -23,12 +20,16 @@ impl App {
             if check_idx < cr.check_results.len() {
                 match &cr.check_results[check_idx].state.check.test {
                     CheckTest::Output { expected } => {
-                        let output = cr.check_results[check_idx].output.join("\n").clone();
+                        let given = cr.check_results[check_idx].output.join("\n").clone();
                         let expected = expected.clone();
 
                         self.on_check_status(
                             check_idx,
-                            CheckStatus::Failed(expected, output, diff),
+                            CheckStatus::Failed {
+                                expected,
+                                given,
+                                diff,
+                            },
                         );
                     }
                 };
@@ -59,12 +60,8 @@ impl App {
     fn on_new_check_update(&mut self) {
         if let Some(ref cr) = self.current_run {
             // Keep the same scroll offset if we're already checking the results
-            let scroll_offset = match self.ui_state {
-                UiState::CheckResults { scroll_offset, .. } => scroll_offset,
-                _ => 0,
-            };
-            Project::set_exo_state(&cr.exo, ExoState::InProgress);
-            self.go_to_check_results(scroll_offset, cr.to_vec_check_state());
+            Course::set_exo_state(&cr.exo, ExoState::InProgress);
+            self.send_new_exo_status();
         }
     }
 }

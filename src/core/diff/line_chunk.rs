@@ -21,4 +21,12 @@ impl LineChunk {
             format!("{}", style.apply_to(&self.value).dim())
         }
     }
+
+    pub(super) fn to_html(&self, css_class: &str) -> String {
+        if self.is_different {
+            format!("<span class='{}'>{}</span>", css_class, self.value)
+        } else {
+            format!("<span>{}</span>", self.value)
+        }
+    }
 }

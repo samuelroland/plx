@@ -4,7 +4,7 @@ use crate::models::constants::BUILD_FOLDER_NAME;
 use crate::models::exo::Exo;
 
 // Generates the exo build folder
-// It will try to create a build/<skill>/<exo> folder at the root of the project
+// It will try to create a build/<skill>/<exo> folder at the root of the course
 // Creates all necessary directories so if this function succeedes
 // it means the directory is ready to be used
 pub fn generate_build_folder(exo: &Exo) -> Result<std::path::PathBuf, std::io::Error> {

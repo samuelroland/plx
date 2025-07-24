@@ -1,5 +1,5 @@
 [package]
-name = "plx"
+name = "plx_core"
 description = "Practice programming exos in a delightful Learning eXperience"
 homepage = "https://github.com/plx-pdg/plx"
 repository = "https://github.com/plx-pdg/plx"
@@ -9,22 +9,55 @@ version = "0.2.0"
 edition = "2021"
 exclude = ["examples"]
 
+[lib]
+name = "plx_core"
+
 [dependencies]
-console = "0.15.8"
+console = "0.16.*"
 serde = { version = "1.0.209", features = ["derive"] }
 toml = "0.8.19"
-ratatui = "0.28.1"
-crossterm = "0.28.1"
+serde_json = "1.0.140"
+# Text diffing
 similar = { version = "2.6.0", features = ["inline"] }
-strum = "0.26.3"
+# Macros for enum utils
+strum = "0.27.1"
+strum_macros = "0.27.1"
 dunce = "1.0.5"
 notify = "6.1.1"
 notify-debouncer-mini = "0.4.0"
-tempfile = "3.12.0"
-log = "0.4.22"
-simplelog = "0.12.2"
-syntect = "5.0"
-ansi-to-tui = "6.0.0"
+log = "0.4.*"
+tokio = { version = "1", features = ["rt", "net", "macros"] }
+tokio-tungstenite = "0.27.0"
+tokio-stream = "0.1.17"
+futures-util = "0.3.31"
+ctrlc = "3.4.7"
+# To get and manage the current time in Utc format and serialize as timestamps
+chrono = { version = "0.4", features = ["serde"] }
+## To parse URLs
+url = "2.5.4"
+
+typeshare = "1.0.4"
+## typeshare-annotation = "1.0.4" could also replace that but it doesn't contains less unused dependency
+
+# Tauri is not used outside of the Tauri desktop app, but we still need to include to use Tauri specta
+# and generate some TypeScript types for the frontend
+# Instead of the 2 dependencies below, that ultimately requires `tauri` and all prerequisites of system dependencies
+# specta = "=2.0.0-rc.22"
+# tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
+# when can just import the sub crates we really need
+# This reduce our dependency count from ~500 to 182 !
+specta = { version = "=2.0.0-rc.22", features = ["export"] }
+specta-macros = "2.0.0-rc.18"
+specta-typescript = "0.0.9"
+
+ansi-to-html = "0.2.2"
+serde_with = "3.14.0"
+
+plx-dy = { git = "https://github.com/samuelroland/dy" }
+# Switch to local inclusion when developing locally
+# plx-dy = { path = "../dy-lib/crates/plx/" }
 
 [dev-dependencies]
 ntest = "0.9.3"
+pretty_assertions = "1.4.1"
+rand = "0.9.1"

@@ -1,3 +1,6 @@
+use serde::Serialize;
+use specta_macros::Type;
+
 use crate::models::{check::Check, check_state::CheckState};
 
 /// ExoCheckResult
@@ -5,6 +8,7 @@ use crate::models::{check::Check, check_state::CheckState};
 /// This struct is used to store the result of a run + check
 /// Each exo run will have as many ExoCheckResults as the number of checks the exo has
 /// This helps us keep the output of the run and the check state together
+#[derive(Serialize, Clone, Type)]
 pub(super) struct ExoCheckResult {
     pub(super) state: CheckState,
     pub(super) output: Vec<String>,

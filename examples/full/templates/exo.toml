@@ -1,6 +1,0 @@
-name = 'TODO'
-instruction = 'TODO'
-[[checks]]
-name = 'TODO'
-args = []
-test = { type = "output", expected = "" }
