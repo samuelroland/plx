@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useLiveStore } from '../stores/LiveStore';
 import { Exo } from '../ts/commands';
 import { ExoCheckResult, ExoStatusReport } from '../ts/shared';
 import Markdown from './Markdown.vue';
+import { anonymizeText } from "../util.ts"
 
 defineProps<{ exo: Exo | undefined, exo_status?: ExoStatusReport | undefined }>()
 
@@ -21,15 +21,6 @@ function bgFromCheckResult(compilation_success: boolean, result: ExoCheckResult 
         case 'Failed': return "bg-orange-100"
     }
     return ""
-}
-
-// Try to anonymize the given string, by removing identifiable path such as absolute path of the course folder
-// TODO: could this cause XSS ??
-function anonymizeText(given: string) {
-    const live = useLiveStore()
-    const course_folder = (live.course?.folder + "/")
-    given = given.replaceAll(course_folder, "")
-    return given
 }
 
 </script>
