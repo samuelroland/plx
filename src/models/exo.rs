@@ -39,6 +39,8 @@ pub struct Exo {
     pub(crate) name: String,
     pub(crate) instruction: Option<String>,
     pub(crate) checks: Vec<Check>,
+    /// WARNING: the folder attribute get serialized as an absolute path !
+    /// It must be changed to a relative path again in the frontend, before sending it
     pub(crate) folder: std::path::PathBuf,
     pub(crate) state: ExoState,
     pub(crate) files: Vec<std::path::PathBuf>,
@@ -152,8 +154,8 @@ impl Exo {
                 .and_then(|extension| extension.to_str())
                 .unwrap_or_default();
 
-            // Ignore our files
-            if file_extension == plx_dy::dy::FILE_EXTENSION {
+            // Ignore our files (exo.dy and state files in TOML)
+            if file_extension == plx_dy::dy::FILE_EXTENSION || file_extension == "toml" {
                 continue;
             }
             if file_path_str.contains(".sol.") {
