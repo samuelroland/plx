@@ -6,8 +6,8 @@ import { useGlobalStore } from "./GlobalStore";
 import { Channel } from "@tauri-apps/api/core";
 import { useLiveStore } from "./LiveStore";
 import { complement, ParseError } from "../ts/complement";
-import { ClientRole, ExoStatusReport } from "../ts/shared";
-import { justNotify, NotifType } from "../util";
+import { ClientRole, ExoCheckResult, ExoStatusReport } from "../ts/shared";
+import { anonymizeText, justNotify, NotifType } from "../util";
 
 export const useTrainStore = defineStore("train", {
   state: () => ({
@@ -86,7 +86,6 @@ export const useTrainStore = defineStore("train", {
         course_path,
         channel,
       );
-      console.log(result);
       if (result.status == "ok") {
         this.course = result.data.course;
         this.errors = result.data.errors;
@@ -98,9 +97,65 @@ export const useTrainStore = defineStore("train", {
     onExoStatusChange(status: ExoStatusReport) {
       const live = useLiveStore();
       this.exo_status = status;
-      if (status.compilation_success != this.exo_status.compilation_success) {
-        // live.send_check(status)
-      }
+      if (status.compilation_running) return; // nothing to send for now
+
+      // For each check, we convert the type of the result to the type that is valid for ExoCheckResult
+      status.check_results.forEach((result, idx) => {
+        // If it doesn't build, we send a BuildFailed state for each check
+        // TODO: refactor this non performant strategy with a custom protocol message to send build errors
+        if (!status.compilation_success) {
+          const finalResult: ExoCheckResult = {
+            index: idx,
+            state: {
+              type: "BuildFailed",
+              content: anonymizeText(status.compilation_output),
+            },
+          };
+          live.sendCheckResult(finalResult);
+        } else {
+          // convert to the correct "type", extract the content and send it
+          const type = result.state.status.type;
+          let newType:
+            | "Passed"
+            | "CheckFailed"
+            | "BuildFailed"
+            | "RunFailed"
+            | undefined;
+          let content: string = "";
+          switch (type) {
+            case "Passed":
+              newType = "Passed";
+              break;
+            case "Failed":
+              newType = "CheckFailed";
+              content = result.state.status.content.given;
+              break;
+            case "RunFail":
+              newType = "RunFailed";
+              content = result.state.status.content;
+              break;
+            default:
+              return; // continue with next check result
+          }
+
+          if (newType != undefined) {
+            let finalResult: ExoCheckResult;
+            if (newType == "Passed") {
+              finalResult = {
+                index: idx,
+                state: { type: newType },
+              };
+            } else {
+              finalResult = {
+                index: idx,
+                state: { type: newType, content },
+              };
+            }
+            live.sendCheckResult(finalResult);
+          }
+        }
+      });
+      // TODO: only send checks results that have changed !
     },
 
     async startExo() {

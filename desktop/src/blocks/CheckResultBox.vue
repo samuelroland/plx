@@ -34,7 +34,9 @@ function returnTailwindBackgroundForCheckStatus(state: CheckStatus) {
     <div v-if="props.check.state.content != undefined"
         class="absolute z-50 border border-blue-400 rounded-md text-base shadow-md/50" ref="floating"
         :class="visible ? '' : 'hidden'" :style="floatingStyles">
-        <Code :code="props.check.state.content"></Code>
+
+        <pre v-if="props.check.state.type == 'BuildFailed'" v-html="props.check.state.content"></pre>
+        <Code v-else :code="props.check.state.content"></Code>
     </div>
 
 </template>

@@ -1,16 +1,9 @@
 // This a global Pinia store to store and change the state of everything related to a live session
 
 import { defineStore } from "pinia";
-import {
-  commands,
-  CourseWithConfig,
-  DEFAULT_LIVE_PORT,
-  Exo,
-} from "../ts/commands";
+import { CourseWithConfig, Exo } from "../ts/commands";
 import {
   Event,
-  Action,
-  CheckStatus,
   ClientNum,
   ClientRole,
   ForwardedFile,
@@ -128,7 +121,6 @@ export const useLiveStore = defineStore("live", {
     get_sessions() {
       this.available_sessions = [];
       this.connect_if_no_client();
-      console.log("okay");
       if (this.course?.config?.group_id) {
         this.client?.send_msg({
           type: "GetSessions",
@@ -162,6 +154,7 @@ export const useLiveStore = defineStore("live", {
         (increment > 0 &&
           this.live_current_exo_index < this.live_exos_ids.length - 1)
       ) {
+        this.answers.clear();
         this.live_current_exo_index += increment;
         const newPath = this.currentLiveExo()?.folder;
         if (newPath) this.sendSwitchExoAction(newPath);
@@ -172,6 +165,13 @@ export const useLiveStore = defineStore("live", {
       this.live_session_step = LiveSessionStep.RUNNING;
       const firstExoPath = this.currentLiveExo()?.folder;
       if (firstExoPath) this.sendSwitchExoAction(firstExoPath);
+    },
+    sendCheckResult(check_result: ExoCheckResult) {
+      this.connect_if_no_client();
+      this.client?.send_msg({
+        type: "SendResult",
+        content: { check_result },
+      });
     },
   },
 });
