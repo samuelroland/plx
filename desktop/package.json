@@ -15,6 +15,7 @@
         "@tauri-apps/api": "^2",
         "@tauri-apps/plugin-opener": "^2",
         "@vueuse/core": "^13.5.0",
+        "notiwind": "^2.1.0",
         "oh-vue-icons": "1.0.0-rc3",
         "pinia": "^3.0.3",
         "tailwindcss": "^4.1.11",

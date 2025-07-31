@@ -23,6 +23,9 @@ importers:
       '@vueuse/core':
         specifier: ^13.5.0
         version: 13.5.0(vue@3.5.17(typescript@5.6.3))
+      notiwind:
+        specifier: ^2.1.0
+        version: 2.1.0(vue@3.5.17(typescript@5.6.3))
       oh-vue-icons:
         specifier: 1.0.0-rc3
         version: 1.0.0-rc3(vue@3.5.17(typescript@5.6.3))
@@ -777,6 +780,11 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  notiwind@2.1.0:
+    resolution: {integrity: sha512-u9owDTvjWtvf1DGdHB1/pVPBK47R1yeS0NAJfWPzwJTHk+JyyLby97fOkB63L1PRfbHkbUQD6BLEiPLzG3mwbQ==}
+    peerDependencies:
+      vue: ^3.5.13
+
   oh-vue-icons@1.0.0-rc3:
     resolution: {integrity: sha512-+k2YC6piK7sEZnwbkQF3UokFPMmgqpiLP6f/H0ovQFLl20QA5V4U8EcI6EclD2Lt5NMQ3k6ilLGo8XyXqdVSvg==}
     peerDependencies:
@@ -1518,6 +1526,11 @@ snapshots:
   muggle-string@0.4.1: {}
 
   nanoid@3.3.11: {}
+
+  notiwind@2.1.0(vue@3.5.17(typescript@5.6.3)):
+    dependencies:
+      mitt: 3.0.1
+      vue: 3.5.17(typescript@5.6.3)
 
   oh-vue-icons@1.0.0-rc3(vue@3.5.17(typescript@5.6.3)):
     dependencies:
