@@ -1,6 +1,8 @@
 use crate::{
     core::diff::diff::Diff,
-    models::{check::CheckTest, check_state::CheckStatus, course::Course, exo_state::ExoState},
+    models::{
+        check::CheckTest, check_state::DetailledCheckStatus, course::Course, exo_state::ExoState,
+    },
 };
 
 use super::app::App;
@@ -10,7 +12,7 @@ impl App {
     /// Check passed event handler
     /// Gets called when a check passes
     pub(super) fn on_check_passed(&mut self, check_idx: usize) {
-        self.on_check_status(check_idx, CheckStatus::Passed);
+        self.on_check_status(check_idx, DetailledCheckStatus::Passed);
     }
 
     /// Check failed event handler
@@ -25,7 +27,7 @@ impl App {
 
                         self.on_check_status(
                             check_idx,
-                            CheckStatus::Failed {
+                            DetailledCheckStatus::Failed {
                                 expected,
                                 given,
                                 diff,
@@ -43,7 +45,7 @@ impl App {
     /// This function:
     ///  > Updates the status
     ///  > Updates the UI using `on_new_check_update`
-    fn on_check_status(&mut self, check_idx: usize, check_status: CheckStatus) {
+    fn on_check_status(&mut self, check_idx: usize, check_status: DetailledCheckStatus) {
         if let Some(ref mut cr) = self.current_run {
             if check_idx < cr.check_results.len() {
                 cr.check_results[check_idx].state.status = check_status;

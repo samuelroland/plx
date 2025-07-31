@@ -11,8 +11,8 @@ use crate::{
         work::{work::Work, work_handler::WorkHandler},
     },
     models::{
-        check_state::CheckStatus, constants::TARGET_FILE_BASE_NAME, course::Course, event::Event,
-        exo::Exo, ui_action::UiAction,
+        check_state::DetailledCheckStatus, constants::TARGET_FILE_BASE_NAME, course::Course,
+        event::Event, exo::Exo, ui_action::UiAction,
     },
 };
 use log::{error, info};
@@ -242,7 +242,7 @@ impl App {
                         Launcher::new(id, cr.elf_path.clone(), result.state.check.args.clone())
                     {
                         if App::start_work(&self.work_handler, Box::new(worker)).is_some() {
-                            result.state.status = CheckStatus::Running;
+                            result.state.status = DetailledCheckStatus::Running;
                             result.output.clear();
                         }
                     }

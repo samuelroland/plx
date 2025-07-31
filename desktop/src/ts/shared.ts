@@ -15,6 +15,25 @@
  */
 export type ClientNum = number;
 
+/** Represents the status of a check */
+export type DetailledCheckStatus = 
+	| { type: "Passed", content?: undefined }
+	| { type: "Failed", content: {
+	expected: string;
+	given: string;
+	diff: Diff;
+}}
+	| { type: "Checking", content?: undefined }
+	| { type: "Running", content?: undefined }
+	| { type: "RunFail", content: string }
+	| { type: "Pending", content?: undefined };
+
+/** Handles the check and it's current status */
+export interface CheckWithStatus {
+	check: Check;
+	status: DetailledCheckStatus;
+}
+
 export interface Course {
 	name: string;
 	code: string;
@@ -40,6 +59,18 @@ export interface ExoCheckResult {
 }
 
 /**
+ * ExoCheckResult
+ * 
+ * This struct is used to store the result of a run + check
+ * Each exo run will have as many ExoCheckResults as the number of checks the exo has
+ * This helps us keep the output of the run and the check state together
+ */
+export interface ExoCheckResultWithOutput {
+	state: CheckWithStatus;
+	output: string[];
+}
+
+/**
  * ExoStatusReport
  * 
  * This struct is used to store the result of a run + check
@@ -48,7 +79,7 @@ export interface ExoCheckResult {
  * See `ExoCheckResult` for more information about the check results
  */
 export interface ExoStatusReport {
-	check_results: ExoCheckResult[];
+	check_results: ExoCheckResultWithOutput[];
 	compilation_output: string;
 	compilation_success: boolean;
 	compilation_running: boolean;

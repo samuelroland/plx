@@ -1,4 +1,4 @@
-use crate::models::check_state::CheckStatus;
+use crate::models::check_state::DetailledCheckStatus;
 
 use super::app::App;
 
@@ -8,7 +8,7 @@ impl App {
     pub(super) fn on_run_start(&mut self, id: usize) {
         if let Some(ref mut cr) = self.current_run {
             if id < cr.check_results.len() {
-                cr.check_results[id].state.status = CheckStatus::Running;
+                cr.check_results[id].state.status = DetailledCheckStatus::Running;
             }
         }
     }
@@ -17,7 +17,7 @@ impl App {
     pub(super) fn on_run_end(&mut self, id: usize) {
         if let Some(ref mut cr) = self.current_run {
             if id < cr.check_results.len() {
-                cr.check_results[id].state.status = CheckStatus::Checking;
+                cr.check_results[id].state.status = DetailledCheckStatus::Checking;
                 self.start_check(id);
             }
         }
@@ -36,7 +36,7 @@ impl App {
     pub(super) fn on_run_fail(&mut self, run_id: usize, err: String) {
         if let Some(ref mut cr) = self.current_run {
             if run_id < cr.check_results.len() {
-                cr.check_results[run_id].state.status = CheckStatus::RunFail(err);
+                cr.check_results[run_id].state.status = DetailledCheckStatus::RunFail(err);
             }
         }
     }

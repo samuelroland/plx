@@ -3,9 +3,9 @@ use std::{path::PathBuf, sync::Arc};
 use serde::{Serialize, Serializer};
 use specta_macros::Type;
 
-use crate::models::{check_state::CheckState, exo::Exo};
+use crate::models::{check_state::CheckWithStatus, exo::Exo};
 
-use super::exo_check_result::ExoCheckResult;
+use super::exo_check_result::ExoCheckResultWithOutput;
 
 /// ExoStatusReport
 ///
@@ -16,7 +16,7 @@ use super::exo_check_result::ExoCheckResult;
 #[derive(Serialize, Clone, Type)]
 #[typeshare::typeshare]
 pub struct ExoStatusReport {
-    pub(super) check_results: Vec<ExoCheckResult>,
+    pub(super) check_results: Vec<ExoCheckResultWithOutput>,
     #[serde(serialize_with = "terminal_lines_to_html")]
     pub(super) compilation_output: String,
     pub(super) compilation_success: bool,
@@ -42,7 +42,11 @@ where
 impl ExoStatusReport {
     /// Create an ExoStatusReport from an Exo and the target path
     pub(super) fn new(exo: &Exo, elf_path: PathBuf) -> Self {
-        let checkers: Vec<ExoCheckResult> = exo.checks.iter().map(ExoCheckResult::new).collect();
+        let checkers: Vec<ExoCheckResultWithOutput> = exo
+            .checks
+            .iter()
+            .map(ExoCheckResultWithOutput::new)
+            .collect();
 
         Self {
             check_results: checkers,
@@ -57,7 +61,7 @@ impl ExoStatusReport {
     /// Helper function to get a `Vec<CheckState>` from check results
     /// Useful to send the check states to the Ui
     /// Check `UiState::CheckResults` for more information
-    pub(super) fn to_vec_check_state(&self) -> Vec<CheckState> {
+    pub(super) fn to_vec_check_state(&self) -> Vec<CheckWithStatus> {
         self.check_results
             .iter()
             .map(|result| result.state.clone())
