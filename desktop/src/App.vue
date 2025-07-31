@@ -3,6 +3,7 @@ import Home from "./pages/Home.vue";
 import Dashboard from "./pages/Dashboard.vue";
 import Course from "./pages/Course.vue";
 import Train from "./pages/Train.vue";
+import NotifZone from "./blocks/NotifZone.vue";
 import { useLiveStore } from "./stores/LiveStore";
 import { useGlobalStore } from "./stores/GlobalStore";
 import { onMounted, ref } from "vue";
@@ -43,4 +44,6 @@ onMounted(async () => {
             <Train v-if="global.page == 'train'"></Train>
         </div>
     </div>
+
+    <NotifZone></NotifZone>
 </template>
