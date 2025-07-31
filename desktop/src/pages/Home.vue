@@ -76,7 +76,7 @@ function trainLocally() {
 async function gitPullAllCourses() {
     await commands.gitPullAllCourses()
     loadCourses()
-    justNotify(NotifType.Error, "All course content should be pulled now")
+    justNotify(NotifType.Info, "All course content should be pulled now")
 }
 
 </script>
