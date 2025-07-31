@@ -21,7 +21,12 @@ import {
 import { LiveClient } from "../client";
 import { useGlobalStore } from "./GlobalStore";
 import { useTrainStore } from "./TrainStore";
-import { getRelativePathForExo } from "../util";
+import {
+  convertLiveProtocolErrorToString,
+  getRelativePathForExo,
+  justNotify,
+  NotifType,
+} from "../util";
 
 export interface Answer {
   client_num: ClientNum;
@@ -65,8 +70,10 @@ export const useLiveStore = defineStore("live", {
     connect_if_no_client() {
       const config = this.course?.config;
       if (!config) {
-        alert(
+        justNotify(
+          NotifType.Error,
           "No live.toml configuration found in course repository, cannot connect to a live server !",
+          4000,
         );
         return;
       }
@@ -118,7 +125,8 @@ export const useLiveStore = defineStore("live", {
           content: { group_id: this.course.config?.group_id },
         });
       } else {
-        alert(
+        justNotify(
+          NotifType.Error,
           "This course has no valid live configuration, cannot connect to a live server.",
         );
       }
@@ -191,7 +199,8 @@ function onEvent(event: Event) {
           const absolute_path = live.getCourseFolder() + relative_exo_path;
           train.current_live_exo = train.findExo(absolute_path);
           if (!train.current_live_exo) {
-            alert(
+            justNotify(
+              NotifType.Error,
               "The leader has switched to the exo on folder " +
                 relative_exo_path +
                 " but absolute path " +
@@ -243,7 +252,12 @@ function onEvent(event: Event) {
       break;
     case "Error":
       console.error(event.content);
-      alert(event.content);
+
+      justNotify(
+        NotifType.ServerError,
+        convertLiveProtocolErrorToString(event.content),
+        6000,
+      );
       break;
   }
 

@@ -5,6 +5,7 @@ import { useLiveStore } from '../stores/LiveStore.ts';
 import { useTrainStore } from '../stores/TrainStore.ts';
 import { useGlobalStore } from '../stores/GlobalStore.ts';
 import { Session } from '../ts/shared.ts';
+import { justNotify, NotifType } from '../util.ts';
 
 let courses: Ref<CourseWithConfig[]> = ref([])
 
@@ -22,7 +23,7 @@ onMounted(async () => {
     try {
         loadCourses()
     } catch (error) {
-        alert(error)
+        justNotify(NotifType.Error, error as string)
     }
 })
 
@@ -41,7 +42,7 @@ async function openCourse(path: string) {
     if (course) {
         live.course = course
     } else {
-        alert("Course doesnt exist at path " + path)
+        justNotify(NotifType.Error, "Course doesnt exist at path " + path)
     }
     live.get_sessions()
 }
@@ -75,7 +76,7 @@ function trainLocally() {
 async function gitPullAllCourses() {
     await commands.gitPullAllCourses()
     loadCourses()
-    alert("Should be pulled now")
+    justNotify(NotifType.Error, "All course content should be pulled now")
 }
 
 </script>

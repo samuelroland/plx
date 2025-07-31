@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { notify } from 'notiwind'
 import { onMounted, ref } from 'vue';
 import { useTrainStore } from '../stores/TrainStore';
 import { commands, Exo, Skill } from '../ts/commands';
 import { onKeyStroke } from "@vueuse/core"
 import CodeExo from '../blocks/CodeExo.vue';
 import { useGlobalStore } from '../stores/GlobalStore';
+import { justNotify, NotifType } from '../util';
 
 // Overview of a course, its skills and exos
 
@@ -64,7 +66,7 @@ function startExo() {
 async function gitPullAllCourses() {
     await commands.gitPullAllCourses()
     train.loadCourse(train.course?.folder ?? "")
-    alert("Should be pulled now")
+    justNotify(NotifType.Info, "Latest course content should have been pulled now")
 }
 
 </script>

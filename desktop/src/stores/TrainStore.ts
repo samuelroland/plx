@@ -7,6 +7,7 @@ import { Channel } from "@tauri-apps/api/core";
 import { useLiveStore } from "./LiveStore";
 import { complement, ParseError } from "../ts/complement";
 import { ClientRole, ExoStatusReport } from "../ts/shared";
+import { justNotify, NotifType } from "../util";
 
 export const useTrainStore = defineStore("train", {
   state: () => ({
@@ -79,7 +80,6 @@ export const useTrainStore = defineStore("train", {
     },
 
     async loadCourse(course_path: string) {
-      const global = useGlobalStore();
       const channel = new Channel<ExoStatusReport>();
       channel.onmessage = this.onExoStatusChange;
       const result = await complement.loadFullCourseDetails(
@@ -91,7 +91,7 @@ export const useTrainStore = defineStore("train", {
         this.course = result.data.course;
         this.errors = result.data.errors;
       } else {
-        alert(result.error);
+        justNotify(NotifType.ServerError, result.error);
       }
     },
 
@@ -104,7 +104,6 @@ export const useTrainStore = defineStore("train", {
     },
 
     async startExo() {
-      this.exo_status = undefined;
       const exo = this.currentExo();
       if (!exo) return;
       await commands.sendUiActionToApp({
@@ -114,6 +113,7 @@ export const useTrainStore = defineStore("train", {
     },
 
     async stopExo() {
+      this.exo_status = undefined;
       await commands.sendUiActionToApp({
         type: "StopExo",
       });
