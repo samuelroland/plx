@@ -75,8 +75,8 @@ async function gitPullAllCourses() {
             <h1 class="flex-1">{{ train.course.name }}</h1>
 
             <button @click="gitPullAllCourses">Pull all</button>
-            <button @click="global.page = 'debug'">Debug <span v-if="train.errors.length > 0">({{ train.errors.length }}
-                    errors)</span></button>
+            <span title="Run `plx parse` in the course folder to inspect them" v-if="train.errors.length > 0">({{
+                train.errors.length }} parsing errors)</span>
         </div>
 
         <div class="flex space-x-3">
