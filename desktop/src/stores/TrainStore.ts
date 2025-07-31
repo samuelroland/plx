@@ -5,8 +5,8 @@ import { commands, Exo, Course, Skill } from "../ts/commands";
 import { useGlobalStore } from "./GlobalStore";
 import { Channel } from "@tauri-apps/api/core";
 import { useLiveStore } from "./LiveStore";
-import { complement } from "../ts/complement";
-import { ExoStatusReport } from "../ts/shared";
+import { complement, ParseError } from "../ts/complement";
+import { ClientRole, ExoStatusReport } from "../ts/shared";
 
 export const useTrainStore = defineStore("train", {
   state: () => ({
@@ -90,7 +90,6 @@ export const useTrainStore = defineStore("train", {
       if (result.status == "ok") {
         this.course = result.data.course;
         this.errors = result.data.errors;
-        global.page = "course";
       } else {
         alert(result.error);
       }
@@ -105,7 +104,6 @@ export const useTrainStore = defineStore("train", {
     },
 
     async startExo() {
-      this.in_live_session;
       this.exo_status = undefined;
       const exo = this.currentExo();
       if (!exo) return;

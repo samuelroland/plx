@@ -1,7 +1,12 @@
 // This a global Pinia store to store and change the state of everything related to a live session
 
 import { defineStore } from "pinia";
-import { commands, CourseInfo, DEFAULT_LIVE_PORT } from "../ts/commands";
+import {
+  commands,
+  CourseWithConfig,
+  DEFAULT_LIVE_PORT,
+  Exo,
+} from "../ts/commands";
 import {
   Event,
   Action,
@@ -16,6 +21,7 @@ import {
 import { LiveClient } from "../client";
 import { useGlobalStore } from "./GlobalStore";
 import { useTrainStore } from "./TrainStore";
+import { getRelativePathForExo } from "../util";
 
 export interface Answer {
   client_num: ClientNum;
@@ -23,11 +29,16 @@ export interface Answer {
   checks_status: Map<number, ExoCheckResult>;
 }
 
+export enum LiveSessionStep {
+  EXOS_SELECTION,
+  RUNNING,
+}
+
 export const useLiveStore = defineStore("live", {
   state: () => ({
     client: null as LiveClient | null,
     client_num: -1 as number,
-    course: null as CourseInfo | null,
+    course: null as CourseWithConfig | null,
     // Sessions available for the selected course, kept empty when no course
     available_sessions: [] as Session[],
     role: ClientRole.Follower,
@@ -39,6 +50,11 @@ export const useLiveStore = defineStore("live", {
       joining_session: null as Session | null, // is not null between JoinSession and SessionJoined/Error
       starting_session: null as Session | null, // is not null between StartSession and SessionJoined/Error
     },
+
+    live_exos_ids: [] as string[], // the list of exos to train in a given session, chosen by a leader. Only for the leader.
+    live_exos_map: new Map() as Map<string, Exo>, // a copy of the exo, indexed by path, to be able to show them during the training
+    live_current_exo_index: 0 as number, // index inside live_exos_id of the current exo. Only for the leader.
+    live_session_step: LiveSessionStep.EXOS_SELECTION as LiveSessionStep,
   }),
   getters: {
     // Only if the 3 fields are not null, the session is in progress
@@ -107,6 +123,38 @@ export const useLiveStore = defineStore("live", {
         );
       }
     },
+    currentLiveExo() {
+      const path = this.live_exos_ids[this.live_current_exo_index];
+      return this.live_exos_map.get(path);
+    },
+    getCourseFolder() {
+      return this.course?.course.folder + "/";
+    },
+    sendSwitchExoAction(path: string) {
+      this.connect_if_no_client();
+      const relative_path = getRelativePathForExo(path, this.getCourseFolder());
+      this.client?.send_msg({
+        type: "SwitchExo",
+        content: { path: relative_path },
+      });
+    },
+    changeLiveExoIndex(increment: number) {
+      if (
+        (increment < 0 && this.live_current_exo_index > 0) ||
+        (increment > 0 &&
+          this.live_current_exo_index < this.live_exos_ids.length - 1)
+      ) {
+        this.live_current_exo_index += increment;
+        const newPath = this.currentLiveExo()?.folder;
+        if (newPath) this.sendSwitchExoAction(newPath);
+      }
+    },
+    startTraining() {
+      this.live_current_exo_index = 0;
+      this.live_session_step = LiveSessionStep.RUNNING;
+      const firstExoPath = this.currentLiveExo()?.folder;
+      if (firstExoPath) this.sendSwitchExoAction(firstExoPath);
+    },
   },
 });
 
@@ -138,10 +186,23 @@ function onEvent(event: Event) {
       break;
     case "ExoSwitched":
       if (train.in_live_session) {
-        train.current_live_exo = train.findExo(event.content.path);
-        if (!train.current_live_exo) {
-          alert("exo not found " + event.content.path);
-        }
+        const relative_exo_path = event.content.path;
+        if (live.role == ClientRole.Follower) {
+          const absolute_path = live.getCourseFolder() + relative_exo_path;
+          train.current_live_exo = train.findExo(absolute_path);
+          if (!train.current_live_exo) {
+            alert(
+              "The leader has switched to the exo on folder " +
+                relative_exo_path +
+                " but absolute path " +
+                absolute_path +
+                " doesn't exist locally. Make sure the Git repository is up-to-date !",
+            );
+          } else {
+            train.stopExo();
+            train.startExo();
+          }
+        } // else do nothing, the leader already switched the exo via the state live.live_current_exo_index
       }
       break;
 
