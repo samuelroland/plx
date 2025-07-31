@@ -36,6 +36,7 @@ async function cloneCourse() {
 }
 
 async function openCourse(path: string) {
+    live.disconnect_if_existing_client()
     live.available_sessions = []; // reset so we don't see some sessions for the previously selected course
     selectedCoursePath.value = path
     let course = courses.value.find(c => c.course.folder == path)
@@ -76,7 +77,7 @@ function trainLocally() {
 async function gitPullAllCourses() {
     await commands.gitPullAllCourses()
     loadCourses()
-    justNotify(NotifType.Info, "All course content should be pulled now")
+    justNotify(NotifType.Info, "All courses content should be pulled now")
 }
 
 </script>
@@ -89,13 +90,14 @@ async function gitPullAllCourses() {
         <!-- </div> -->
         <!-- <h1 class="text-xl md:text-4xl my-5 nice-gradient">Practice programming in a deliberate Learning eXperience </h1> -->
 
-        <div class="flex items-center w-full">
-            <div class="my-6 text-gray-600 flex-1">Select a course to train</div>
-            <button @click="gitPullAllCourses">Pull course updates</button>
+        <div class="flex items-center w-full py-5">
+            <h2 class="!my-0 mr-10">Courses</h2>
+            <button @click="gitPullAllCourses">Pull updates for all courses</button>
+            <button @click="cloneCourse">Add course</button>
         </div>
         <div class="flex space-x-3">
             <div @click="() => openCourse(pack.course.folder)"
-                class="cursor-pointer p-2 border border-orange-500 rounded-md"
+                class="cursor-pointer p-2 border border-orange-500 hover:bg-orange-300/80  rounded-md"
                 :class="selectedCoursePath == pack.course.folder ? 'bg-orange-200' : ''" v-for="pack in courses">
                 <h3>{{ pack.course.code }}</h3>
                 <div>{{ pack.course.name }}</div>
@@ -103,7 +105,6 @@ async function gitPullAllCourses() {
             <div v-if="courses.length == 0" class="italic text-gray-600">No course cloned at the moment</div>
         </div>
 
-        <div class="mt-4"><button @click="cloneCourse">Add course</button></div>
         <div class="text-gray-700 italic" v-if="courses.length == 0">No course found...</div>
         <div v-if="selectedCoursePath">
             <div class="flex">

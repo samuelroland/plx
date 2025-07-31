@@ -42,6 +42,8 @@ export enum LiveSessionStep {
 export const useLiveStore = defineStore("live", {
   state: () => ({
     client: null as LiveClient | null,
+    connectedTo: null as null | string, // to store the server id like "live.plx.rs:9120" or nothing. This also serves to know if we are connected
+    clients_timeout_ids: [] as number[], // setTimeout id of callbacks to cancel
     client_num: -1 as number,
     course: null as CourseWithConfig | null,
     // Sessions available for the selected course, kept empty when no course
@@ -65,6 +67,7 @@ export const useLiveStore = defineStore("live", {
     // Only if the 3 fields are not null, the session is in progress
     sessionInProgress: (state) =>
       state.course && state.course.config && state.session,
+    isConnected: (state) => state.connectedTo !== null,
   },
   actions: {
     connect_if_no_client() {
@@ -73,7 +76,6 @@ export const useLiveStore = defineStore("live", {
         justNotify(
           NotifType.Error,
           "No live.toml configuration found in course repository, cannot connect to a live server !",
-          4000,
         );
         return;
       }
@@ -84,6 +86,13 @@ export const useLiveStore = defineStore("live", {
           "super id",
           onEvent,
         );
+      }
+    },
+
+    disconnect_if_existing_client() {
+      if (this.client) {
+        this.client.disconnect();
+        this.client = null;
       }
     },
     start_session(name: string) {
