@@ -87,6 +87,10 @@ export type Exo = {
   name: string;
   instruction: string | null;
   checks: Check[];
+  /**
+   * WARNING: the folder attribute get serialized as an absolute path !
+   * It must be changed to a relative path again in the frontend, before sending it
+   */
   folder: string;
   state: ExoState;
   files: string[];

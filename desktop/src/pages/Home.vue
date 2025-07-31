@@ -3,12 +3,15 @@ import { onMounted, Ref, ref } from 'vue';
 import { commands, CourseWithConfig } from "../ts/commands.ts";
 import { useLiveStore } from '../stores/LiveStore.ts';
 import { useTrainStore } from '../stores/TrainStore.ts';
+import { useGlobalStore } from '../stores/GlobalStore.ts';
+import { Session } from '../ts/shared.ts';
 
 let courses: Ref<CourseWithConfig[]> = ref([])
 
 let selectedCoursePath: Ref<string | null> = ref(null)
 
 const live = useLiveStore()
+const train = useTrainStore()
 
 async function loadCourses() {
     courses.value = await commands.getLocalCourses()
@@ -47,12 +50,26 @@ async function startSession() {
     const name = prompt("Enter a session name")
     if (name && name.trim().length > 0) {
         live.start_session(name)
+        let course_path = selectedCoursePath.value
+        if (course_path)
+            train.loadCourse(course_path)
     }
 }
 
-function trainLocally(course_path: string) {
+async function joinSession(session: Session) {
+    live.join_session(session.name)
+    let course_path = selectedCoursePath.value
+    if (course_path)
+        train.loadCourse(course_path)
+}
+
+function trainLocally() {
     const train = useTrainStore()
-    train.loadCourse(course_path)
+    let course_path = selectedCoursePath.value
+    if (course_path)
+        train.loadCourse(course_path)
+    const global = useGlobalStore()
+    global.page = "course";
 }
 
 async function gitPullAllCourses() {
@@ -89,8 +106,8 @@ async function gitPullAllCourses() {
         <div class="text-gray-700 italic" v-if="courses.length == 0">No course found...</div>
         <div v-if="selectedCoursePath">
             <div class="flex">
-                <button @click="startSession">Start live session</button>
-                <button @click="trainLocally(selectedCoursePath)">Train locally</button>
+                <button @click="startSession()">Start live session</button>
+                <button @click="trainLocally()">Train locally</button>
             </div>
             <div class="text-gray-700 italic" v-if="live.course == null">Pick a course first</div>
             <div class="text-gray-700 italic" v-if="live.course != null && live.available_sessions.length == 0">
@@ -100,7 +117,7 @@ async function gitPullAllCourses() {
                 <button @click="() => live.get_sessions()">Reload</button>
             </div>
             <ol>
-                <li @click="live.join_session(session.name)" class="hover:bg-orange-100 cursor-pointer p-2"
+                <li @click="joinSession(session)" class="hover:bg-orange-100 cursor-pointer p-2"
                     v-for="session in live.available_sessions">{{ session.name }}
                 </li>
             </ol>

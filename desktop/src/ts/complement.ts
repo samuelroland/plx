@@ -7,6 +7,8 @@ import {
 import { Result } from "./commands";
 import { CourseWithErrors, ExoStatusReport } from "./shared";
 
+export type ParseError = string;
+
 export const complement = {
   async loadFullCourseDetails(
     coursePath: string,
