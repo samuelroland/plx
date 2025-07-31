@@ -45,7 +45,8 @@ function bgFromCheckResult(compilation_success: boolean, result: ExoCheckResult 
                 <span class="font-bold">C{{ idx + 1 }}:</span>
                 {{ check.name }}
             </h3>
-            <div v-if="exo_status?.check_results[idx].state.status.type != 'Passed'">
+            <div
+                v-if="!exo_status?.check_results[idx] || exo_status?.check_results[idx] && exo_status?.check_results[idx].state.status.type != 'Passed'">
                 <h4 v-if="check.args && check.args.length > 0">Arguments: <span
                         class="text-lg text-gray-500 font-mono">{{
                             argsify(check.args ?? []) }}</span></h4>

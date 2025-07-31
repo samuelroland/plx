@@ -57,7 +57,7 @@ onMounted(() => {
 })
 
 function startExo() {
-    if (train.exosSelection) {
+    if (train.exosSelection && (train.currentSkill()?.exos.length ?? 0) > 0) {
         global.page = "train"
     }
 }
@@ -108,6 +108,8 @@ async function gitPullAllCourses() {
                         <span class="hidden md:block">{{ exo.state }}</span>
                     </div>
                 </div>
+                <div v-if="train.currentSkill()?.exos.length == 0" class="text-gray-600 italic ">
+                    No exo in this skill for now...</div>
             </div>
 
             <!-- exo preview -->
