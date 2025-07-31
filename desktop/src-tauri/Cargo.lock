@@ -1140,7 +1140,7 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 [[package]]
 name = "dy"
 version = "0.0.1"
-source = "git+https://github.com/samuelroland/dy#bcf84a0b5cd49addf745163af9b14c9e4cff73ea"
+source = "git+https://github.com/samuelroland/dy#0149a3a8e7701fc7e353dc4dd0f11bf74f06d60f"
 dependencies = [
  "colored",
  "lsp-types",
@@ -1942,9 +1942,9 @@ dependencies = [
 
 [[package]]
 name = "hyper-util"
-version = "0.1.15"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f66d5bd4c6f02bf0542fad85d626775bab9258cf795a4256dcaf3161114d1df"
+checksum = "8d9b05277c7e8da2c93a568989bb6207bef0112e8d17df7a6eda4a3cf143bc5e"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -1958,7 +1958,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2",
+ "socket2 0.6.0",
  "tokio",
  "tower-service",
  "tracing",
@@ -3319,7 +3319,7 @@ dependencies = [
 [[package]]
 name = "plx-dy"
 version = "0.0.1"
-source = "git+https://github.com/samuelroland/dy#bcf84a0b5cd49addf745163af9b14c9e4cff73ea"
+source = "git+https://github.com/samuelroland/dy#0149a3a8e7701fc7e353dc4dd0f11bf74f06d60f"
 dependencies = [
  "dy",
  "serde",
@@ -3334,7 +3334,6 @@ dependencies = [
  "console",
  "ctrlc",
  "dunce",
- "dy",
  "futures-util",
  "log",
  "notify",
@@ -3426,9 +3425,9 @@ dependencies = [
 
 [[package]]
 name = "prettyplease"
-version = "0.2.35"
+version = "0.2.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "061c1221631e079b26479d25bbf2275bfe5917ae8419cd7e34f13bfc2aa7539a"
+checksum = "ff24dfcda44452b9816fff4cd4227e1bb73ff5a2f1bc1105aa92fb8565ce44d2"
 dependencies = [
  "proc-macro2",
  "syn 2.0.104",
@@ -4159,6 +4158,16 @@ checksum = "e22376abed350d73dd1cd119b57ffccad95b4e585a7cda43e286245ce23c0678"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "socket2"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "233504af464074f9d066d7b5416c5f9b894a5862a6506e306f7b816cdd6f1807"
+dependencies = [
+ "libc",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4899,7 +4908,7 @@ dependencies = [
  "mio 1.0.4",
  "pin-project-lite",
  "slab",
- "socket2",
+ "socket2 0.5.10",
  "tokio-macros",
  "windows-sys 0.52.0",
 ]
