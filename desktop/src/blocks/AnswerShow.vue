@@ -2,14 +2,13 @@
 
 import { Answer } from '../stores/LiveStore';
 import Code from './Code.vue';
-import { CheckStatus, ExoCheckResult, ForwardedFile } from '../ts/shared';
+import { ExoCheckResult } from '../ts/shared';
 import CheckResultBox from './CheckResultBox.vue';
 
-let props = defineProps<{ answer: Answer }>()
+defineProps<{ answer: Answer }>()
 
-function lastFileTime(files: Map<string, ForwardedFile>) {
-    const maxTime = Math.max(...Array.from(files.values()).map(file => file.time))
-    return formatTimestampAsHoursMinutesSeconds(maxTime)
+function lastTime(answer: Answer) {
+    return formatTimestampAsHoursMinutesSeconds(answer.last_timestamp)
 }
 
 function formatTimestampAsHoursMinutesSeconds(time: number): string {
@@ -34,7 +33,7 @@ function sortCheckResults(results: Map<number, ExoCheckResult>) {
     <div>
         <!-- header of the answer -->
         <div class="flex">
-            <div class="flex-1"><span class="font-bold">{{ answer.client_num }}</span> at {{ lastFileTime(answer.files)
+            <div class="flex-1"><span class="font-bold">{{ answer.client_num }}</span> at {{ lastTime(answer)
                 }}</div>
             <div v-for="(result, idx) in sortCheckResults(answer.checks_status)">
                 <CheckResultBox :check="result"></CheckResultBox>

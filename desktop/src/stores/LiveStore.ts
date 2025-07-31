@@ -30,6 +30,7 @@ import {
 
 export interface Answer {
   client_num: ClientNum;
+  last_timestamp: number;
   files: Map<string, ForwardedFile>;
   checks_status: Map<number, ExoCheckResult>;
 }
@@ -227,13 +228,18 @@ function onEvent(event: Event) {
     case "ForwardFile": {
       let entry = live.answers.get(event.content.client_num);
       if (!entry)
+        // init the entry if not existant
         entry = {
           client_num: event.content.client_num,
           checks_status: new Map(),
           files: new Map(),
+          last_timestamp: 0,
         };
+
+      entry.last_timestamp = event.content.file.time;
       entry.files.set(event.content.file.path, event.content.file);
       live.answers.set(event.content.client_num, entry);
+
       break;
     }
     case "ForwardResult":
@@ -243,13 +249,10 @@ function onEvent(event: Event) {
           client_num: event.content.client_num,
           checks_status: new Map(),
           files: new Map(),
+          last_timestamp: 0,
         };
-      if (!entry)
-        entry = {
-          client_num: event.content.client_num,
-          checks_status: new Map(),
-          files: new Map(),
-        };
+
+      entry.last_timestamp = event.content.result.time;
       entry.checks_status.set(
         event.content.result.check_result.index,
         event.content.result.check_result,

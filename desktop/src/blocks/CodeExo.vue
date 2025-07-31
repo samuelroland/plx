@@ -11,7 +11,6 @@ defineProps<{ exo: Exo | undefined, exo_status?: ExoStatusReport | undefined }>(
 
 // Display CLI arguments as string, use JSON.stringify in case it needs to have escapes and quotes shown
 function argsify(args: string[]): string {
-    console.log(args, JSON.stringify(args))
     return args.map(e => e.includes(" ") || e.includes("\n") || e.includes("\t") ? JSON.stringify(e) : e).join(" ")
 }
 
