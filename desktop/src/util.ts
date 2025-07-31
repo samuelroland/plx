@@ -23,21 +23,32 @@ export function getRelativePathForExo(
 }
 
 export enum NotifType {
+  Success,
   Info,
   Error,
   ServerError,
   Debug,
 }
 
-// wrapper of the "notify" function from notiwind to apply some defaults
+// Wrapper of the "notify" function from notiwind to apply some defaults
+// The duration is at minimum 3.5 seconds but is automatically increased if the text is longer
 export function justNotify(type: NotifType, text: string, duration?: number) {
+  const CHARS_TO_READ_PER_SECONDS = 30;
+  const NOTIF_MIN_DURATION_MS = 3500;
+  const estimatedTimeMs = (text.length / CHARS_TO_READ_PER_SECONDS) * 1000;
+  let finalDuration =
+    duration ??
+    (estimatedTimeMs < NOTIF_MIN_DURATION_MS
+      ? NOTIF_MIN_DURATION_MS
+      : estimatedTimeMs);
+
   notify(
     {
       group: "notifs", // just a fixed value, the same as the group attributed given to NotificationGroup in NotifZone
       text,
       type,
     },
-    duration ?? 3500,
+    finalDuration,
   );
 }
 
