@@ -198,7 +198,6 @@ mod tests {
                             state: ExoState::Todo,
                             files: vec![
                                 "examples/new_mock/intro/basic-args/main.c".into(),
-                                "examples/new_mock/intro/basic-args/exo.dy".into(),
                             ],
                             solutions: [
                                 "examples/new_mock/intro/basic-args/main.sol.c".into(),
@@ -242,7 +241,6 @@ mod tests {
                             state: ExoState::Todo,
                             files: [
                                 "examples/new_mock/intro/basic-output/main.c".into(),
-                                "examples/new_mock/intro/basic-output/exo.dy".into(),
                             ].into(),
                             solutions: [
                                 "examples/new_mock/intro/basic-output/main.sol.c".into(),
@@ -267,7 +265,6 @@ mod tests {
                             state: ExoState::Todo,
                             files: [
                                 "examples/new_mock/intro/salue-moi/main.c".into(),
-                                "examples/new_mock/intro/salue-moi/exo.dy".into(),
                             ].into(),
                             solutions: [].into(),
                             checks: [
@@ -301,7 +298,6 @@ mod tests {
                             state: ExoState::Todo,
                             files: vec![
                                 "examples/new_mock/structs/small-meeting-participants/main.cpp".into(),
-                                "examples/new_mock/structs/small-meeting-participants/exo.dy".into(),
                             ],
                             solutions: vec![
                                 "examples/new_mock/structs/small-meeting-participants/main.sol.cpp".into(),

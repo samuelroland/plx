@@ -46,27 +46,26 @@ impl Work for FileWatcher {
     ///
     /// Returns `true` if the watcher was initialized and ran successfully, otherwise returns `false`.
     fn run(&self, tx: Sender<Event>, should_stop: Arc<AtomicBool>) -> bool {
-        // Create a new debouncer with a delay of 1 second.
-        let debouncer =
-            new_debouncer(
-                Duration::from_secs(1),
-                move |res: DebounceEventResult| match res.as_ref() {
-                    // Handle debounced events
-                    Ok(events) => {
-                        for event in events {
-                            if let DebouncedEventKind::Any = event.kind {
-                                // Send an event if a file change is detected
-                                let path = event.path.clone();
-                                if tx.send(Event::FileSaved(path)).is_err() {
-                                    return;
-                                }
-                                break;
+        // Create a new debouncer with a delay of 300ms
+        let debouncer = new_debouncer(
+            Duration::from_millis(300),
+            move |res: DebounceEventResult| match res.as_ref() {
+                // Handle debounced events
+                Ok(events) => {
+                    for event in events {
+                        if let DebouncedEventKind::Any = event.kind {
+                            // Send an event if a file change is detected
+                            let path = event.path.clone();
+                            if tx.send(Event::FileSaved(path)).is_err() {
+                                return;
                             }
+                            break;
                         }
                     }
-                    Err(_) => {}
-                },
-            );
+                }
+                Err(_) => {}
+            },
+        );
 
         if let Ok(mut debouncer) = debouncer {
             // If the path is a directory, recursive_mode will be evaluated.
