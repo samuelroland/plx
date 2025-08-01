@@ -38,9 +38,9 @@ onMounted(() => {
 <template>
     <div v-if="rawOutput == null" class="relative">
         <div class="absolute top-0 right-0 px-3 py-1 text-gray-600">{{ props.path }}</div>
-        <pre><code v-html="highlightedCode"></code></pre>
+        <pre class="p-5 rounded-md"><code v-html="highlightedCode"></code></pre>
     </div>
     <div v-else>
-        <pre><code>{{ rawOutput }}</code></pre>
+        <pre class="p-5 rounded-md"><code>{{ rawOutput }}</code></pre>
     </div>
 </template>

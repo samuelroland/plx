@@ -29,7 +29,7 @@ function returnTailwindBackgroundForCheckStatus(state: CheckStatus) {
 <template>
     <div ref="reference" class="mx-2 text-base p-1 rounded-sm cursor-pointer " @mouseover="visible = true"
         @mouseout="visible = false" :class="returnTailwindBackgroundForCheckStatus(check.state)">
-        {{ "C" + props.check.index }}
+        {{ "C" + (props.check.index + 1) }}
     </div>
     <div v-if="props.check.state.content != undefined"
         class="absolute z-50 border border-blue-400 rounded-md text-base shadow-md/50" ref="floating"
