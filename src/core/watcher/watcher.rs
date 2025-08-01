@@ -95,7 +95,7 @@ impl Work for FileWatcher {
 mod tests {
     use super::*;
     use std::env::current_dir;
-    use std::fs::OpenOptions;
+    use std::fs::{read_to_string, OpenOptions};
     use std::io::Write;
     use std::sync::atomic::Ordering;
     use std::sync::mpsc::{channel, RecvTimeoutError};
@@ -105,7 +105,7 @@ mod tests {
     /// Tests the `FileWatcher` functionality for modifications in a nested folder within a directory.
     #[test]
     fn test_file_watcher_modify_with_recursive_inside_tree_folder() {
-        let path = current_dir().unwrap().join("examples");
+        let path = current_dir().unwrap().join("examples").join("basics");
         let (tx, rx) = channel();
         let should_stop = Arc::new(AtomicBool::new(false));
         let watcher = FileWatcher::new(path.clone());
@@ -115,7 +115,8 @@ mod tests {
         let handle = thread::spawn(move || watcher.run(tx, should_stop_clone));
 
         sleep(Duration::from_secs(1));
-        let dest = path.join("basics").join("c").join("basic-args.c");
+        let dest = path.join("c").join("basic-args.c");
+        let existing_content = read_to_string(&dest).unwrap();
         {
             // Open a file with append option
             let mut data_file = OpenOptions::new()
@@ -127,6 +128,8 @@ mod tests {
             assert!(data_file.write_all("test".as_bytes()).is_ok());
             assert!(data_file.flush().is_ok());
         }
+        std::fs::write(&dest, existing_content); // revert the change
+
         // Check if an event was received.
         match rx.recv_timeout(Duration::from_secs(5)) {
             Ok(event) => assert_eq!(event, Event::FileSaved(dest)),
@@ -140,7 +143,7 @@ mod tests {
     /// Tests the `FileWatcher` functionality for modifications in the root of the watched directory.
     #[test]
     fn test_file_watcher_modify_with_recursive_racine_folder() {
-        let path = current_dir().unwrap().join("examples");
+        let path = current_dir().unwrap().join("examples").join("new_mock");
         let (tx, rx) = channel();
         let should_stop = Arc::new(AtomicBool::new(false));
         let watcher = FileWatcher::new(path.clone());
@@ -150,7 +153,8 @@ mod tests {
         let handle = thread::spawn(move || watcher.run(tx, should_stop_clone));
 
         sleep(Duration::from_secs(1));
-        let dest = path.join("README.md");
+        let dest = path.join("test.md");
+        let existing_content = read_to_string(&dest).unwrap();
         {
             // Open a file with append option
             let mut data_file = OpenOptions::new()
@@ -161,7 +165,11 @@ mod tests {
             // Write to a file
             assert!(data_file.write_all("test".as_bytes()).is_ok());
             assert!(data_file.flush().is_ok());
+
+            assert!(data_file.write_all("test".as_bytes()).is_ok());
         }
+        std::fs::write(&dest, existing_content); // revert the change
+
         // Check if an event was received.
         match rx.recv_timeout(Duration::from_secs(5)) {
             Ok(event) => assert_eq!(event, Event::FileSaved(dest)),
@@ -177,7 +185,11 @@ mod tests {
     fn test_file_watcher_modify_without_recursive() {
         let path = current_dir()
             .unwrap()
-            .join("examples/basics/c/basic-args.c");
+            .join("examples")
+            .join("basics")
+            .join("c")
+            .join("basic-args.c");
+
         let (tx, rx) = channel();
         let should_stop = Arc::new(AtomicBool::new(false));
         let watcher = FileWatcher::new(path.clone());
@@ -186,6 +198,7 @@ mod tests {
         // Run the file watcher in a separate thread.
         let handle = thread::spawn(move || watcher.run(tx, should_stop_clone));
 
+        let existing_content = read_to_string(&path).unwrap();
         sleep(Duration::from_secs(1));
         {
             // Open a file with append option
@@ -198,6 +211,8 @@ mod tests {
             assert!(data_file.write_all("test".as_bytes()).is_ok());
             assert!(data_file.flush().is_ok());
         }
+        std::fs::write(&path, existing_content); // revert the change
+
         // Check if an event was received.
         match rx.recv_timeout(Duration::from_secs(5)) {
             Ok(event) => assert_eq!(event, Event::FileSaved(path)),
