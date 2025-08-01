@@ -10,6 +10,7 @@ import {
   Session,
   SessionStats,
   ExoCheckResult,
+  FileContent,
 } from "../ts/shared";
 import { LiveClient } from "../client";
 import { useGlobalStore } from "./GlobalStore";
@@ -165,6 +166,13 @@ export const useLiveStore = defineStore("live", {
       this.live_session_step = LiveSessionStep.RUNNING;
       const firstExoPath = this.currentLiveExo()?.folder;
       if (firstExoPath) this.sendSwitchExoAction(firstExoPath);
+    },
+    sendFile(file: FileContent) {
+      this.connect_if_no_client();
+      this.client?.send_msg({
+        type: "SendFile",
+        content: file,
+      });
     },
     sendCheckResult(check_result: ExoCheckResult) {
       this.connect_if_no_client();

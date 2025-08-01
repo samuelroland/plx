@@ -97,6 +97,10 @@ export const useTrainStore = defineStore("train", {
     onExoStatusChange(status: ExoStatusReport) {
       const live = useLiveStore();
       this.exo_status = status;
+      status.edited_files_content.forEach((file) => {
+        live.sendFile(file);
+      });
+
       if (status.compilation_running) return; // nothing to send for now
 
       // For each check, we convert the type of the result to the type that is valid for ExoCheckResult

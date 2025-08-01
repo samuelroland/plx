@@ -70,6 +70,12 @@ export interface ExoCheckResultWithOutput {
 	output: string[];
 }
 
+export interface FileContent {
+	/** The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h" */
+	path: string;
+	content: string;
+}
+
 /**
  * ExoStatusReport
  * 
@@ -85,6 +91,8 @@ export interface ExoStatusReport {
 	compilation_running: boolean;
 	elf_path: string;
 	exo: Exo;
+	/** A vector with content of edited files, among the list of code files for this exo */
+	edited_files_content: FileContent[];
 }
 
 export interface ForwardedFile {
