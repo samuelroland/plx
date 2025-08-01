@@ -2,10 +2,14 @@
 import { Exo } from '../ts/commands';
 import { ExoCheckResultWithOutput, ExoStatusReport } from '../ts/shared';
 import Markdown from './Markdown.vue';
-import { anonymizeText } from "../util.ts"
+import { anonymizeAndSimplifyText } from "../util.ts"
 import { useTrainStore } from '../stores/TrainStore.ts';
+import Code from './Code.vue';
+import { useGlobalStore } from '../stores/GlobalStore.ts';
+import CheckResultDiffs from './CheckResultDiffs.vue';
 
 const train = useTrainStore()
+const global = useGlobalStore()
 
 defineProps<{ exo: Exo | undefined, exo_status?: ExoStatusReport | undefined }>()
 
@@ -25,6 +29,7 @@ function bgFromCheckResult(compilation_success: boolean, result: ExoCheckResultW
     return ""
 }
 
+
 </script>
 
 <template>
@@ -42,7 +47,7 @@ function bgFromCheckResult(compilation_success: boolean, result: ExoCheckResultW
             <h2 v-if="exo_status?.compilation_running">Build</h2>
             <h2 v-if="!exo_status?.compilation_running && !exo_status?.compilation_success" class="!text-red-500">Build
                 failed</h2>
-            <pre class="p-2" v-html="anonymizeText(exo_status?.compilation_output ?? '')" />
+            <Code :rawAsHtml="true" :code="anonymizeAndSimplifyText(exo_status?.compilation_output ?? '')" />
         </div>
 
         <div>
@@ -53,41 +58,22 @@ function bgFromCheckResult(compilation_success: boolean, result: ExoCheckResultW
                     <span class="font-bold">C{{ idx + 1 }}:</span>
                     {{ check.name }}
                 </h3>
+
                 <div
-                    v-if="!exo_status?.check_results[idx] || exo_status?.check_results[idx] && exo_status?.check_results[idx].state.status.type != 'Passed'">
-                    <h4 v-if="check.args && check.args.length > 0">Arguments: <span
-                            class="text-lg text-gray-500 font-mono">{{
-                                argsify(check.args ?? []) }}</span></h4>
-                    <h4>Expected</h4>
-                    <pre class="px-2 py-1 rounded-md">{{ check.test.expected }}</pre>
-                </div>
+                    v-if="global.page != 'train' || exo_status?.check_results[idx] && exo_status?.check_results[idx].state.status.type != 'Passed'">
+                    <h4 v-if="check.args && check.args.length > 0">
+                        Arguments: <span class="text-lg text-gray-500 font-mono">{{ argsify(check.args ?? []) }}</span>
+                    </h4>
 
-                <!-- If the exo status does exist, show the given output and the diff, except if the check has passed -->
-                <div
-                    v-if="exo_status?.check_results[idx] && exo_status?.check_results[idx].state.status.type != 'Passed'">
-                    <div v-if="exo_status">
-                        <div v-if="exo_status?.check_results[idx] && exo_status?.check_results[idx].output.length == 0">
-                            <h4 class="inline">Given</h4>
-                            <!-- <pre v-if="exo_status?.check_results[idx].output.length > 0" class="px-2 py-1 rounded-md">{{ -->
-                            <!--     exo_status?.check_results[idx].output.join("\n") }}</pre> -->
-                            <span class="ml-3 text-gray-800">
-                                <em>empty</em>
-                            </span>
-                        </div>
-
-                        <div
-                            v-if="exo_status?.check_results[idx] && exo_status?.check_results[idx].state.status.type == 'Failed' && exo_status?.check_results[idx].output.length > 0">
-                            <div class="flex items-center">
-                                <h4>Diff</h4>
-                                <span class="ml-10">Given (-)</span>
-                                <span class="ml-5">Expected (+)</span>
-                            </div>
-
-                            <!-- <span class="diff-minus">Given</span> <span class="diff-plus">Expected</span> -->
-                            <pre class="rounded-md p-2"
-                                v-html="exo_status?.check_results[idx].state.status.content.diff" />
-                        </div>
+                    <!-- Only show basic Expected output when the exo is not trained -->
+                    <div v-if="global.page != 'train'">
+                        <h4>Expected</h4>
+                        <Code :code="check.test.expected"></Code>
                     </div>
+
+                    <CheckResultDiffs v-if="exo_status?.check_results[idx]" :result="exo_status?.check_results[idx]"
+                        :expected="check.test.expected">
+                    </CheckResultDiffs>
                 </div>
             </div>
         </div>
