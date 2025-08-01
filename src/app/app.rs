@@ -118,7 +118,7 @@ impl App {
                         info!("{}", diff.to_ansi_colors());
                         self.on_check_failed(check_index, diff)
                     }
-                    Event::FileSaved => self.on_file_save(),
+                    Event::FileSaved(path) => self.on_file_save(path),
                     Event::CompilationStart => self.on_compilation_start(),
                     Event::CompilationEnd(success) => self.on_compilation_end(success),
                     Event::CompilationOutputLine(line) => self.on_compilation_output(line),

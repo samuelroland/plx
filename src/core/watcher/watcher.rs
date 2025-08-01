@@ -50,13 +50,14 @@ impl Work for FileWatcher {
         let debouncer =
             new_debouncer(
                 Duration::from_secs(1),
-                move |res: DebounceEventResult| match res {
+                move |res: DebounceEventResult| match res.as_ref() {
                     // Handle debounced events
                     Ok(events) => {
                         for event in events {
                             if let DebouncedEventKind::Any = event.kind {
                                 // Send an event if a file change is detected
-                                if tx.send(Event::FileSaved).is_err() {
+                                let path = event.path.clone();
+                                if tx.send(Event::FileSaved(path)).is_err() {
                                     return;
                                 }
                                 break;
@@ -94,6 +95,7 @@ impl Work for FileWatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env::current_dir;
     use std::fs::OpenOptions;
     use std::io::Write;
     use std::sync::atomic::Ordering;
@@ -104,7 +106,7 @@ mod tests {
     /// Tests the `FileWatcher` functionality for modifications in a nested folder within a directory.
     #[test]
     fn test_file_watcher_modify_with_recursive_inside_tree_folder() {
-        let path = PathBuf::from("examples");
+        let path = current_dir().unwrap().join("examples");
         let (tx, rx) = channel();
         let should_stop = Arc::new(AtomicBool::new(false));
         let watcher = FileWatcher::new(path.clone());
@@ -114,11 +116,12 @@ mod tests {
         let handle = thread::spawn(move || watcher.run(tx, should_stop_clone));
 
         sleep(Duration::from_secs(1));
+        let dest = path.join("basics").join("c").join("basic-args.c");
         {
             // Open a file with append option
             let mut data_file = OpenOptions::new()
                 .append(true)
-                .open(path.join("basics").join("c").join("basic-args.c"))
+                .open(&dest)
                 .expect("cannot open file");
 
             // Write to a file
@@ -127,7 +130,7 @@ mod tests {
         }
         // Check if an event was received.
         match rx.recv_timeout(Duration::from_secs(5)) {
-            Ok(event) => assert_eq!(event, Event::FileSaved),
+            Ok(event) => assert_eq!(event, Event::FileSaved(dest)),
             Err(RecvTimeoutError::Timeout) => panic!("Timed out waiting for event"),
             Err(RecvTimeoutError::Disconnected) => panic!("Channel disconnected"),
         }
@@ -138,7 +141,7 @@ mod tests {
     /// Tests the `FileWatcher` functionality for modifications in the root of the watched directory.
     #[test]
     fn test_file_watcher_modify_with_recursive_racine_folder() {
-        let path = PathBuf::from("examples");
+        let path = current_dir().unwrap().join("examples");
         let (tx, rx) = channel();
         let should_stop = Arc::new(AtomicBool::new(false));
         let watcher = FileWatcher::new(path.clone());
@@ -148,11 +151,12 @@ mod tests {
         let handle = thread::spawn(move || watcher.run(tx, should_stop_clone));
 
         sleep(Duration::from_secs(1));
+        let dest = path.join("README.md");
         {
             // Open a file with append option
             let mut data_file = OpenOptions::new()
                 .append(true)
-                .open(path.join("README.md"))
+                .open(&dest)
                 .expect("cannot open file");
 
             // Write to a file
@@ -161,7 +165,7 @@ mod tests {
         }
         // Check if an event was received.
         match rx.recv_timeout(Duration::from_secs(5)) {
-            Ok(event) => assert_eq!(event, Event::FileSaved),
+            Ok(event) => assert_eq!(event, Event::FileSaved(dest)),
             Err(RecvTimeoutError::Timeout) => panic!("Timed out waiting for event"),
             Err(RecvTimeoutError::Disconnected) => panic!("Channel disconnected"),
         }
@@ -172,7 +176,9 @@ mod tests {
     /// Tests the `FileWatcher` functionality for modifications of a single file without recursive mode.
     #[test]
     fn test_file_watcher_modify_without_recursive() {
-        let path = PathBuf::from("examples/basics/c/basic-args.c");
+        let path = current_dir()
+            .unwrap()
+            .join("examples/basics/c/basic-args.c");
         let (tx, rx) = channel();
         let should_stop = Arc::new(AtomicBool::new(false));
         let watcher = FileWatcher::new(path.clone());
@@ -186,7 +192,7 @@ mod tests {
             // Open a file with append option
             let mut data_file = OpenOptions::new()
                 .append(true)
-                .open(path)
+                .open(&path)
                 .expect("cannot open file");
 
             // Write to a file
@@ -195,7 +201,7 @@ mod tests {
         }
         // Check if an event was received.
         match rx.recv_timeout(Duration::from_secs(5)) {
-            Ok(event) => assert_eq!(event, Event::FileSaved),
+            Ok(event) => assert_eq!(event, Event::FileSaved(path)),
             Err(RecvTimeoutError::Timeout) => panic!("Timed out waiting for event"),
             Err(RecvTimeoutError::Disconnected) => panic!("Channel disconnected"),
         }

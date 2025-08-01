@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::core::diff::diff::Diff;
 
 use super::ui_action::UiAction;
@@ -11,7 +13,7 @@ pub enum Event {
     CompilationStart,
     CompilationEnd(bool),
     CompilationOutputLine(String),
-    FileSaved,
+    FileSaved(PathBuf),
     OutputCheckPassed(usize),
     OutputCheckFailed(usize, Diff),
     RunStart(usize),
