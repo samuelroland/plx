@@ -32,6 +32,7 @@ impl App {
             if let Err(err) = compile {
                 error!("Error Starting Compilation {}", err);
             }
+            self.send_new_exo_status();
         }
     }
 }
