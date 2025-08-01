@@ -72,9 +72,12 @@ pub async fn get_local_courses() -> Vec<CourseWithConfig> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn clone_course(repos: String) -> bool {
+/// Clone a given course repository inside the global courses folder
+/// and return the error in case it failed
+pub async fn clone_course(repos: String) -> Result<(), String> {
     let base = get_base_directory();
-    GitRepos::from_clone(&repos, &base, Some(1), true).is_ok()
+    GitRepos::from_clone(&repos, &base, Some(1), true)?;
+    Ok(())
 }
 
 #[derive(Serialize, Debug)]

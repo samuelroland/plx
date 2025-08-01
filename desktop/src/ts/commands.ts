@@ -6,8 +6,20 @@ export const commands = {
   async getLocalCourses(): Promise<CourseWithConfig[]> {
     return await TAURI_INVOKE("get_local_courses");
   },
-  async cloneCourse(repos: string): Promise<boolean> {
-    return await TAURI_INVOKE("clone_course", { repos });
+  /**
+   * Clone a given course repository inside the global courses folder
+   * and return the error in case it failed
+   */
+  async cloneCourse(repos: string): Promise<Result<null, string>> {
+    try {
+      return {
+        status: "ok",
+        data: await TAURI_INVOKE("clone_course", { repos }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: "error", error: e as any };
+    }
   },
   async highlightCodeWithTreeSitter(
     file: string,

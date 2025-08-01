@@ -7,7 +7,7 @@ import { Channel } from "@tauri-apps/api/core";
 import { useLiveStore } from "./LiveStore";
 import { complement, ParseError } from "../ts/complement";
 import { ClientRole, ExoCheckResult, ExoStatusReport } from "../ts/shared";
-import { anonymizeText, justNotify, NotifType } from "../util";
+import { anonymizeAndSimplifyText, justNotify, NotifType } from "../util";
 
 export const useTrainStore = defineStore("train", {
   state: () => ({
@@ -112,7 +112,7 @@ export const useTrainStore = defineStore("train", {
             index: idx,
             state: {
               type: "BuildFailed",
-              content: anonymizeText(status.compilation_output),
+              content: anonymizeAndSimplifyText(status.compilation_output),
             },
           };
           live.sendCheckResult(finalResult);

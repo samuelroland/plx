@@ -28,9 +28,14 @@ onMounted(async () => {
 })
 
 async function cloneCourse() {
-    const git_url = prompt("Enter a course Git URL")
+    const git_url = prompt("Enter a course Git HTTPS URL")
     if (git_url) {
         const success = await commands.cloneCourse(git_url)
+        if (success.status == "ok") {
+            justNotify(NotifType.Success, "Successfully cloned the given repository.\nIf that's a valid PLX course, it will be listed below.")
+        } else {
+            justNotify(NotifType.Error, "Failed to clone the given repository:\n" + success.error)
+        }
         loadCourses()
     }
 }
