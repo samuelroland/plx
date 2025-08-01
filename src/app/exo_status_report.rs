@@ -7,6 +7,14 @@ use crate::models::{check_state::CheckWithStatus, exo::Exo};
 
 use super::exo_check_result::ExoCheckResultWithOutput;
 
+#[derive(Serialize, Clone, Type)]
+#[typeshare::typeshare]
+pub struct FileContent {
+    /// The relative path inside the exo folder, like "main.cpp", "src/main.rs", "lib/image.h"
+    pub path: String,
+    pub content: String,
+}
+
 /// ExoStatusReport
 ///
 /// This struct is used to store the result of a run + check
@@ -25,6 +33,8 @@ pub struct ExoStatusReport {
     pub(super) elf_path: PathBuf,
     #[serde(skip_serializing)]
     pub(super) exo: Arc<Exo>,
+    /// A vector with content of edited files, among the list of code files for this exo
+    pub(super) edited_files_content: Vec<FileContent>,
 }
 
 /// Serialize terminal lines as HTML, by converting ANSI codes to HTML equivalent
@@ -55,6 +65,7 @@ impl ExoStatusReport {
             compilation_running: false,
             elf_path,
             exo: Arc::new(exo.clone()),
+            edited_files_content: vec![],
         }
     }
 
