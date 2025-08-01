@@ -2,12 +2,22 @@ import { notify } from "notiwind";
 import { platform } from "@tauri-apps/plugin-os";
 import { useLiveStore } from "./stores/LiveStore";
 import { LiveProtocolError } from "./ts/shared";
+import { useTrainStore } from "./stores/TrainStore";
 
 // Try to anonymize the given string, by removing identifiable path such as absolute path of the course folder
+// And simplify by removing path to exo folder. This is meant to be used to cleanup build output.
 // TODO: could this cause XSS ??
-export function anonymizeText(given: string) {
+export function anonymizeAndSimplifyText(given: string) {
   const live = useLiveStore();
-  const course_folder = live.course?.course.folder + "/";
+  const train = useTrainStore();
+  // Remove the absolute path of exo folder
+  let exo_absolute_path = train.currentExo()?.folder;
+  if (exo_absolute_path) {
+    exo_absolute_path += getPathSeparator();
+    given = given.replaceAll(exo_absolute_path, "");
+  }
+  // Remove the absolute path of course folder
+  const course_folder = live.course?.course.folder + getPathSeparator();
   given = given.replaceAll(course_folder, "");
   return given;
 }
