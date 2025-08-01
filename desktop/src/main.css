@@ -36,15 +36,27 @@ pre {
     overflow: hidden;
     text-wrap: wrap;
 }
-
-.diff-plus {
-    @apply bg-green-200
+.diff-line-plus {
+    @apply bg-green-100
 }
 
-.diff-minus {
-    @apply bg-red-200
+.diff-line-minus {
+    @apply bg-red-100
 }
 
-.diff-bold {
-    @apply font-bold
+.diff-chunk-plus {
+    @apply bg-green-300
+}
+
+.diff-chunk-minus {
+    @apply bg-red-300
+}
+
+.markdown {
+    p code {
+        @apply bg-blue-50 px-1 rounded-sm text-base
+    }
+    pre {
+        @apply p-2
+    }
 }

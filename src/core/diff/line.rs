@@ -41,17 +41,19 @@ impl Line {
 
     pub(super) fn to_html(&self) -> String {
         let mut result = String::new();
-        let (sign, diff_css_class) = match self.difference_type {
-            DiffType::Removed => ("-", "diff-minus"),
-            DiffType::Added => ("+", "diff-plus"),
-            DiffType::NoDiff => (" ", "diff-none"),
+        let (sign, diff_type) = match self.difference_type {
+            DiffType::Removed => ("-", "minus"),
+            DiffType::Added => ("+", "plus"),
+            DiffType::NoDiff => (" ", "none"),
         };
 
         let mut line = String::new();
         for chunk in &self.line_chunks {
-            line.push_str(&chunk.to_html(diff_css_class));
+            line.push_str(&chunk.to_html(diff_type));
         }
-        result.push_str(&format!("<span>{sign} {line}</span>"));
+        result.push_str(&format!(
+            "<span class='diff-line-{diff_type}'>{sign} {line}</span>"
+        ));
         if self.missing_new_line {
             result.push('\n'); // only add a \n not a <br> because we display it in <pre>
         }

@@ -22,9 +22,9 @@ impl LineChunk {
         }
     }
 
-    pub(super) fn to_html(&self, css_class: &str) -> String {
+    pub(super) fn to_html(&self, diff_type: &str) -> String {
         if self.is_different {
-            format!("<span class='{}'>{}</span>", css_class, self.value)
+            format!("<span class='diff-chunk-{diff_type}'>{}</span>", self.value)
         } else {
             format!("<span>{}</span>", self.value)
         }

@@ -28,5 +28,5 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="text-xl" v-html="renderedHtml"></div>
+    <div class="text-xl markdown" v-html="renderedHtml"></div>
 </template>

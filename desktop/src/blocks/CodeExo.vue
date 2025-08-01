@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Exo } from '../ts/commands';
-import { ExoCheckResult, ExoStatusReport } from '../ts/shared';
+import { ExoCheckResultWithOutput, ExoStatusReport } from '../ts/shared';
 import Markdown from './Markdown.vue';
 import { anonymizeText } from "../util.ts"
 import { useTrainStore } from '../stores/TrainStore.ts';
@@ -14,7 +14,7 @@ function argsify(args: string[]): string {
     return args.map(e => e.includes(" ") || e.includes("\n") || e.includes("\t") ? JSON.stringify(e) : e).join(" ")
 }
 
-function bgFromCheckResult(compilation_success: boolean, result: ExoCheckResult | undefined) {
+function bgFromCheckResult(compilation_success: boolean, result: ExoCheckResultWithOutput | undefined) {
     if (!result || !compilation_success) return "bg-gray-100"
 
     switch (result.state.status.type) {
@@ -77,10 +77,15 @@ function bgFromCheckResult(compilation_success: boolean, result: ExoCheckResult 
 
                         <div
                             v-if="exo_status?.check_results[idx] && exo_status?.check_results[idx].state.status.type == 'Failed' && exo_status?.check_results[idx].output.length > 0">
-                            <h4>Diff</h4>
+                            <div class="flex items-center">
+                                <h4>Diff</h4>
+                                <span class="ml-10">Given (-)</span>
+                                <span class="ml-5">Expected (+)</span>
+                            </div>
 
                             <!-- <span class="diff-minus">Given</span> <span class="diff-plus">Expected</span> -->
-                            <pre class="rounded-md" v-html="exo_status?.check_results[idx].state.status.content.diff" />
+                            <pre class="rounded-md p-2"
+                                v-html="exo_status?.check_results[idx].state.status.content.diff" />
                         </div>
                     </div>
                 </div>
