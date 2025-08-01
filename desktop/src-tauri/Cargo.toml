@@ -31,3 +31,4 @@ dme-core = { git = "https://github.com/samuelroland/dme", branch = "secure-and-e
 typeshare = "1.0.4"
 simplelog = "0.12.2"
 log = "0.4.27"
+tauri-plugin-os = "2"

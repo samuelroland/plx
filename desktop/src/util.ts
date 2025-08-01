@@ -1,4 +1,5 @@
 import { notify } from "notiwind";
+import { platform } from "@tauri-apps/plugin-os";
 import { useLiveStore } from "./stores/LiveStore";
 import { LiveProtocolError } from "./ts/shared";
 
@@ -73,4 +74,10 @@ export function convertLiveProtocolErrorToString(
     case "ActionOnlyForLeader":
       return `The action ${error.reason} is permitted to leaders of the session.`;
   }
+}
+
+// Get a / or a \ if on Windows
+export function getPathSeparator() {
+  const currentPlatform = platform();
+  return currentPlatform == "windows" ? "\\" : "/";
 }

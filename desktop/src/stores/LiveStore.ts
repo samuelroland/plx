@@ -17,10 +17,12 @@ import { useGlobalStore } from "./GlobalStore";
 import { useTrainStore } from "./TrainStore";
 import {
   convertLiveProtocolErrorToString,
+  getPathSeparator,
   getRelativePathForExo,
   justNotify,
   NotifType,
 } from "../util";
+import { platform } from "@tauri-apps/plugin-os";
 
 export interface Answer {
   client_num: ClientNum;
@@ -139,11 +141,15 @@ export const useLiveStore = defineStore("live", {
       return this.live_exos_map.get(path);
     },
     getCourseFolder() {
-      return this.course?.course.folder + "/";
+      return this.course?.course.folder + getPathSeparator();
     },
     sendSwitchExoAction(path: string) {
       this.connect_if_no_client();
-      const relative_path = getRelativePathForExo(path, this.getCourseFolder());
+      let relative_path = getRelativePathForExo(path, this.getCourseFolder());
+      // We want to normalize the path with forward slashs
+      if (platform() == "windows") {
+        relative_path = relative_path.replaceAll("\\", "/");
+      }
       this.client?.send_msg({
         type: "SwitchExo",
         content: { path: relative_path },
@@ -212,7 +218,11 @@ function onEvent(event: Event) {
       break;
     case "ExoSwitched":
       if (train.in_live_session) {
-        const relative_exo_path = event.content.path;
+        let relative_exo_path = event.content.path;
+        // If we are on Windows
+        if (platform() == "windows") {
+          relative_exo_path = relative_exo_path.replaceAll("/", "\\");
+        }
         if (live.role == ClientRole.Follower) {
           const absolute_path = live.getCourseFolder() + relative_exo_path;
           train.current_live_exo = train.findExo(absolute_path);
