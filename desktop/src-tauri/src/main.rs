@@ -8,7 +8,7 @@ use simplelog::*;
 fn main() {
     // Generate a simple debug file to be able to send logs on Windows where println! are not visible
     WriteLogger::init(
-        LevelFilter::Trace,
+        LevelFilter::Debug,
         Config::default(),
         File::create("plx-desktop-debug.log").expect("Failed to create log file"),
     )
