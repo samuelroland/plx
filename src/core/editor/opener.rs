@@ -55,6 +55,7 @@ impl Work for EditorOpener {
         while let Ok(msg) = rx.recv() {
             match msg {
                 RunEvent::ProcessCreationFailed(_err) => {
+                    log::error!("Failed to open editor: {_err}");
                     let _ = tx.send(Event::CouldNotOpenEditor);
                     return false;
                 }

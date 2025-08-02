@@ -73,6 +73,7 @@ impl App {
         // We completely ignore the errors here, if the exo
         let (_, course) = Course::from_dir(folder, true)
             .map_err(|err| CoreInitError::ProjFilesParsingError(format!("{err:?}")))?;
+        info!("Opening course in folder {folder:?}");
 
         let (event_tx, event_rx) = mpsc::channel();
         let work_handler = WorkHandler::new(event_tx.clone());

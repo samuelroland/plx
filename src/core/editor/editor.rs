@@ -6,6 +6,7 @@ pub fn get_default_editor() -> Option<String> {
         Ok(editor) => {
             let valid_editors: Vec<String> = vec![
                 String::from("code"),
+                String::from("code.cmd"), // windows variant because code.exe doesn't exist, and a .cmd is not automatically added when using Command::new()
                 String::from("codium"),
                 String::from("clion"),
             ];
