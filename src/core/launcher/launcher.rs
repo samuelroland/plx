@@ -22,11 +22,16 @@ pub struct Launcher {
     runner: Runner,
 }
 impl Launcher {
-    pub fn new(id: usize, command: PathBuf, args: Vec<String>) -> Option<Self> {
+    pub fn new(
+        id: usize,
+        command: PathBuf,
+        args: Vec<String>,
+        wd: Option<PathBuf>,
+    ) -> Option<Self> {
         if let Some(cmd) = command.to_str() {
             Some(Self {
                 id,
-                runner: Runner::new(String::from(cmd), args),
+                runner: Runner::new(String::from(cmd), args, wd),
             })
         } else {
             None

@@ -239,9 +239,14 @@ impl App {
                 .iter_mut()
                 .enumerate()
                 .for_each(|(id, result)| {
-                    if let Some(worker) =
-                        Launcher::new(id, cr.elf_path.clone(), result.state.check.args.clone())
-                    {
+                    if let Some(worker) = Launcher::new(
+                        id,
+                        cr.elf_path.clone(),
+                        result.state.check.args.clone(),
+                        // Make sure the program is running in the exo folder so relative path used
+                        // inside the executed code are resolved based on the exo folder !
+                        Some(cr.exo.folder.clone()),
+                    ) {
                         if App::start_work(&self.work_handler, Box::new(worker)).is_some() {
                             result.state.status = DetailledCheckStatus::Running;
                             result.output.clear();

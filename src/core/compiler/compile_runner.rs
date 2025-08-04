@@ -42,7 +42,7 @@ impl CompileRunner {
             None => return None,
         }
         Some(Self {
-            runner: Runner::new(String::from(cmd), args),
+            runner: Runner::new(String::from(cmd), args, None),
         })
     }
     pub fn get_full_command(&self) -> String {

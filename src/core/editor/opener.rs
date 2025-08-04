@@ -27,7 +27,7 @@ impl EditorOpener {
     pub fn new(editor: String, file_path: path::PathBuf) -> Option<Self> {
         if let Some(file_path) = file_path.to_str() {
             return Some(EditorOpener {
-                runner: Runner::new(editor, vec![file_path.to_string()]),
+                runner: Runner::new(editor, vec![file_path.to_string()], None),
             });
         }
         None

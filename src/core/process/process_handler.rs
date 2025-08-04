@@ -1,6 +1,6 @@
 use std::{
-    ffi::OsStr,
     io,
+    path::PathBuf,
     process::{Child, Command, ExitStatus, Stdio},
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -20,12 +20,28 @@ pub enum ProcessStatus {
     Done(ExitStatus),
     Running,
 }
-/// Launches a sub process `cmd` using `args`
+/// Launches a sub process `cmd` using `args` in a given working directory (if not current dir)
 /// Stdout and stderr are piped and can then be retrieved using the Child returned
 /// eg: child.stdout.take() and child.stderr.take()
-pub fn spawn_process(cmd: &str, args: Vec<String>) -> Result<Child, ProcessError> {
-    let mut cmd = Command::new(OsStr::new(&cmd));
-    let child = cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
+/// Note: the `cmd` is transformed into an absolute path when `wd` is Some
+pub fn spawn_process(
+    cmd: &str,
+    args: Vec<String>,
+    wd: &Option<PathBuf>,
+) -> Result<Child, ProcessError> {
+    let mut cmd_path = PathBuf::from(cmd);
+    cmd_path = if wd.is_some() {
+        cmd_path.canonicalize().unwrap_or_default()
+    } else {
+        cmd_path
+    };
+    let mut cmd = Command::new(cmd_path);
+    cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    // Switch to given working directory if provided
+    if let Some(dir) = wd {
+        cmd.current_dir(dir);
+    }
 
     #[cfg(target_os = "windows")]
     {
@@ -36,10 +52,10 @@ pub fn spawn_process(cmd: &str, args: Vec<String>) -> Result<Child, ProcessError
 
         // List of all process creation flags: https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
         const CREATE_NO_WINDOW: u32 = 0x08000000; // Or `134217728u32`
-        child.creation_flags(CREATE_NO_WINDOW);
+        cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
-    let child = child
+    let child = cmd
         .spawn()
         .map_err(|err| ProcessError::SpawnProcessFail(err))?;
 

@@ -2,6 +2,7 @@ use crate::core::process::process_handler::{self, ProcessStatus};
 use log::error;
 use std::{
     io::{BufRead, BufReader, Read},
+    path::PathBuf,
     process::ExitStatus,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -23,11 +24,13 @@ pub enum RunEvent {
 pub struct Runner {
     command: String,
     args: Vec<String>,
+    /// The working directory of the command, by default the current directory
+    wd: Option<PathBuf>,
 }
 
 impl Runner {
-    pub fn new(command: String, args: Vec<String>) -> Self {
-        Self { command, args }
+    pub fn new(command: String, args: Vec<String>, wd: Option<PathBuf>) -> Self {
+        Self { command, args, wd }
     }
     pub fn get_full_command(&self) -> String {
         format!("{} {}", &self.command, &self.args.join(" "))
@@ -57,10 +60,12 @@ impl Runner {
         tx: Sender<RunEvent>,
         should_stop: Arc<AtomicBool>,
     ) -> Result<ExitStatus, ()> {
-        let mut process = process_handler::spawn_process(&self.command, self.args.clone())
-            .map_err(|err| {
-                let _ = tx.send(RunEvent::ProcessCreationFailed(format!("{:?}", err)));
-            })?;
+        let mut process =
+            process_handler::spawn_process(&self.command, self.args.clone(), &self.wd).map_err(
+                |err| {
+                    let _ = tx.send(RunEvent::ProcessCreationFailed(format!("{:?}", err)));
+                },
+            )?;
 
         let _ = tx.send(RunEvent::ProcessCreated);
 
@@ -140,8 +145,9 @@ mod test {
     fn launch_program(
         target: &str,
         stop: Arc<AtomicBool>,
+        wd: Option<PathBuf>,
     ) -> (JoinHandle<Result<ExitStatus, ()>>, Receiver<RunEvent>) {
-        let runner = Runner::new(target.to_string(), vec![]);
+        let runner = Runner::new(target.to_string(), vec![], wd);
 
         let (tx, rx) = channel();
         let thread_stop = stop.clone();
@@ -158,7 +164,7 @@ mod test {
     fn run_blocking_program(target: &str) {
         sleep(Duration::from_secs(1));
         let stop = Arc::new(AtomicBool::new(false));
-        let (handler, _) = launch_program(target, stop.clone());
+        let (handler, _) = launch_program(target, stop.clone(), None);
         // Stop should kill the process no matter the condition it is in
         stop.store(true, Ordering::Relaxed);
         handler
@@ -219,7 +225,7 @@ mod test {
         compile_program(c_file, target);
 
         let stop = Arc::new(AtomicBool::new(false));
-        let (handler, rx) = launch_program(target, stop.clone());
+        let (handler, rx) = launch_program(target, stop.clone(), None);
 
         //give the program some time to start
         sleep(Duration::from_millis(1000));
@@ -234,6 +240,38 @@ mod test {
                 RunEvent::ProcessNewOutputLine(String::from(format!("Hello {}", i)))
             );
         }
+        stop.store(true, Ordering::Relaxed);
+        handler
+            .join()
+            .expect("Couldn't join thread")
+            .expect("Couldn't get child exit status");
+        let _ = std::fs::remove_file(target);
+    }
+
+    #[test]
+    fn test_can_specify_working_directory() {
+        let c_file = "./examples/basics/c/reading-file.c";
+        let target = "./target/reading-file";
+        compile_program(c_file, target);
+
+        let stop = Arc::new(AtomicBool::new(false));
+        let (handler, rx) = launch_program(
+            target,
+            stop.clone(),
+            Some(PathBuf::from("./examples/basics/c")),
+        );
+
+        //give the program some time to start
+        sleep(Duration::from_millis(1000));
+
+        assert_eq!(
+            rx.recv().expect("Didn't receive data from process"),
+            RunEvent::ProcessCreated
+        );
+        assert_eq!(
+            rx.recv().expect("Didn't receive data from process"),
+            RunEvent::ProcessNewOutputLine("test.txt: hey there".to_string())
+        );
         stop.store(true, Ordering::Relaxed);
         handler
             .join()
