@@ -97,6 +97,7 @@ export const useTrainStore = defineStore("train", {
     onExoStatusChange(status: ExoStatusReport) {
       const live = useLiveStore();
       this.exo_status = status;
+      // TODO: only send if it has changed !
       status.edited_files_content.forEach((file) => {
         live.sendFile(file);
       });

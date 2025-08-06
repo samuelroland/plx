@@ -69,6 +69,11 @@ async function gitPullAllCourses() {
     justNotify(NotifType.Info, "Latest course content should have been pulled now")
 }
 
+// TODO: remove this when Delibay and PLX have been merged. This is a hotfix to remove the lid in the skill name like "[hab] Introduction" but only keep  "Introduction"
+function cleanSkillName(name: string) {
+    return name.replace(/\[[a-zA-Z0-9]{3}\]/, "").trim()
+}
+
 </script>
 
 <template>
@@ -89,7 +94,7 @@ async function gitPullAllCourses() {
                     :class="train.selectedSkillIdx == idx ? 'bg-blue-200' : 'hover:bg-blue-50'"
                     class="px-2 text-2xl cursor-pointer"
                     @click="train.selectedSkillIdx = idx; train.exosSelection = false">
-                    <span class="mr-3">{{ idx + 1 }}</span>{{ skill.name }}
+                    <span class="mr-3">{{ idx + 1 }}</span>{{ cleanSkillName(skill.name) }}
                 </div>
             </div>
 

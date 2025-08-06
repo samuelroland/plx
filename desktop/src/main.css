@@ -68,4 +68,11 @@ pre {
     p {
         @apply my-4
     }
+    table {
+        @apply border
+    }
+
+    table td, table th {
+        @apply border py-2 px-4
+    }
 }
