@@ -1086,7 +1086,7 @@ dependencies = [
 [[package]]
 name = "dme-core"
 version = "0.1.0"
-source = "git+https://github.com/samuelroland/dme?branch=secure-and-easy-rendering#fb12f4021876da8deb31e48fd5b6cd3ecb57f4e6"
+source = "git+https://github.com/samuelroland/dme?branch=main#3d21cfbb2bc3459d4bb13033c19a3000b4af09d0"
 dependencies = [
  "ammonia",
  "comrak",
