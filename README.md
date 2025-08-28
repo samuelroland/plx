@@ -18,19 +18,64 @@ PLX offers a terminal user interface (TUI) developed in Rust and supports multip
 
 ### Docs
 
-We deploy documentations on [our website](https://plx.rs/book).## Docs
+We deploy documentations on [our website](https://plx.rs/book).
 
-### Installation
+## Installation
 
-#### Prerequisites
+You need Git and the Rust toolchain 1.87 ([See installation via Rustup](https://rustup.rs/)). You also need a C or C++ compiler, depending on what programming language you want to use.
 
-- [Cargo](https://www.rust-lang.org/tools/install)
-
-Once you have cargo installed, simply run
-
-```bash
-cargo install plx
+```sh
+git clone https://github.com/samuelroland/plx.git
+cd plx
 ```
+
+### Developing on the core library only
+```sh
+cargo build
+```
+
+Look at `src/lib.rs` for now and generate the doc with `cargo doc` to understand more about the available data structures.
+
+How to run tests
+```sh
+cargo test
+```
+
+How to run tests and include ignored tests (they are marked as `#[ignored]` because they need network access or are slow to run)
+```sh
+cargo test -- --include-ignored
+```
+
+### The desktop app
+1. Make sure you have the Tauri prequisites so all build dependencies will be present: [Tauri prequisites](https://tauri.app/start/prerequisites/)
+1. The frontend is built using [NodeJS v22+](https://nodejs.org) and [Pnpm 10+](https://pnpm.io/), make sure you have both of them
+
+#### Running the desktop app for development
+Just run
+```sh
+cd desktop
+pnpm install
+pnpm tauri dev
+```
+
+#### Building the desktop app for production
+**WARNING: This is working mostly on Linux, installers for Windows are generated as `.msi` and for MacOS as `.dmg` but some features have not been tested or do not work**.
+1. To build and generate a bundle for your platform
+    ```sh
+    cd app
+    pnpm install
+    pnpm tauri build && pnpm tauri bundle
+    ```
+1. On Fedora
+   ```sh
+   sudo dnf install src-tauri/target/release/bundle/deb/plx_0.1.0_amd64.deb
+   ```
+1. Or on Ubuntu
+   ```sh
+   sudo apt install src-tauri/target/release/bundle/rpm/plx-0.1.0-1.x86_64.rpm
+   ```
+1. On Windows: look at the generated `.msi` under `src-tauri/target/release/bundle/msi`.
+1. On MacOs: look at the generated `.dmg` under `src-tauri/target/release/bundle/dmg`.
 
 ### Testing using our example folder
 
@@ -46,65 +91,12 @@ Once you have plx installed, you can try it on this repo's example folder
 > [!IMPORTANT] 
 > Only C and C++ exercises are valid for now, java and other languages support is comming soon™
 
-```bash
-git clone git@github.com:plx-pdg/plx.git
-cd plx/examples/full
-plx
-```
-
 On Linux and MacOS, you can easily change `EDITOR` just for PLX, here is an example for `VSCode`.
 ```sh
 EDITOR=code plx
 ```
 
-The useful shortcuts are defined under shortcut `?`, `j` or `k` to move up and down, you can mostly type `l`, until you reach the exo, then the editor should open and then you can do the exo (or just fill the solution next to it see `.sol.c` file), save and see changes...
-
-### Building from source
-
-- Clone this repo
-
-```bash
-git clone git@github.com:plx-pdg/plx.git
-```
-
-- Build using `cargo`
-
-```bash
-cargo build --release
-```
-
-This will install all necessary dependencies and build the program in release mode.
-
-To run it
-```bash
-cargo run
-```
-
-**Install from source**
-```bash
-cargo install --path .
-```
-
-### Running tests
-
-```sh
-cargo test
-```
-
-### Showing Rust code documentation
-You can easily see all our code comments in a nice web page.
-```sh
-cargo doc --open
-```
-
-### Contributing
-
-Please take a look at some of the issues [here](https://github.com/plx-pdg/plx/issues).
-
-- Fork this project
-- Create a branch
-- Develop your solution
-- Create a Pull Request
+Add an example course such as `https://github.com/samuelroland/plx-demo/` via the `Add course` button.
 
 ### License
 
