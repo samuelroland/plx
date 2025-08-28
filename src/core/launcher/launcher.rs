@@ -5,6 +5,7 @@ use std::{
         mpsc::{self, Sender},
         Arc,
     },
+    thread,
 };
 
 use crate::{
@@ -47,7 +48,10 @@ impl Work for Launcher {
     /// See `models::Event`
     fn run(&self, tx: Sender<Event>, stop: Arc<AtomicBool>) -> bool {
         let (runner_tx, runner_rx) = mpsc::channel();
-        let _ = self.runner.run(runner_tx, stop);
+        let cloned_runner = self.runner.clone();
+        thread::spawn(move || {
+            let _ = cloned_runner.run(runner_tx, stop);
+        });
         while let Ok(msg) = runner_rx.recv() {
             let send = match msg {
                 RunEvent::ProcessCreationFailed(err) => {

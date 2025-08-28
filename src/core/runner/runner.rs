@@ -1,5 +1,5 @@
 use crate::core::process::process_handler::{self, ProcessStatus};
-use log::error;
+use log::{error, info};
 use std::{
     io::{BufRead, BufReader, Read},
     path::PathBuf,
@@ -21,6 +21,7 @@ pub enum RunEvent {
     ProcessNewOutputLine(String),
 }
 // A wrapper for running process and handling process events
+#[derive(Clone)]
 pub struct Runner {
     command: String,
     args: Vec<String>,
@@ -38,11 +39,14 @@ impl Runner {
 
     fn read_stream<T: Read>(tx: Sender<RunEvent>, stream: T) {
         let reader = BufReader::new(stream);
-        reader.lines().for_each(|line| match line {
-            Ok(line) => {
-                let _ = tx.send(RunEvent::ProcessNewOutputLine(line));
+        reader.lines().for_each(|line| {
+            info!("Got line in reader.lines() for read_stream {line:?}");
+            match line {
+                Ok(line) => {
+                    let _ = tx.send(RunEvent::ProcessNewOutputLine(line));
+                }
+                Err(_) => return,
             }
-            Err(_) => return,
         });
     }
     fn launch_stream_reader<T>(tx: Sender<RunEvent>, stream: T) -> JoinHandle<()>

@@ -19,6 +19,7 @@ impl App {
             if id < cr.check_results.len() {
                 cr.check_results[id].state.status = DetailledCheckStatus::Checking;
                 self.start_check(id);
+                self.send_new_exo_status();
             }
         }
     }
@@ -28,6 +29,7 @@ impl App {
         if let Some(ref mut cr) = self.current_run {
             if id < cr.check_results.len() {
                 cr.check_results[id].output.push(line);
+                self.send_new_exo_status();
             }
         }
     }
@@ -37,6 +39,7 @@ impl App {
         if let Some(ref mut cr) = self.current_run {
             if run_id < cr.check_results.len() {
                 cr.check_results[run_id].state.status = DetailledCheckStatus::RunFail(err);
+                self.send_new_exo_status();
             }
         }
     }
