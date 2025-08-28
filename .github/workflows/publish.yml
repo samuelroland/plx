@@ -15,14 +15,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - platform: "macos-latest" # for Arm based macs (M1 and above).
-          #   args: "--target aarch64-apple-darwin"
-          # - platform: "macos-latest" # for Intel based macs.
-          #   args: "--target x86_64-apple-darwin"
+          - platform: "macos-latest" # for Arm based macs (M1 and above).
+            args: "--target aarch64-apple-darwin"
+          - platform: "macos-latest" # for Intel based macs.
+            args: "--target x86_64-apple-darwin"
           - platform: "ubuntu-22.04"
             args: ""
-          # - platform: "windows-latest"
-          #   args: ""
+          - platform: "windows-latest"
+            args: ""
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -57,7 +57,7 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: "./src-tauri -> target"
+          workspaces: "./desktop/src-tauri -> target"
 
       - name: run pnpm install
         run: pnpm install
@@ -67,8 +67,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # We don't want to have tag, just a release on the associated commit
-          # tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
+          tagName: demo-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
           releaseName: "Demo release v__VERSION__"
           releaseBody: "Choose the correct asset below depending on your plateform. Keep in mind this is a PLX demo version."
           releaseDraft: true
