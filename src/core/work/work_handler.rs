@@ -8,6 +8,8 @@ use std::{
     thread::{self, JoinHandle},
 };
 
+use log::info;
+
 use crate::models::event::Event;
 
 use super::{work::Work, work_type::WorkType, worker::Worker};
@@ -40,6 +42,7 @@ impl WorkInfo {
     }
     /// Stop a worker
     fn stop(&mut self) {
+        info!("Stopping worker {:?}", self.work);
         self.should_stop.store(true, Ordering::Relaxed);
     }
     /// Join a worker thread
@@ -143,6 +146,7 @@ impl WorkHandler {
     /// Helper function so we can stop all workers except for the UI one
     /// Very useful when changing exos and having to stop every worker working on the old one
     pub fn clean_non_ui_workers(&mut self) {
+        info!("clean_non_ui_workers");
         let ids_to_remove: Vec<usize> = self
             .workers
             .iter()
@@ -154,6 +158,33 @@ impl WorkHandler {
                 }
             })
             .collect();
+
+        info!("clean_non_ui_workers with ids {ids_to_remove:?}");
+        for id in ids_to_remove {
+            self.stop_worker(id);
+        }
+    }
+
+    /// Cancel the workers used specifically for the previous execution, to be able to start another execution without waiting more time
+    pub fn cancel_previous_execution_workers(&mut self) {
+        let ids_to_remove: Vec<usize> = self
+            .workers
+            .iter()
+            .filter_map(|(id, info)| {
+                match info.work {
+                    WorkType::Compilation
+                    | WorkType::OutputChecker
+                    | WorkType::Launcher
+                    | WorkType::Checker => Some(*id),
+                    // Do not cancel those workers, we need to keep them alive for the whole exo!
+                    WorkType::Ui
+                    | WorkType::EditorOpen
+                    | WorkType::DirectoryWatcher
+                    | WorkType::Watcher => None,
+                }
+            })
+            .collect();
+
         for id in ids_to_remove {
             self.stop_worker(id);
         }

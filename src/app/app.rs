@@ -203,6 +203,14 @@ impl App {
         }
     }
 
+    /// Cancel previous execution of the program to start another full run
+    pub(super) fn cancel_previous_execution(wh: &Arc<Mutex<WorkHandler>>) {
+        //Clean up previous exo workers
+        if let Ok(mut wh) = wh.lock() {
+            wh.cancel_previous_execution_workers()
+        }
+    }
+
     /// Starts a new exo
     ///
     /// Starting an exercise essentially means doing 3 things:

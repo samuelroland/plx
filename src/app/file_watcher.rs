@@ -9,6 +9,11 @@ impl App {
     /// File saved event handler
     /// Called when one the current exo files gets saved
     pub(super) fn on_file_save(&mut self, path: PathBuf) {
+        // Cancel all workers of previous run to avoid mixing output of multiple runs
+        // This also fixes an error on Windows where the build fails because the binary output
+        // cannot be written during execution of the previous run
+        App::cancel_previous_execution(&self.work_handler);
+
         if let Some(ref mut cr) = self.current_run {
             let base = &cr.exo.folder;
             let maybe_file = cr
