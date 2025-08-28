@@ -46,6 +46,28 @@ How to run tests and include ignored tests (they are marked as `#[ignored]` beca
 cargo test -- --include-ignored
 ```
 
+### The PLX CLI
+
+Build the CLI. This will install all necessary dependencies and build the program in release mode.
+```bash
+cd cli
+cargo build --release
+```
+
+To run it
+```bash
+cd cli
+cargo run
+```
+
+Install the CLI globally
+```bash
+cd cli
+cargo install --path .
+```
+
+Now you can try to run `plx`
+
 ### The desktop app
 1. Make sure you have the Tauri prequisites so all build dependencies will be present: [Tauri prequisites](https://tauri.app/start/prerequisites/)
 1. The frontend is built using [NodeJS v22+](https://nodejs.org) and [Pnpm 10+](https://pnpm.io/), make sure you have both of them
@@ -77,7 +99,7 @@ pnpm tauri dev
 1. On Windows: look at the generated `.msi` under `src-tauri/target/release/bundle/msi`.
 1. On MacOs: look at the generated `.dmg` under `src-tauri/target/release/bundle/dmg`.
 
-### Testing using our example folder
+### Testing using a demo course
 
 Once you have plx installed, you can try it on this repo's example folder
 
@@ -93,10 +115,10 @@ Once you have plx installed, you can try it on this repo's example folder
 
 On Linux and MacOS, you can easily change `EDITOR` just for PLX, here is an example for `VSCode`.
 ```sh
-EDITOR=code plx
+EDITOR=code plx-desktop
 ```
 
-Add an example course such as `https://github.com/samuelroland/plx-demo/` via the `Add course` button.
+You might also find PLX in your start menu. To test PLX with a demo course use this repository `https://github.com/samuelroland/plx-demo/` via the `Add course` button.
 
 ### License
 
