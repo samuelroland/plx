@@ -41,7 +41,7 @@ function bgFromCheckResult(compilation_success: boolean, result: ExoCheckResultW
     </div>
     <div v-else>
         <h1>{{ exo?.name }}</h1>
-        <Markdown :content="exo?.instruction ?? ''" />
+        <Markdown :content="exo?.instruction ?? ''" :contentId="exo.folder" />
 
         <div v-if="exo_status?.compilation_running || exo_status?.compilation_success == false">
             <h2 v-if="exo_status?.compilation_running">Build</h2>
