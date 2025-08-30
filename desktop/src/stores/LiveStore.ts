@@ -168,6 +168,13 @@ export const useLiveStore = defineStore("live", {
       }
     },
     startTraining() {
+      if (this.live_exos_ids.length == 0) {
+        justNotify(
+          NotifType.Error,
+          "You have to select at least one exo\nto start a live session.",
+        );
+        return;
+      }
       this.live_current_exo_index = 0;
       this.live_session_step = LiveSessionStep.RUNNING;
       const firstExoPath = this.currentLiveExo()?.folder;
@@ -197,8 +204,15 @@ function onEvent(event: Event) {
   console.log("Got event", event);
   switch (event.type) {
     case "SessionStopped":
+      justNotify(
+        NotifType.Info,
+        "The live session '" + live.session?.name + "' has been stopped",
+      );
+      train.selectExoByPath(live.live_exos_ids[live.live_current_exo_index]);
+      train.in_live_session = false;
       break;
     case "SessionJoined":
+      train.in_live_session = true;
       live.client_num = event.content;
       if (live.tmp.joining_session != null) {
         live.session = live.tmp.joining_session;
@@ -222,6 +236,16 @@ function onEvent(event: Event) {
       live.available_sessions = event.content;
       break;
     case "ServerStopped":
+      const config = live.course?.config;
+      if (config)
+        justNotify(
+          NotifType.Info,
+          "The live server on " +
+            config.domain +
+            ":" +
+            config.port +
+            " has stopped.\nThis may be normal maintenance or a rare server crash.\nIf it crashes, it should automatically be restarted.",
+        );
       break;
     case "ExoSwitched":
       if (train.in_live_session) {

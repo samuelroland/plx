@@ -44,7 +44,7 @@ export enum NotifType {
 // Wrapper of the "notify" function from notiwind to apply some defaults
 // The duration is at minimum 3.5 seconds but is automatically increased if the text is longer
 export function justNotify(type: NotifType, text: string, duration?: number) {
-  const CHARS_TO_READ_PER_SECONDS = 30;
+  const CHARS_TO_READ_PER_SECONDS = 25;
   const NOTIF_MIN_DURATION_MS = 3500;
   const estimatedTimeMs = (text.length / CHARS_TO_READ_PER_SECONDS) * 1000;
   let finalDuration =

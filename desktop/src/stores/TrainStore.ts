@@ -41,6 +41,22 @@ export const useTrainStore = defineStore("train", {
       }
     },
 
+    // Given the path of the exo, select it in the UI and return if the exo was found
+    // This is useful to come back to the same exo as the live session when the session is stopped
+    // This might also be useful later if we develop a search system to quickly jump between exos
+    selectExoByPath(path: string) {
+      this.course?.skills.forEach((skill, skillIdx) => {
+        skill.exos.forEach((exo, exoIdx) => {
+          if (exo.folder == path) {
+            this.selectedExoIdx = exoIdx;
+            this.selectedSkillIdx = skillIdx;
+            return true;
+          }
+        });
+      });
+      return false;
+    },
+
     findExo(path: string) {
       for (const skill of this.course?.skills ?? []) {
         for (const exo of skill.exos) {
