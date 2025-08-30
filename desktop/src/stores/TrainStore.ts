@@ -94,10 +94,18 @@ export const useTrainStore = defineStore("train", {
       }
     },
 
+    // When the backend send us a change of the exo status, we need to update the UI
+    // and if we are in a live session, we also need to send the updated files
+    // and results of the check
     onExoStatusChange(status: ExoStatusReport) {
-      const live = useLiveStore();
       this.exo_status = status;
       // TODO: only send if it has changed !
+
+      // Nothing more to do if we are not in a live session
+      // we don't want to send the result to the server !!
+      if (!this.in_live_session) return;
+
+      const live = useLiveStore();
       status.edited_files_content.forEach((file) => {
         live.sendFile(file);
       });
@@ -105,6 +113,7 @@ export const useTrainStore = defineStore("train", {
       if (status.compilation_running) return; // nothing to send for now
 
       // For each check, we convert the type of the result to the type that is valid for ExoCheckResult
+      // and we send this result to the server
       status.check_results.forEach((result, idx) => {
         // If it doesn't build, we send a BuildFailed state for each check
         // TODO: refactor this non performant strategy with a custom protocol message to send build errors
