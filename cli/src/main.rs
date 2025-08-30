@@ -30,12 +30,14 @@ enum Commands {
 }
 
 fn main() {
-    WriteLogger::init(
-        LevelFilter::Debug,
-        Config::default(),
-        File::create("debug.log").expect("Failed to create log file"),
-    )
-    .expect("Failed to initialize WriteLogger");
+    if std::env::var("RUST_LOG").is_ok() {
+        WriteLogger::init(
+            LevelFilter::Debug,
+            Config::default(),
+            File::create("debug.log").expect("Failed to create log file"),
+        )
+        .expect("Failed to initialize WriteLogger");
+    }
 
     let cli = Cli::parse();
 

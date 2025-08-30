@@ -1,6 +1,5 @@
 use std::{
     ffi::OsString,
-    path::{Path, PathBuf},
     sync::{
         atomic::AtomicBool,
         mpsc::{self, Sender},
