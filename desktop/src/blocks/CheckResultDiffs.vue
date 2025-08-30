@@ -51,7 +51,10 @@ const diffModes: DiffModeWithName[] = [{ mode: DiffMode.GivenExpected, name: "Si
 
             <Code :rawAsHtml="true" :code="result.state.status.content.diff"></Code>
         </div>
-        <div v-else>No diff available</div>
+        <div v-else>
+            <h4>Expected (No diff available)</h4>
+            <Code :code="expected.trim()"></Code>
+        </div>
     </div>
 
 </template>
