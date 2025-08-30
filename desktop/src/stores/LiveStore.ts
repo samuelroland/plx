@@ -209,6 +209,13 @@ function onEvent(event: Event) {
         live.session = live.tmp.starting_session;
         live.tmp.starting_session = null;
         live.role = ClientRole.Leader;
+
+        justNotify(
+          NotifType.Success,
+          "Session '" +
+            live.session.name +
+            "' sucessfully started for this course",
+        );
       }
       break;
     case "SessionsList":

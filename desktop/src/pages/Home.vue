@@ -11,6 +11,9 @@ let courses: Ref<CourseWithConfig[]> = ref([])
 
 let selectedCoursePath: Ref<string | null> = ref(null)
 
+let git_https_url: Ref<string> = ref("")
+let live_session_name: Ref<string> = ref("")
+
 const live = useLiveStore()
 const train = useTrainStore()
 
@@ -28,11 +31,11 @@ onMounted(async () => {
 })
 
 async function cloneCourse() {
-    const git_url = prompt("Enter a course Git HTTPS URL")
-    if (git_url) {
-        const success = await commands.cloneCourse(git_url)
+    if (git_https_url.value && git_https_url.value.trim().length > 0) {
+        const success = await commands.cloneCourse(git_https_url.value)
         if (success.status == "ok") {
             justNotify(NotifType.Success, "Successfully cloned the given repository.\nIf that's a valid PLX course, it will be listed below.")
+            git_https_url.value = ""
         } else {
             justNotify(NotifType.Error, "Failed to clone the given repository:\n" + success.error)
         }
@@ -48,13 +51,13 @@ async function openCourse(path: string) {
     if (course) {
         live.course = course
     } else {
-        justNotify(NotifType.Error, "Course doesnt exist at path " + path)
+        justNotify(NotifType.Error, "Course doesn't exist at path " + path)
     }
     live.get_sessions()
 }
 
 async function startSession() {
-    const name = prompt("Enter a session name")
+    const name = live_session_name.value
     if (name && name.trim().length > 0) {
         live.start_session(name)
         let course_path = selectedCoursePath.value
@@ -95,10 +98,12 @@ async function gitPullAllCourses() {
         <!-- </div> -->
         <!-- <h1 class="text-xl md:text-4xl my-5 nice-gradient">Practice programming in a deliberate Learning eXperience </h1> -->
 
-        <div class="flex items-center w-full py-5">
-            <h2 class="!my-0 mr-10">Courses</h2>
-            <button @click="gitPullAllCourses">Pull updates for all courses</button>
+        <h2 class="">Courses</h2>
+        <div class="flex items-center w-full mb-5">
+            <input v-model="git_https_url" type="text" placeholder="Git HTTPS URL of the course" class="px-1 w-96">
             <button @click="cloneCourse">Add course</button>
+            <button @click="trainLocally()">Train {{courses.find(c => c.course.folder ==
+                selectedCoursePath)?.course.code}} locally</button>
         </div>
         <div class="flex space-x-3">
             <div @click="() => openCourse(pack.course.folder)"
@@ -113,14 +118,19 @@ async function gitPullAllCourses() {
         <div class="text-gray-700 italic" v-if="courses.length == 0">No course found...</div>
         <div v-if="selectedCoursePath">
             <div class="flex">
-                <button @click="startSession()">Start live session</button>
-                <button @click="trainLocally()">Train locally</button>
+
+                <div class="flex items-center w-full my-5">
+                    <input v-model="live_session_name" type="text" placeholder="Name of the session" class="px-1 w-96">
+                    <button @click="startSession()">Start live session</button>
+                </div>
             </div>
             <div class="text-gray-700 italic" v-if="live.course == null">Pick a course first</div>
             <div class="text-gray-700 italic" v-if="live.course != null && live.available_sessions.length == 0">
-                No session running for this course, create a new one...
+                No session running for this course on <strong>{{ live.course.config?.domain }}</strong>, create
+                a new one...
             </div>
-            <div v-if="live.course != null && live.available_sessions.length > 0">Join one of the live session:
+            <div v-if="live.course != null && live.available_sessions.length > 0">
+                <span>Join one of the live session</span>
                 <button @click="() => live.get_sessions()">Reload</button>
             </div>
             <ol>
