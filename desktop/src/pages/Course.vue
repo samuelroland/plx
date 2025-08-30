@@ -74,6 +74,11 @@ function cleanSkillName(name: string) {
     return name.replace(/\[[a-zA-Z0-9]{3}\]/, "").trim()
 }
 
+function totalExosCount() {
+    const train = useTrainStore()
+    return train.course?.skills.map(s => s.exos.length).reduce((a, b) => a + b, 0) ?? 0
+}
+
 </script>
 
 <template>
@@ -81,25 +86,33 @@ function cleanSkillName(name: string) {
         <div class="flex items-center">
             <h1 class="flex-1">{{ train.course.name }}</h1>
 
-            <button @click="gitPullAllCourses">Pull all</button>
-            <span title="Run `plx parse` in the course folder to inspect them" v-if="train.errors.length > 0">({{
-                train.errors.length }} parsing errors)</span>
+            <button @click="gitPullAllCourses">Pull updates</button>
+            <span title="Run `plx parse` in the course folder to inspect them" v-if="train.errors.length > 0">
+                ({{ train.errors.length }} parsing errors)</span>
         </div>
 
         <div class="flex space-x-3">
             <!-- skills -->
-            <div class="flex-1">
-                <h2>Skills</h2>
+            <div class="flex-1 mr-3">
+                <h2 class="flex items-center">
+                    <span class="mr-2 flex-1">Skills</span>
+                    <span>{{ totalExosCount() }}</span>
+                </h2>
                 <div v-for="(skill, idx) in train.course.skills"
                     :class="train.selectedSkillIdx == idx ? 'bg-blue-200' : 'hover:bg-blue-50'"
                     class="px-2 text-2xl cursor-pointer"
                     @click="train.selectedSkillIdx = idx; train.exosSelection = false">
-                    <span class="mr-3">{{ idx + 1 }}</span>{{ cleanSkillName(skill.name) }}
+                    <div class="flex">
+                        <div class="flex-1 line-clamp-1"><span class="mr-3">{{ idx + 1 }}</span>{{
+                            cleanSkillName(skill.name) }}
+                        </div>
+                        <div class="ml-2">{{ skill.exos.length }}</div>
+                    </div>
                 </div>
             </div>
 
             <!-- exos -->
-            <div class="flex-2">
+            <div class="flex-1">
                 <h2>Exos</h2>
                 <div v-for="(exo, idx) in train.currentSkill()?.exos"
                     :class="train.exosSelection && train.selectedExoIdx == idx ? 'bg-blue-200' : ''"
@@ -110,7 +123,7 @@ function cleanSkillName(name: string) {
                         <div class="flex-1">
                             <span class="mr-3">{{ (train.selectedSkillIdx + 1) + "." + (idx + 1) }}</span>{{ exo.name }}
                         </div>
-                        <span class="hidden md:block">{{ exo.state }}</span>
+                        <span class="hidden md:block ml-4">{{ exo.state }}</span>
                     </div>
                 </div>
                 <div v-if="train.currentSkill()?.exos.length == 0" class="text-gray-600 italic ">
@@ -118,7 +131,7 @@ function cleanSkillName(name: string) {
             </div>
 
             <!-- exo preview -->
-            <div class="flex-3 hidden lg:block">
+            <div class="flex-2 hidden lg:block">
                 <CodeExo v-if="train.currentExo() != undefined && train.exosSelection" :exo="train.currentExo()">
                 </CodeExo>
             </div>

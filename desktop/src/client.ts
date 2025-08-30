@@ -69,7 +69,7 @@ export class LiveClient {
         NotifType.ServerError,
         "The connection to the live server " +
           serverVisualId +
-          " has failed to open under " +
+          "\nhas failed to open under " +
           WEBSOCKET_CONNECTION_TIMEOUT_MS +
           "ms.\nEither you don't have internet access or the server is down...",
       );
