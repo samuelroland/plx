@@ -107,7 +107,12 @@ impl ClientManager {
                 }
             }
         }
-
+        // If the client that is left is in a session, we have to make it leave to clean it's data
+        // and to send updated stats to leaders
+        if let Some(session) = &self.session {
+            self.sessions_manager
+                .leave_session(session.client_num.clone(), session.session_tx.clone());
+        }
         println!("ClientManager for client_id '{}' is done", self.client_id);
     }
 

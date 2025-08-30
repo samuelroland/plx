@@ -99,6 +99,8 @@ impl SessionsManagement {
                 .await
                 .insert(leader_client_id, session_info);
         }
+
+        let _ = session_tx.send(BroadcastAction::SendStats);
         Ok((leaders_client_num, session_tx))
     }
 

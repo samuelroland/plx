@@ -207,6 +207,7 @@ fn get_sessions_works() {
     assert_eq!(c.get_sessions("PRG2group".to_string()).unwrap(), vec![]);
     let expected_session = get_default_session();
     c.start_session(NAME, GROUP_ID).unwrap();
+    c.wait_on_next_event().unwrap(); // consume the stats
     assert_eq!(
         c.get_sessions(GROUP_ID.to_string()).unwrap(),
         vec![expected_session]
@@ -219,9 +220,13 @@ fn get_sessions_correctly_use_group_id() {
     let c = &mut spawn_server_and_n_clients(5);
     println!("ok");
     c[0].start_session(NAME, GROUP_ID).unwrap();
+    c[0].wait_on_next_event().unwrap(); // consume the stats
     c[2].start_session("PRG1 Joe", "PRG1group").unwrap();
+    c[2].wait_on_next_event().unwrap(); // consume the stats
     c[3].start_session("PRG1 Joe", "PRG1FORK").unwrap();
+    c[3].wait_on_next_event().unwrap(); // consume the stats
     c[1].start_session("PRG1 Alice", "PRG1group").unwrap();
+    c[1].wait_on_next_event().unwrap(); // consume the stats
 
     assert_eq!(
         c[3].get_sessions("inexistant group id".to_string())
@@ -289,6 +294,7 @@ fn session_continues_to_exist_when_leader_disconnects() {
 fn client_can_leave_session_and_leader_can_receive_stats() {
     let c = &mut spawn_server_and_n_clients(3);
     c[0].start_session(NAME, GROUP_ID).unwrap();
+    c[0].wait_on_next_event().unwrap(); // consume the stats
     c[1].join_session(NAME, GROUP_ID).unwrap();
     assert_events_eq(
         &c[0].wait_on_next_event().unwrap(),
@@ -346,6 +352,7 @@ fn exo_switch_from_leader_is_forwarded_when_session_exists() {
     let random_port = spawn_test_server();
     let mut c = LiveClient::connect("127.0.0.1", random_port, "SecretId3".to_string()).unwrap();
     c.start_session(NAME, GROUP_ID).unwrap();
+    c.wait_on_next_event().unwrap(); // consume the stats
     c.send_exo_switch("intro/salue-moi".to_string());
 
     let (tx, rx) = channel::<Event>();
@@ -439,8 +446,9 @@ fn forwarding_to_leaders_work() {
     c0.start_session(NAME, GROUP_ID).unwrap();
     c1.join_session(NAME, GROUP_ID).unwrap();
     c2.join_session(NAME, GROUP_ID).unwrap();
-    c0.wait_on_next_event().unwrap(); // consume the 2 stats
-    c0.wait_on_next_event().unwrap(); // consume the 2 stats
+    c0.wait_on_next_event().unwrap(); // consume the stats
+    c0.wait_on_next_event().unwrap(); // consume the stats
+    c0.wait_on_next_event().unwrap(); // consume the stats
 
     c1.send_file("main.c".to_string(), "client 1, code v1".to_string());
     sleep(Duration::from_millis(200));
@@ -483,5 +491,44 @@ fn forwarding_to_leaders_work() {
                 time: now,
             },
         },
+    );
+}
+
+#[test]
+#[ntest::timeout(2000)]
+fn leader_receive_correct_stats_when_it_joins_and_when_a_client_is_disconnected() {
+    let random_port = spawn_test_server();
+    let mut c0 = LiveClient::connect("127.0.0.1", random_port, format!("SecretId{}", 1)).unwrap();
+    let mut c1 = LiveClient::connect("127.0.0.1", random_port, format!("SecretId{}", 2)).unwrap();
+    c0.start_session(NAME, GROUP_ID).unwrap();
+    assert_events_eq(
+        &c0.wait_on_next_event().unwrap(),
+        &Event::Stats({
+            SessionStats {
+                followers_count: 0,
+                leaders_count: 1,
+            }
+        }),
+    );
+    c1.join_session(NAME, GROUP_ID).unwrap();
+    assert_events_eq(
+        &c0.wait_on_next_event().unwrap(),
+        &Event::Stats({
+            SessionStats {
+                followers_count: 1,
+                leaders_count: 1,
+            }
+        }),
+    );
+
+    c1.disconnect();
+    assert_events_eq(
+        &c0.wait_on_next_event().unwrap(),
+        &Event::Stats({
+            SessionStats {
+                followers_count: 0,
+                leaders_count: 1,
+            }
+        }),
     );
 }
