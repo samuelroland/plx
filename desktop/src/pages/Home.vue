@@ -74,18 +74,14 @@ async function joinSession(session: Session) {
 }
 
 function trainLocally() {
-    const train = useTrainStore()
     let course_path = selectedCoursePath.value
     if (course_path)
         train.loadCourse(course_path)
     const global = useGlobalStore()
     global.page = "course";
-}
-
-async function gitPullAllCourses() {
-    await commands.gitPullAllCourses()
-    loadCourses()
-    justNotify(NotifType.Info, "All courses content should be pulled now")
+    // We opened the course locally, we don't care about the server not being reachable
+    // TODO: remove that when the session access is refactored
+    live.clients_timeout_ids.map((id) => clearInterval(id));
 }
 
 </script>
@@ -93,10 +89,6 @@ async function gitPullAllCourses() {
 <template>
     <div class="p-2 sm:mx-5 md:mx-10 lg:mx-10 max-w-[1300px] flex items-center flex-col">
         <img class="w-72 max-w-[80vw]" src="/logo.svg" />
-        <!-- <div> -->
-        <!--     <a target="_blank" href="https://github.com/samuelroland/plx">Git repository</a> -->
-        <!-- </div> -->
-        <!-- <h1 class="text-xl md:text-4xl my-5 nice-gradient">Practice programming in a deliberate Learning eXperience </h1> -->
 
         <h2 class="">Courses</h2>
         <div class="flex items-center w-full mb-5">
