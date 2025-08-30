@@ -84,7 +84,7 @@ pnpm tauri dev
 **WARNING: This is working mostly on Linux, installers for Windows are generated as `.msi` and for MacOS as `.dmg` but some features have not been tested or do not work**.
 1. To build and generate a bundle for your platform
     ```sh
-    cd app
+    cd desktop
     pnpm install
     pnpm tauri build && pnpm tauri bundle
     ```

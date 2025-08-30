@@ -12,7 +12,7 @@
     "app": {
         "windows": [
             {
-                "title": "plx",
+                "title": "PLX",
                 "width": 1000,
                 "height": 800
             }
@@ -29,6 +29,9 @@
             "deb": {
                 "desktopTemplate": "./ship/plx.desktop"
             }
+        },
+        "macOS": {
+            "signingIdentity": "-"
         },
         "active": true,
         "targets": [
