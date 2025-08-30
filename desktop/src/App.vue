@@ -24,7 +24,8 @@ onMounted(async () => {
 <template>
     <div v-html="style"></div>
     <div class="w-full h-[100vh]">
-        <header class="h-7 flex px-3 p-1 items-center" :class="live.isConnected ? 'bg-blue-200' : 'bg-orange-100'">
+        <header class="h-7 flex px-3 p-1 items-center"
+            :class="live.isConnected && train.in_live_session ? 'bg-blue-200' : 'bg-orange-100'">
             <div class="flex-1 flex">
                 <img class="w-8 max-w-[80vw] inline" src="/logo.svg" />
                 <span :class="global.page == 'home' ? 'bg-blue-300' : ''"
