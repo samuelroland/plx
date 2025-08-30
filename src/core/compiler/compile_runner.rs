@@ -1,7 +1,11 @@
-use std::sync::{
-    atomic::AtomicBool,
-    mpsc::{self, Sender},
-    Arc,
+use std::{
+    ffi::OsString,
+    path::{Path, PathBuf},
+    sync::{
+        atomic::AtomicBool,
+        mpsc::{self, Sender},
+        Arc,
+    },
 };
 
 use crate::{
@@ -35,7 +39,15 @@ impl CompileRunner {
                 // From "man g++"
                 // "c++2b The next revision of the ISO C++ standard, planned for 2023.
                 // Support is highly experimental, and will almost certainly change in incompatible ways in future releases."
-                args.push(String::from("-std=c++2b"));
+                // TODO: fix this very dirty hack to enable this flag only for C++ and not C !
+                if exo
+                    .files
+                    .iter()
+                    .find(|f| f.extension() == Some(&OsString::from("cpp")))
+                    .is_some()
+                {
+                    args.push(String::from("-std=c++2b"));
+                }
                 args.push(String::from("-o"));
                 args.push(String::from(path));
             }
