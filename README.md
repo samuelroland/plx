@@ -16,12 +16,17 @@ PLX is a project developed to enhance the learning of programming languages, wit
 
 PLX offers a terminal user interface (TUI) developed in Rust and supports multiple languages (currently C and C++). It enables automatic compilation as soon as a file is saved, automated checks to compare program outputs, and instant display of errors and output differences. The solution code can also be displayed. The project draws inspiration from [Rustlings](https://rustlings.cool/) and aims to create a more efficient learning experience, particularly for programming courses at HEIG-VD.
 
+<!--
+TODO: update and refactor those docs ?? Or merge with Delibay's docs ?
 ### Docs
 
 We deploy documentations on [our website](https://plx.rs/book).
+-->
 
-## Installation
+## Develop
 
+<details>
+<summary>Details</summary>
 You need Git and the Rust toolchain 1.87 ([See installation via Rustup](https://rustup.rs/)). You also need a C or C++ compiler, depending on what programming language you want to use.
 
 ```sh
@@ -49,9 +54,9 @@ cargo test -- --include-ignored
 ### The PLX CLI
 
 <details>
-<summary>Solution</summary>
+<summary>Details</summary>
 
-Build the CLI. This will install all necessary dependencies and build the program in release mode.
+This will install all necessary dependencies and build the program in release mode.
 ```bash
 cd cli
 cargo build --release
@@ -73,37 +78,7 @@ Now you can try to run the `plx` command in your terminal. If `~/.cargo/bin` is 
 </details>
 
 ### The PLX desktop app
-#### Try the desktop app with a demo build
-**Prequisites**
-- Install Git and VSCode (or VSCodium)
-- If you want to do C: install `gcc` (except if you are on MacOs where the existing `clang` is enough)
-- If you want to do C++: install `gcc` (except if you are on MacOs where the existing `clang` is enough)
-
-Note: when `code` is mentionned, replace with `codium` if you have VSCodium instead.
-
-1. Get a demo build under the [releases](https://github.com/samuelroland/plx/releases) and pick the correct bundle depending on your platform
-1. Install the bundle
-    1. On Windows or MacOS, double click on the installer
-    1. On MacOS
-        - You may need to accept the untrusted app under Privacy and Security in your Settings
-        - You may need to right click > Open, on the plx.app package under `/Applications` to mark the application as trusted
-        - This is not ideal for now but you have to open it via absolute path like this to be able to define the `EDITOR` variable to `code
-            ```sh
-            EDITOR=code /Applications/plx.app/Contents/MacOS/plx-desktop
-            ```
-    1. On Linux
-        1. On Fedora run `sudo dnf install plx-*.rpm` to install the downloaded RPM
-        1. On Ubuntu run `sudo apt install ./plx-*.deb` to install the downloaded DEB
-        1. Run the desktop app with this command
-        ```sh
-        EDITOR=code plx-desktop
-        ```
-
-Tip: If VSCode doesn't open, you can open it yourself and this might help to open the first time.
-
-#### Or compile PLX desktop yoursefl
-<details>
-<summary>Details</summary>
+#### Or compile PLX desktop yourself
 
 <details>
 <summary>Compilation dependencies</summary>
@@ -149,7 +124,42 @@ pnpm tauri dev
 
 </details>
 
-### Testing using a demo course
+## Try the desktop app with a demo build
+**Prequisites**
+- Install Git and VSCode (or VSCodium)
+- If you want to do C: install `gcc` (except if you are on MacOs where the existing `clang` is enough)
+- If you want to do C++: install `gcc`
+
+Note: when `code` is mentionned, replace with `codium` if you have VSCodium instead.
+
+**Steps**
+1. **Get a demo build** under the [releases](https://github.com/samuelroland/plx/releases) and pick the correct bundle depending on your platform
+1. **Install the bundle**
+    1. On Windows or MacOS, double click on the installer
+    1. On Linux
+        1. On Fedora run `sudo dnf install plx-*.rpm` to install the downloaded RPM
+        1. On Ubuntu run `sudo apt install ./plx-*.deb` to install the downloaded DEB
+
+1. **Open PLX desktop with the env variable EDITOR defined**. This variable is necessary to indicate to PLX which IDE to open.
+    1. On MacOS
+        - You may need to accept the untrusted app under Privacy and Security in your Settings
+        - You may need to right click > Open, on the plx.app package under `/Applications` to mark the application as trusted
+        - This is not ideal for now but you have to open it via absolute path like this to be able to define the `EDITOR` variable to `code
+            ```sh
+            EDITOR=code /Applications/plx.app/Contents/MacOS/plx-desktop
+            ```
+    1. On Windows, you can define the variable once globally and then open via the start menu. In Powershell in admin mode run this:
+        ```sh
+        setx.exe /m EDITOR code.cmd
+        ```
+    1. On Linux, run the desktop app with this command
+        ```sh
+        EDITOR=code plx-desktop
+        ```
+
+Tip: If VSCode doesn't open, you can open it yourself and retry. In some cases, this might help PLX to open the first time.
+
+## Testing using a demo course
 
 We have a small demo course with a few exos in C and C++ to let you try it out.
 
@@ -189,6 +199,8 @@ paste this in the input on the home page and click on the `Add course` button.
 
 1. You can try to do the exo and make the checks in PLX to pass. If you do little mistakes, the diff system will show you where the output is incorrect.
     ![demo-course-diff.png](imgs/demo-course-diff.png)
+
+At this point, if all these situations are working, PLX is fully working on your machine.
 
 ### License
 
