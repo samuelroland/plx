@@ -124,13 +124,13 @@ pnpm tauri dev
 
 </details>
 
-## Try the desktop app with a demo build
-**Prequisites**
-- Install Git and VSCode (or VSCodium)
-- If you want to do C: install `gcc` (except if you are on MacOs where the existing `clang` is enough)
-- If you want to do C++: install `gcc`
+## Try the desktop app
+We provide demo builds to test early versions of PLX, here are the steps to setup these versions.
 
-Note: when `code` is mentionned, replace with `codium` if you have VSCodium instead.
+**Prequisites**
+- Install Git and VSCode (or VSCodium, in this case when `code` is mentionned, replace with `codium` if you have VSCodium instead.)
+- If you want to do C: install `gcc` (except if you are on MacOs where the existing `clang` is enough)
+- If you want to do C++: install `g++`
 
 **Steps**
 1. **Get a demo build** under the [releases](https://github.com/samuelroland/plx/releases) and pick the correct bundle depending on your platform
@@ -144,7 +144,7 @@ Note: when `code` is mentionned, replace with `codium` if you have VSCodium inst
     1. On MacOS
         - You may need to accept the untrusted app under Privacy and Security in your Settings
         - You may need to right click > Open, on the plx.app package under `/Applications` to mark the application as trusted
-        - This is not ideal for now but you have to open it via absolute path like this to be able to define the `EDITOR` variable to `code
+        - This is not ideal for now but you have to open it via absolute path like this to be able to define the `EDITOR` variable to `code`
             ```sh
             EDITOR=code /Applications/plx.app/Contents/MacOS/plx-desktop
             ```
