@@ -156,8 +156,13 @@ We provide demo builds to test early versions of PLX, here are the steps to setu
         ```sh
         EDITOR=code plx-desktop
         ```
+1. **Configure your IDE with auto-save**  
+    That's an important step to make sure the files you change are regularly saved and you haved the fastest feedback loop in PLX. This is crucial with live sessions to allow the teachers to updates to the code regularly.
+    In VSCode, open your settings (Ctrl+shift+p > Open User Settings (JSON)) and enter this line
+    ```json
+    "files.autoSave": "afterDelay",
+    ```
 
-Tip: If VSCode doesn't open, you can open it yourself and retry. In some cases, this might help PLX to open the first time.
 
 ## Testing using a demo course
 
@@ -190,7 +195,8 @@ paste this in the input on the home page and click on the `Add course` button.
 1. You should see a course a bit like that
 
     ![demo-course-skills-exos.png](imgs/demo-course-skills-exos.png)
-1. You can click on skill `Introduction` and then double click on the first exo in C, your IDE should open on the `main.c` and you should see the details of the exo.
+1. You can click on skill `Introduction` and then double click on the first exo in C, your IDE should open on the `main.c` and you should see the details of the exo.  
+Tip: If VSCode doesn't open, you can open it yourself and retry to close and reopen the exo. In some cases, this might help PLX to open the first time. If it still doesn't work, make sure you have followed the previous section.
 
     ![demo-course-exo-ide.png](imgs/demo-course-exo-ide.png)
 1. You can try to introduce a build error and see the output directly in PLX
@@ -199,6 +205,7 @@ paste this in the input on the home page and click on the `Add course` button.
 
 1. You can try to do the exo and make the checks in PLX to pass. If you do little mistakes, the diff system will show you where the output is incorrect.
     ![demo-course-diff.png](imgs/demo-course-diff.png)
+1. You can leave the exo with the `Esc` key or by clicking on the course name at the top. You can go the Home with the dedicated button at the top left.
 
 At this point, if all these situations are working, PLX is fully working on your machine.
 
