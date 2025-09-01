@@ -6,6 +6,7 @@ import { useTrainStore } from '../stores/TrainStore.ts';
 import { useGlobalStore } from '../stores/GlobalStore.ts';
 import { Session } from '../ts/shared.ts';
 import { justNotify, NotifType } from '../util.ts';
+import { onKeyStroke } from '@vueuse/core';
 
 let courses: Ref<CourseWithConfig[]> = ref([])
 
@@ -28,7 +29,19 @@ onMounted(async () => {
     } catch (error) {
         justNotify(NotifType.Error, error as string)
     }
+
+    // DEBUG: Setup alt+r to reset the client_id as a way to do demo
+    // with new clients without using the persisted client_id in localStorage
+    onKeyStroke((e) => {
+        if (e.key == "r" && e.altKey) {
+            const id = live.reset_client_with_non_persisted_client_id()
+            justNotify(NotifType.Debug, "New client id generated just for this PLX instance with id " + id, 2000)
+            e.preventDefault()
+        }
+    })
 })
+
+
 
 async function cloneCourse() {
     if (git_https_url.value && git_https_url.value.trim().length > 0) {

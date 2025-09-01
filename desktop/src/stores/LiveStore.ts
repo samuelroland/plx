@@ -110,6 +110,15 @@ export const useLiveStore = defineStore("live", {
         }
       }
     },
+
+    // This is useful for demo purpose to act as different clients on a single machine
+    reset_client_with_non_persisted_client_id() {
+      this.client = null;
+      const newTempId = crypto.randomUUID();
+      this.setup_new_client(newTempId);
+      return newTempId;
+    },
+
     disconnect_if_existing_client() {
       if (this.client) {
         this.client.disconnect();
