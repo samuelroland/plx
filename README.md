@@ -156,6 +156,8 @@ We provide demo builds to test early versions of PLX, here are the steps to setu
         ```sh
         EDITOR=code plx-desktop
         ```
+1. Make sure `gcc` and `git` and `code` are your in `PATH`, you can check that by just running the command in your terminal to see if there is no "command not found".
+    1. On Windows, you can try to add them with `setx /M path "C:\Program Files\Git\bin"` in admin Powershell (adapt the path to the different folders in your situation).
 1. **Configure your IDE with auto-save**  
     That's an important step to make sure the files you change are regularly saved and you haved the fastest feedback loop in PLX. This is crucial with live sessions to allow the teachers to updates to the code regularly.
     In VSCode, open your settings (Ctrl+shift+p > Open User Settings (JSON)) and enter this line
