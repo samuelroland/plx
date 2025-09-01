@@ -9,6 +9,7 @@ import { useGlobalStore } from "./stores/GlobalStore";
 import { onMounted, ref } from "vue";
 import { commands } from "./ts/commands";
 import { useTrainStore } from "./stores/TrainStore";
+import { ClientRole } from "./ts/shared";
 
 const live = useLiveStore()
 const global = useGlobalStore()
@@ -19,6 +20,17 @@ onMounted(async () => {
     const raw_css = await commands.loadDefaultThemeCss()
     style.value = "<style>" + raw_css + "</style>"
 })
+
+function stopSession() {
+    live.stop_session()
+    global.page = "home"
+}
+
+function leaveSession() {
+    train.stopExo()
+    live.leave_session()
+    global.page = "home"
+}
 </script>
 
 <template>
@@ -37,7 +49,11 @@ onMounted(async () => {
                 </span>
             </div>
             <span v-if="live.session">
-                - Current session: {{ live.session.name }}
+                <button class="!bg-blue-300" v-if="live.role == ClientRole.Follower" @click="leaveSession()">Leave
+                    session</button>
+                <button class="!bg-blue-300" v-if="live.role == ClientRole.Leader" @click="stopSession()">Stop
+                    session</button>
+                Current session: {{ live.session.name }}
                 - {{ live.role }}
                 - Client number {{ live.client_num }} </span>
             <span v-else class="text-gray-600/80 italic">No live session</span>

@@ -120,6 +120,12 @@ export const useLiveStore = defineStore("live", {
         type: "LeaveSession",
       });
     },
+    stop_session() {
+      this.connect_if_no_client();
+      this.client?.send_msg({
+        type: "StopSession",
+      });
+    },
     // Get sessions for the group_id in LiveConfig
     get_sessions() {
       this.available_sessions = [];
@@ -204,12 +210,14 @@ function onEvent(event: Event) {
   console.log("Got event", event);
   switch (event.type) {
     case "SessionStopped":
+      const name = live.session?.name.toString();
       justNotify(
         NotifType.Info,
-        "The live session '" + live.session?.name + "' has been stopped",
+        "The live session '" + name + "' has been stopped",
       );
       train.selectExoByPath(live.live_exos_ids[live.live_current_exo_index]);
       train.in_live_session = false;
+      live.$reset();
       break;
     case "SessionJoined":
       train.in_live_session = true;
@@ -246,6 +254,9 @@ function onEvent(event: Event) {
             config.port +
             " has stopped.\nThis may be normal maintenance or a rare server crash.\nIf it crashes, it should automatically be restarted.",
         );
+      break;
+    case "SessionLeaved":
+      live.$reset();
       break;
     case "ExoSwitched":
       if (train.in_live_session) {

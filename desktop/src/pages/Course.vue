@@ -120,8 +120,9 @@ function totalExosCount() {
                     @click="train.selectedExoIdx = idx; train.exosSelection = true" @dblclick="startExo">
 
                     <div class="flex">
-                        <div class="flex-1">
-                            <span class="mr-3">{{ (train.selectedSkillIdx + 1) + "." + (idx + 1) }}</span>{{ exo.name }}
+                        <div class="flex-1 flex">
+                            <span class="mr-3">{{ (train.selectedSkillIdx + 1) + "." + (idx + 1) }}</span>
+                            <span class="line-clamp-1">{{ exo.name }}</span>
                         </div>
                         <span class="hidden md:block ml-4">{{ exo.state }}</span>
                     </div>

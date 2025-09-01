@@ -84,6 +84,12 @@ function trainLocally() {
     live.clients_timeout_ids.map((id) => clearInterval(id));
 }
 
+async function gitPullAllCourses() {
+    await commands.gitPullAllCourses()
+    loadCourses()
+    justNotify(NotifType.Info, "All courses content should be pulled now")
+}
+
 </script>
 
 <template>
@@ -94,8 +100,10 @@ function trainLocally() {
         <div class="flex items-center w-full mb-5">
             <input v-model="git_https_url" type="text" placeholder="Git HTTPS URL of the course" class="px-1 w-96">
             <button @click="cloneCourse">Add course</button>
-            <button @click="trainLocally()">Train {{courses.find(c => c.course.folder ==
+            <button v-if="selectedCoursePath != null" @click="trainLocally()">Train {{courses.find(c => c.course.folder
+                ==
                 selectedCoursePath)?.course.code}} locally</button>
+            <button @click="gitPullAllCourses()">Update all</button>
         </div>
         <div class="flex space-x-3">
             <div @click="() => openCourse(pack.course.folder)"
