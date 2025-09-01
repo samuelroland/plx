@@ -2,11 +2,10 @@
 
 import { defineStore } from "pinia";
 import { commands, Exo, Course, Skill } from "../ts/commands";
-import { useGlobalStore } from "./GlobalStore";
 import { Channel } from "@tauri-apps/api/core";
 import { useLiveStore } from "./LiveStore";
 import { complement, ParseError } from "../ts/complement";
-import { ClientRole, ExoCheckResult, ExoStatusReport } from "../ts/shared";
+import { ExoCheckResult, ExoStatusReport } from "../ts/shared";
 import { anonymizeAndSimplifyText, justNotify, NotifType } from "../util";
 
 export const useTrainStore = defineStore("train", {

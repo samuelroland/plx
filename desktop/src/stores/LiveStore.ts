@@ -77,15 +77,39 @@ export const useLiveStore = defineStore("live", {
         return;
       }
       if (!this.client) {
+        this.setup_new_client(this.get_client_id());
+      }
+    },
+
+    setup_new_client(client_id: string) {
+      const config = this.course?.config;
+      if (config) {
         this.client = LiveClient.connect(
           config.domain,
           config.port,
-          "super id",
+          client_id,
           onEvent,
         );
       }
     },
 
+    // This generate a UUID or use the last one persisted in localStorage
+    get_client_id(): string {
+      const LOCALSTORAGE_KEY_CLIENT_ID = "client_id";
+      const existingClientId = localStorage.getItem(LOCALSTORAGE_KEY_CLIENT_ID);
+      justNotify(NotifType.Debug, "Existing client id is " + existingClientId);
+      if (existingClientId) return existingClientId;
+      else {
+        try {
+          const newClientId = crypto.randomUUID();
+          localStorage.setItem(LOCALSTORAGE_KEY_CLIENT_ID, newClientId);
+          return newClientId;
+        } catch {
+          // just in case the access to crypto.randomUUID() is not possible, take a random value
+          return Math.random().toString();
+        }
+      }
+    },
     disconnect_if_existing_client() {
       if (this.client) {
         this.client.disconnect();

@@ -29,10 +29,7 @@ export class LiveClient {
     const live = useLiveStore();
     live.clients_timeout_ids.map((id) => clearInterval(id));
     let querystring = new URLSearchParams();
-    querystring.append(
-      QUERYSTRING_LIVE_CLIENT_ID_FIELD,
-      Math.random().toString(), // TODO: use a fixed and persisted client_id,
-    );
+    querystring.append(QUERYSTRING_LIVE_CLIENT_ID_FIELD, client_id);
     querystring.append(
       QUERYSTRING_LIVE_PROTOCOL_VERSION_FIELD,
       PROTOCOL_VERSION,
